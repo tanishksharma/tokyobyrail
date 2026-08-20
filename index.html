@@ -3,17 +3,483 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Tokyo by rail</title>
-  <meta name="description" content="Tokyo by rail — the Tokyo railway network, line by line.">
+  <meta name="description" content="Every passenger line on the Greater Tokyo network — 98 lines across 22 companies — with its official color, symbol and station-number badge, in one searchable index.">
+  <meta property="og:title" content="Tokyo by rail">
+  <meta property="og:description" content="Every line, every color.">
+  <meta property="og:type" content="website">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Tokyo by rail">
+  <meta property="og:site_name" content="Tokyo by rail">
+  <meta property="og:url" content="https://tokyorail.tanishk.ai/">
+  <link rel="canonical" href="https://tokyorail.tanishk.ai/">
+  <link rel="apple-touch-icon" href="/icon.png">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚇</text></svg>">
   <link rel="stylesheet" href="https://facet.tanishksharma.com/lib/facet.css">
-  <script src="https://facet.tanishksharma.com/lib/facet.js" defer></script>
+  <script src="https://facet.tanishksharma.com/lib/facet.js" defer data-service-worker="/sw.js"></script>
+
+  <style>
+    /* Bespoke visualisation CSS — justified: the station-number badge and
+       the card's line-color underline render each line's OFFICIAL signage
+       colors, which are data, not theme; the library has no primitive for
+       them. Layout and type read the tokens; the only literal colors are the
+       badge's signage white/black (real Tokyo station badges are
+       white-ground with black letters in every light). */
+
+    /* The station-number badge: a subway roundel (ring circle) or a
+       JR/private rounded-square frame, the ring in the line's color. */
+    .rail-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: none; width: 2.25rem; height: 2.25rem;
+      background: #fff; color: #111;
+      border: 0.3125rem solid var(--c);
+      font-weight: var(--weight-heading); font-size: 0.95rem; line-height: 1;
+      user-select: none;
+    }
+    .rail-badge[data-shape="circle"] { border-radius: 50%; }
+    .rail-badge[data-shape="square"] { border-radius: 0.5rem; font-size: 0.8rem; }
+    .rail-badge[data-long] { font-size: 0.7rem; letter-spacing: -0.02em; }
+
+    /* Cards view: the line color underlines its own card. */
+    .line-card { border-bottom: 0.375rem solid var(--c); text-align: left; }
+    .line-card .line-op {
+      font-size: var(--text-footnote); font-weight: var(--weight-eyebrow);
+      letter-spacing: var(--tracking-caps); text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .line-card .line-ja { color: var(--text-muted); font-size: var(--text-footnote); }
+    /* daily-riders figure, shown only while arranged by ridership */
+    .line-card .line-riders {
+      color: var(--text-muted); font-size: var(--text-footnote);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* The detail dialog's color chip. */
+    .hex-chip {
+      display: inline-block; width: 1rem; height: 1rem; border-radius: 0.25rem;
+      background: var(--c); vertical-align: -0.15rem; margin-right: 0.375rem;
+      border: 1px solid var(--border);
+    }
+  </style>
 </head>
 <body>
-  <!-- Placeholder home so the Vercel link renders from day one; the real site replaces it. -->
-  <main class="container stack" style="min-height: 100dvh; justify-content: center;">
-    <h1>Tokyo by rail</h1>
-    <p>The Tokyo railway network, line by line. First pages arriving soon.</p>
+
+  <main class="container stack">
+
+    <header>
+      <h1>Tokyo by rail</h1>
+      <p>Every passenger line on the Greater Tokyo network — with its official
+        color, its line symbol and its station-number badge. Arrange by company,
+        color or ridership, keep only the lines inside Tokyo or the ones running
+        out to the suburbs, and search. Tap any line for its details.</p>
+      <p class="text-caption" style="color: var(--text-muted);">Colors and symbols
+        per each company&rsquo;s own spec, verified Aug 2026. Tramways and
+        monorails included; Shinkansen not.</p>
+    </header>
+
+    <div class="card stack-tight">
+      <div class="grid" style="--grid-min: 13rem;">
+        <label class="field">
+          <span class="field-label">Search</span>
+          <input type="search" id="q" placeholder="Line, code or company"
+                 autocomplete="off" data-event="lines-search" data-tip="Matches names, codes and companies, in English and Japanese">
+        </label>
+        <label class="field">
+          <span class="field-label">Company</span>
+          <select id="op" data-event="lines-company" data-tip="Show one company's lines only"></select>
+        </label>
+        <div class="field">
+          <span class="field-label" id="area-label">Area</span>
+          <fieldset class="segmented segmented-fill" aria-labelledby="area-label" id="area-seg" data-event="lines-area">
+            <label data-tip="Every line on the map"><input type="radio" name="area" value="" checked><span>All</span></label>
+            <label data-tip="Lines running entirely inside Tokyo"><input type="radio" name="area" value="tokyo"><span>In Tokyo</span></label>
+            <label data-tip="Lines linking Tokyo with the surrounding prefectures"><input type="radio" name="area" value="link"><span>To suburbs</span></label>
+            <label data-tip="Lines entirely outside Tokyo that Tokyo maps still show"><input type="radio" name="area" value="out"><span>Outside</span></label>
+          </fieldset>
+        </div>
+        <div class="field">
+          <span class="field-label" id="arrange-label">Arrange</span>
+          <fieldset class="segmented segmented-fill" aria-labelledby="arrange-label" id="arrange-seg" data-event="lines-arrange">
+            <label data-tip="Company sections, Tokyo Metro first"><input type="radio" name="arrange" value="company" checked><span>Company</span></label>
+            <label data-tip="One run sorted around the color wheel"><input type="radio" name="arrange" value="color"><span>Color</span></label>
+            <label data-tip="Busiest lines first, by average daily riders"><input type="radio" name="arrange" value="riders"><span>Ridership</span></label>
+          </fieldset>
+        </div>
+      </div>
+      <p class="text-caption" id="count" aria-live="polite" style="color: var(--text-muted); margin: 0;"></p>
+    </div>
+
+    <section id="lines" class="stack"></section>
+
+    <div class="empty" id="no-match" hidden>
+      <strong>No lines match</strong>
+      <button type="button" class="btn btn-primary btn-small" id="clear-search" data-event="lines-clear">Clear the search</button>
+    </div>
+
   </main>
+
+  <dialog class="modal stack" id="line-dialog">
+    <div class="dialog-head">
+      <h4 id="d-name">Line</h4>
+      <form method="dialog"><button class="btn btn-icon btn-ghost" aria-label="Close"><svg width="20" height="20" data-icon="close" aria-hidden="true"></svg></button></form>
+    </div>
+    <div class="row" style="align-items: center; gap: var(--space-inline);">
+      <span class="rail-badge" id="d-badge" aria-hidden="true"></span>
+      <span>
+        <span id="d-ja" style="display: block;"></span>
+        <span id="d-op" class="text-caption" style="color: var(--text-muted);"></span>
+      </span>
+    </div>
+    <ul class="list list-boxed">
+      <li class="list-item">
+        <span class="list-content"><span class="list-title">Symbol</span></span>
+        <span class="list-trail" id="d-code"></span>
+      </li>
+      <li class="list-item">
+        <span class="list-content"><span class="list-title">Area</span></span>
+        <span class="list-trail" id="d-area"></span>
+      </li>
+      <li class="list-item">
+        <span class="list-content"><span class="list-title">Daily riders</span></span>
+        <span class="list-trail" id="d-riders"></span>
+      </li>
+      <li class="list-item">
+        <span class="list-content"><span class="list-title">Official color</span></span>
+        <span class="list-trail"><span class="hex-chip" id="d-chip" aria-hidden="true"></span><span id="d-hex"></span>
+          <button type="button" class="btn btn-icon btn-small" id="d-copy" aria-label="Copy the hex" data-tip="Copies the hex to your clipboard" data-event="lines-copy-hex"><svg data-icon="copy" aria-hidden="true"></svg></button></span>
+      </li>
+      <li class="list-item">
+        <span class="list-content">
+          <span class="list-title">Runs</span>
+          <span class="list-desc" id="d-term"></span>
+        </span>
+      </li>
+      <li class="list-item" id="d-note-row">
+        <span class="list-content">
+          <span class="list-title">Note</span>
+          <span class="list-desc" id="d-note"></span>
+        </span>
+      </li>
+    </ul>
+  </dialog>
+
+  <div class="overlay-guide" hidden>
+    <p class="overlay-title">Add to your Home&nbsp;Screen</p>
+    <div class="a2hs-entry" style="display: flex; align-items: center; gap: var(--space-stack); text-align: left; max-width: 24rem; margin-block: 4vh 6vh;">
+      <img src="/icon.png" alt="" width="84" height="84" style="border-radius: 22.5%;">
+      <div>
+        <strong style="display: block; color: #fff;">Tokyo by rail</strong>
+        <span style="color: rgb(255 255 255 / 0.65);">Every line, every color</span>
+      </div>
+    </div>
+    <p class="overlay-sub"><strong>1.</strong> Open your browser&rsquo;s <strong>menu</strong></p>
+    <p class="overlay-sub"><strong>2.</strong> Tap the <strong>Share</strong> button</p>
+    <p class="overlay-sub"><strong>3.</strong> Choose <strong>Add to Home Screen</strong></p>
+    <p class="overlay-sub" style="opacity: .55;">Tap anywhere to close</p>
+  </div>
+
+  <div class="nudge-scrim" data-nudge-key="tokyobyrail-a2hs" data-nudge-delay="999999999" hidden>
+    <div class="nudge-card" role="dialog" aria-modal="true" aria-labelledby="nudge-title">
+      <span class="eyebrow">One tap away</span>
+      <h2 id="nudge-title">Add this to your Home Screen</h2>
+      <p>The whole network in your pocket &mdash; full screen, works offline.</p>
+      <button type="button" class="btn btn-primary" data-nudge="add">Add now</button>
+      <button type="button" class="btn btn-ghost" data-nudge="later">Add it later</button>
+      <button type="button" class="nudge-never" data-nudge="never">Don&rsquo;t ask again</button>
+    </div>
+  </div>
+
+  <nav class="nav-menu nav-menu-right" aria-label="App menu" data-print="off">
+    <details class="nav-menu-panel">
+      <summary class="btn btn-pill nav-menu-trigger" data-event="nav-menu" aria-label="Menu">
+        <svg data-icon="menu" aria-hidden="true"></svg> Menu
+      </summary>
+      <div class="nav-menu-items">
+        <button type="button" class="btn btn-pill" data-nudge="add"><svg data-icon="plus-square" aria-hidden="true"></svg> Install app</button>
+      </div>
+    </details>
+    <details class="nav-menu-panel">
+      <summary class="btn btn-pill btn-icon nav-menu-trigger" aria-label="Settings">
+        <svg data-icon="sliders" aria-hidden="true"></svg>
+      </summary>
+      <div class="nav-menu-items">
+        <button type="button" class="btn btn-pill nav-set" data-control="theme" aria-label="Theme">
+          <svg data-icon="contrast" aria-hidden="true"></svg> <span class="nav-label">Theme</span> <span class="menu-value">Default</span></button>
+        <button type="button" class="btn btn-pill nav-set" data-control="appearance" aria-label="Appearance">
+          <svg data-icon="sun" aria-hidden="true"></svg> <span class="nav-label">Appearance</span> <span class="menu-value">Auto</span></button>
+        <button type="button" class="btn btn-pill nav-set" data-control="motion" aria-label="Motion">
+          <svg data-icon="motion" aria-hidden="true"></svg> <span class="nav-label">Motion</span> <span class="menu-value">Off</span></button>
+        <button type="button" class="btn btn-pill nav-set" data-control="sounds" aria-label="Sound">
+          <svg data-icon="volume" aria-hidden="true"></svg> <span class="nav-label">Sound</span> <span class="menu-value">On</span></button>
+        <button type="button" class="btn btn-pill nav-set" data-control="haptics" aria-label="Haptics">
+          <svg data-icon="vibrate" aria-hidden="true"></svg> <span class="nav-label">Haptics</span> <span class="menu-value">On</span></button>
+      </div>
+    </details>
+  </nav>
+
+  <script>
+    /* App data + list logic only — the nav-menu, settings pills, install
+       nudge, tooltips, sounds and haptics are all wired by the Facet
+       library straight from the markup.
+
+       Dataset: every passenger line on the Greater Tokyo network with its
+       official color and station-number symbol. Verified Aug 2026 against
+       the English/Japanese Wikipedia line articles, the Japanese railway
+       line-color compendium (日本の鉄道ラインカラー一覧) and each company's
+       station-numbering signage. Where a company recently changed its
+       official hex (Toei Asakusa/Mita/Oedo), the current spec is used.
+       Fields: op(erator), oj (operator JA), n(ame), j (name JA), c(ode),
+       x (hex), s (badge shape: circle | square), t (termini), note,
+       a (area: tokyo = entirely inside Tokyo Metropolis, link = crosses the
+       Tokyo boundary, out = entirely outside — classed by each line's
+       termini prefectures), r (average daily riders, null where no per-line
+       figure is published) + ry (that figure's year). */
+    const LINES = [
+      {"i":0,"op":"JR East","oj":"JR東日本","n":"Yamanote Line","j":"山手線","c":"JY","x":"#9ACD32","s":"square","t":"Loop: Tokyo – Shinagawa – Shibuya – Shinjuku – Ikebukuro – Ueno","note":"Loop line","a":"tokyo"},
+      {"i":1,"op":"JR East","oj":"JR東日本","n":"Keihin-Tohoku Line","j":"京浜東北線","c":"JK","x":"#00B2E5","s":"square","t":"Omiya – Yokohama – Ofuna","note":"Operated through with the Negishi Line (Yokohama – Ofuna)","a":"link"},
+      {"i":2,"op":"JR East","oj":"JR東日本","n":"Chuo Line (Rapid)","j":"中央線快速","c":"JC","x":"#F15A22","s":"square","t":"Tokyo – Takao","note":"JC also covers Ome Line (Tachikawa – Okutama) and Itsukaichi Line through services","a":"tokyo"},
+      {"i":3,"op":"JR East","oj":"JR東日本","n":"Chuo-Sobu Line (Local)","j":"中央・総武線各駅停車","c":"JB","x":"#FFD400","s":"square","t":"Mitaka – Chiba","a":"link"},
+      {"i":4,"op":"JR East","oj":"JR東日本","n":"Saikyo Line","j":"埼京線","c":"JA","x":"#00AC9A","s":"square","t":"Osaki – Omiya","note":"Through services to Rinkai Line, Kawagoe Line and Sotetsu Line","a":"link"},
+      {"i":5,"op":"JR East","oj":"JR東日本","n":"Shonan-Shinjuku Line","j":"湘南新宿ライン","c":"JS","x":"#E31F26","s":"square","t":"Ofuna – Shinjuku – Omiya","note":"Through-running corridor (Zushi/Odawara – Utsunomiya/Takasaki)","a":"link"},
+      {"i":6,"op":"JR East","oj":"JR東日本","n":"Yokosuka Line / Sobu Line (Rapid)","j":"横須賀・総武快速線","c":"JO","x":"#0067C0","s":"square","t":"Kurihama – Tokyo – Chiba","a":"link"},
+      {"i":7,"op":"JR East","oj":"JR東日本","n":"Tokaido Line","j":"東海道線","c":"JT","x":"#F68B1E","s":"square","t":"Tokyo – Atami","a":"link"},
+      {"i":8,"op":"JR East","oj":"JR東日本","n":"Utsunomiya Line / Takasaki Line","j":"宇都宮線・高崎線","c":"JU","x":"#F68B1E","s":"square","t":"Tokyo – Omiya (– Utsunomiya / Takasaki)","note":"JU applies Tokyo – Omiya","a":"link"},
+      {"i":9,"op":"JR East","oj":"JR東日本","n":"Ueno-Tokyo Line","j":"上野東京ライン","c":"JU","x":"#91278F","s":"square","t":"Ueno – Tokyo","note":"Through-running corridor; trains carry the JT/JU/JJ codes of their own lines; shown purple on maps","a":"tokyo"},
+      {"i":10,"op":"JR East","oj":"JR東日本","n":"Joban Line (Rapid)","j":"常磐線快速","c":"JJ","x":"#00B261","s":"square","t":"Ueno – Toride","a":"link"},
+      {"i":11,"op":"JR East","oj":"JR東日本","n":"Joban Line (Local)","j":"常磐線各駅停車","c":"JL","x":"#00B261","s":"square","t":"Ayase – Toride","note":"Through service with Tokyo Metro Chiyoda Line; grey is sometimes used to distinguish it from JJ","a":"link"},
+      {"i":12,"op":"JR East","oj":"JR東日本","n":"Keiyo Line","j":"京葉線","c":"JE","x":"#C9252F","s":"square","t":"Tokyo – Soga","a":"link"},
+      {"i":13,"op":"JR East","oj":"JR東日本","n":"Musashino Line","j":"武蔵野線","c":"JM","x":"#F15A22","s":"square","t":"Fuchuhommachi – Nishi-Funabashi","a":"link"},
+      {"i":14,"op":"JR East","oj":"JR東日本","n":"Nambu Line","j":"南武線","c":"JN","x":"#FFD400","s":"square","t":"Kawasaki – Tachikawa","note":"Hama-Kawasaki branch: Shitte – Hama-Kawasaki","a":"link"},
+      {"i":15,"op":"JR East","oj":"JR東日本","n":"Yokohama Line","j":"横浜線","c":"JH","x":"#80C342","s":"square","t":"Higashi-Kanagawa – Hachioji","a":"link"},
+      {"i":16,"op":"JR East","oj":"JR東日本","n":"Tsurumi Line","j":"鶴見線","c":"JI","x":"#FFD400","s":"square","t":"Tsurumi – Ogimachi","note":"Branches to Umi-Shibaura and Okawa","a":"out"},
+      {"i":17,"op":"Tokyo Metro","oj":"東京メトロ","n":"Ginza Line","j":"銀座線","c":"G","x":"#FF9500","s":"circle","t":"Asakusa – Shibuya","a":"tokyo"},
+      {"i":18,"op":"Tokyo Metro","oj":"東京メトロ","n":"Marunouchi Line","j":"丸ノ内線","c":"M","x":"#F62E36","s":"circle","t":"Ogikubo – Ikebukuro","note":"Branch line (Mb): Nakano-Sakaue – Honancho","a":"tokyo"},
+      {"i":19,"op":"Tokyo Metro","oj":"東京メトロ","n":"Hibiya Line","j":"日比谷線","c":"H","x":"#B5B5AC","s":"circle","t":"Naka-Meguro – Kita-Senju","a":"tokyo"},
+      {"i":20,"op":"Tokyo Metro","oj":"東京メトロ","n":"Tozai Line","j":"東西線","c":"T","x":"#009BBF","s":"circle","t":"Nakano – Nishi-Funabashi","a":"link"},
+      {"i":21,"op":"Tokyo Metro","oj":"東京メトロ","n":"Chiyoda Line","j":"千代田線","c":"C","x":"#00BB85","s":"circle","t":"Yoyogi-Uehara – Ayase","note":"Branch: Ayase – Kita-Ayase","a":"tokyo"},
+      {"i":22,"op":"Tokyo Metro","oj":"東京メトロ","n":"Yurakucho Line","j":"有楽町線","c":"Y","x":"#C1A470","s":"circle","t":"Wakoshi – Shin-Kiba","a":"link"},
+      {"i":23,"op":"Tokyo Metro","oj":"東京メトロ","n":"Hanzomon Line","j":"半蔵門線","c":"Z","x":"#8F76D6","s":"circle","t":"Shibuya – Oshiage","a":"tokyo"},
+      {"i":24,"op":"Tokyo Metro","oj":"東京メトロ","n":"Namboku Line","j":"南北線","c":"N","x":"#00AC9B","s":"circle","t":"Meguro – Akabane-Iwabuchi","a":"tokyo"},
+      {"i":25,"op":"Tokyo Metro","oj":"東京メトロ","n":"Fukutoshin Line","j":"副都心線","c":"F","x":"#9C5E31","s":"circle","t":"Wakoshi – Shibuya","a":"link"},
+      {"i":26,"op":"Toei","oj":"東京都交通局","n":"Asakusa Line","j":"浅草線","c":"A","x":"#EC6E65","s":"circle","t":"Nishi-Magome – Oshiage","note":"Current official rose; the older rose-pink #E85298 is still widely seen","a":"tokyo"},
+      {"i":27,"op":"Toei","oj":"東京都交通局","n":"Mita Line","j":"三田線","c":"I","x":"#006AB8","s":"circle","t":"Meguro – Nishi-Takashimadaira","note":"Older blue #0079C2 also in use","a":"tokyo"},
+      {"i":28,"op":"Toei","oj":"東京都交通局","n":"Shinjuku Line","j":"新宿線","c":"S","x":"#B0BF1E","s":"circle","t":"Shinjuku – Motoyawata","a":"link"},
+      {"i":29,"op":"Toei","oj":"東京都交通局","n":"Oedo Line","j":"大江戸線","c":"E","x":"#CE045B","s":"circle","t":"Tochomae – Hikarigaoka (via loop through Daimon and Iidabashi)","note":"Older magenta #B6007A also in use","a":"tokyo"},
+      {"i":30,"op":"Toei","oj":"東京都交通局","n":"Toden Arakawa Line (Tokyo Sakura Tram)","j":"都電荒川線（東京さくらトラム）","c":"SA","x":"#EE86A7","s":"circle","t":"Minowabashi – Waseda","note":"Tramway","a":"tokyo"},
+      {"i":31,"op":"Toei","oj":"東京都交通局","n":"Nippori-Toneri Liner","j":"日暮里・舎人ライナー","c":"NT","x":"#D53A77","s":"square","t":"Nippori – Minumadai-Shinsuikoen","note":"Automated guideway transit; secondary color green #69B444","a":"tokyo"},
+      {"i":32,"op":"Tokyu","oj":"東急電鉄","n":"Toyoko Line","j":"東横線","c":"TY","x":"#DA0442","s":"square","t":"Shibuya – Yokohama","a":"link"},
+      {"i":33,"op":"Tokyu","oj":"東急電鉄","n":"Meguro Line","j":"目黒線","c":"MG","x":"#009CD2","s":"square","t":"Meguro – Hiyoshi","a":"link"},
+      {"i":34,"op":"Tokyu","oj":"東急電鉄","n":"Tokyu Shin-Yokohama Line","j":"東急新横浜線","c":"SH","x":"#8A1186","s":"square","t":"Hiyoshi – Shin-Yokohama","a":"out"},
+      {"i":35,"op":"Tokyu","oj":"東急電鉄","n":"Den-en-toshi Line","j":"田園都市線","c":"DT","x":"#20A288","s":"square","t":"Shibuya – Chuo-Rinkan","a":"link"},
+      {"i":36,"op":"Tokyu","oj":"東急電鉄","n":"Oimachi Line","j":"大井町線","c":"OM","x":"#F18C43","s":"square","t":"Oimachi – Mizonokuchi","a":"link"},
+      {"i":37,"op":"Tokyu","oj":"東急電鉄","n":"Ikegami Line","j":"池上線","c":"IK","x":"#EE86A7","s":"square","t":"Gotanda – Kamata","a":"tokyo"},
+      {"i":38,"op":"Tokyu","oj":"東急電鉄","n":"Tokyu Tamagawa Line","j":"東急多摩川線","c":"TM","x":"#AE0378","s":"square","t":"Tamagawa – Kamata","a":"tokyo"},
+      {"i":39,"op":"Tokyu","oj":"東急電鉄","n":"Kodomonokuni Line","j":"こどもの国線","c":"KD","x":"#0068B7","s":"square","t":"Nagatsuta – Kodomonokuni","a":"out"},
+      {"i":40,"op":"Tokyu","oj":"東急電鉄","n":"Setagaya Line","j":"世田谷線","c":"SG","x":"#FCC70D","s":"square","t":"Sangen-Jaya – Shimo-Takaido","note":"Tramway","a":"tokyo"},
+      {"i":41,"op":"Yokohama Minatomirai Railway","oj":"横浜高速鉄道","n":"Minatomirai Line","j":"みなとみらい線","c":"MM","x":"#09357F","s":"square","t":"Yokohama – Motomachi-Chukagai","note":"Through service with Tokyu Toyoko Line; documented hexes vary (#003EA2, #0067C0 also seen)","a":"out"},
+      {"i":42,"op":"Odakyu","oj":"小田急電鉄","n":"Odawara Line","j":"小田原線","c":"OH","x":"#2288CC","s":"square","t":"Shinjuku – Odawara","a":"link"},
+      {"i":43,"op":"Odakyu","oj":"小田急電鉄","n":"Enoshima Line","j":"江ノ島線","c":"OE","x":"#2288CC","s":"square","t":"Sagami-Ono – Katase-Enoshima","a":"out"},
+      {"i":44,"op":"Odakyu","oj":"小田急電鉄","n":"Tama Line","j":"多摩線","c":"OT","x":"#2288CC","s":"square","t":"Shin-Yurigaoka – Karakida","a":"link"},
+      {"i":45,"op":"Keio","oj":"京王電鉄","n":"Keio Line","j":"京王線","c":"KO","x":"#DD0077","s":"circle","t":"Shinjuku – Keio-Hachioji","a":"tokyo"},
+      {"i":46,"op":"Keio","oj":"京王電鉄","n":"Keio New Line","j":"京王新線","c":"KO","x":"#DD0077","s":"circle","t":"Shinjuku – Sasazuka","note":"Through service with Toei Shinjuku Line","a":"tokyo"},
+      {"i":47,"op":"Keio","oj":"京王電鉄","n":"Sagamihara Line","j":"相模原線","c":"KO","x":"#DD0077","s":"circle","t":"Chofu – Hashimoto","a":"link"},
+      {"i":48,"op":"Keio","oj":"京王電鉄","n":"Takao Line","j":"高尾線","c":"KO","x":"#DD0077","s":"circle","t":"Kitano – Takaosanguchi","a":"tokyo"},
+      {"i":49,"op":"Keio","oj":"京王電鉄","n":"Keibajo Line","j":"競馬場線","c":"KO","x":"#DD0077","s":"circle","t":"Higashi-Fuchu – Fuchu-Keiba-Seimommae","note":"Branch line","a":"tokyo"},
+      {"i":50,"op":"Keio","oj":"京王電鉄","n":"Dobutsuen Line","j":"動物園線","c":"KO","x":"#DD0077","s":"circle","t":"Takahatafudo – Tama-Dobutsukoen","note":"Branch line","a":"tokyo"},
+      {"i":51,"op":"Keio","oj":"京王電鉄","n":"Inokashira Line","j":"井の頭線","c":"IN","x":"#000088","s":"circle","t":"Shibuya – Kichijoji","a":"tokyo"},
+      {"i":52,"op":"Seibu","oj":"西武鉄道","n":"Ikebukuro Line","j":"池袋線","c":"SI","x":"#EF810F","s":"square","t":"Ikebukuro – Agano","a":"link"},
+      {"i":53,"op":"Seibu","oj":"西武鉄道","n":"Seibu Chichibu Line","j":"西武秩父線","c":"SI","x":"#EF810F","s":"square","t":"Agano – Seibu-Chichibu","a":"out"},
+      {"i":54,"op":"Seibu","oj":"西武鉄道","n":"Toshima Line","j":"豊島線","c":"SI","x":"#EF810F","s":"square","t":"Nerima – Toshimaen","note":"Branch line","a":"tokyo"},
+      {"i":55,"op":"Seibu","oj":"西武鉄道","n":"Sayama Line","j":"狭山線","c":"SI","x":"#EF810F","s":"square","t":"Nishi-Tokorozawa – Seibu-Kyujo-mae","note":"Branch line","a":"out"},
+      {"i":56,"op":"Seibu","oj":"西武鉄道","n":"Seibu Yurakucho Line","j":"西武有楽町線","c":"SI","x":"#EF810F","s":"square","t":"Kotake-Mukaihara – Nerima","note":"Link to Tokyo Metro Yurakucho/Fukutoshin lines","a":"tokyo"},
+      {"i":57,"op":"Seibu","oj":"西武鉄道","n":"Shinjuku Line","j":"新宿線","c":"SS","x":"#00A6BF","s":"square","t":"Seibu-Shinjuku – Hon-Kawagoe","a":"link"},
+      {"i":58,"op":"Seibu","oj":"西武鉄道","n":"Haijima Line","j":"拝島線","c":"SS","x":"#00A6BF","s":"square","t":"Kodaira – Haijima","a":"tokyo"},
+      {"i":59,"op":"Seibu","oj":"西武鉄道","n":"Tamako Line","j":"多摩湖線","c":"ST","x":"#FDBC00","s":"square","t":"Kokubunji – Tamako","a":"tokyo"},
+      {"i":60,"op":"Seibu","oj":"西武鉄道","n":"Kokubunji Line","j":"国分寺線","c":"SK","x":"#00CC66","s":"square","t":"Higashi-Murayama – Kokubunji","a":"tokyo"},
+      {"i":61,"op":"Seibu","oj":"西武鉄道","n":"Seibuen Line","j":"西武園線","c":"SK","x":"#00CC66","s":"square","t":"Higashi-Murayama – Seibuen","note":"Branch line","a":"link"},
+      {"i":62,"op":"Seibu","oj":"西武鉄道","n":"Seibu Tamagawa Line","j":"多摩川線","c":"SW","x":"#EF810F","s":"square","t":"Musashi-Sakai – Koremasa","note":"Isolated from the rest of the network","a":"tokyo"},
+      {"i":63,"op":"Seibu","oj":"西武鉄道","n":"Yamaguchi Line (Leo Liner)","j":"山口線","c":"SY","x":"#FF3333","s":"square","t":"Tamako – Seibu-Kyujo-mae","note":"Automated guideway transit","a":"link"},
+      {"i":64,"op":"Tobu","oj":"東武鉄道","n":"Tobu Skytree Line","j":"東武スカイツリーライン（伊勢崎線）","c":"TS","x":"#0067C0","s":"square","t":"Asakusa / Oshiage – Tobu-Dobutsu-Koen","note":"Southern Isesaki Line","a":"link"},
+      {"i":65,"op":"Tobu","oj":"東武鉄道","n":"Isesaki Line","j":"伊勢崎線","c":"TI","x":"#ED1A3D","s":"square","t":"Tobu-Dobutsu-Koen – Isesaki","note":"Northern section; TI also covers Sano, Koizumi and Kiryu lines","a":"out"},
+      {"i":66,"op":"Tobu","oj":"東武鉄道","n":"Kameido Line","j":"亀戸線","c":"TS","x":"#0067C0","s":"square","t":"Hikifune – Kameido","note":"Branch line","a":"tokyo"},
+      {"i":67,"op":"Tobu","oj":"東武鉄道","n":"Daishi Line","j":"大師線","c":"TS","x":"#0067C0","s":"square","t":"Nishiarai – Daishimae","note":"Branch line","a":"tokyo"},
+      {"i":68,"op":"Tobu","oj":"東武鉄道","n":"Nikko Line","j":"日光線","c":"TN","x":"#FFA500","s":"square","t":"Tobu-Dobutsu-Koen – Tobu-Nikko","note":"Sources give the color only as 'orange'","a":"out"},
+      {"i":69,"op":"Tobu","oj":"東武鉄道","n":"Urban Park Line (Noda Line)","j":"東武アーバンパークライン（野田線）","c":"TD","x":"#00BFFF","s":"square","t":"Omiya – Kashiwa – Funabashi","a":"out"},
+      {"i":70,"op":"Tobu","oj":"東武鉄道","n":"Tojo Line","j":"東上本線","c":"TJ","x":"#004098","s":"square","t":"Ikebukuro – Yorii","a":"link"},
+      {"i":71,"op":"Tobu","oj":"東武鉄道","n":"Ogose Line","j":"越生線","c":"TJ","x":"#004098","s":"square","t":"Sakado – Ogose","note":"Branch line","a":"out"},
+      {"i":72,"op":"Keisei","oj":"京成電鉄","n":"Keisei Main Line","j":"京成本線","c":"KS","x":"#0060B0","s":"circle","t":"Keisei-Ueno – Narita Airport","note":"Higashi-Narita Line branch: Keisei-Narita – Higashi-Narita","a":"link"},
+      {"i":73,"op":"Keisei","oj":"京成電鉄","n":"Oshiage Line","j":"押上線","c":"KS","x":"#CD66FF","s":"circle","t":"Oshiage – Aoto","note":"Through service with Toei Asakusa Line","a":"tokyo"},
+      {"i":74,"op":"Keisei","oj":"京成電鉄","n":"Kanamachi Line","j":"金町線","c":"KS","x":"#FF0000","s":"circle","t":"Keisei-Takasago – Keisei-Kanamachi","note":"Branch line","a":"tokyo"},
+      {"i":75,"op":"Keisei","oj":"京成電鉄","n":"Chiba Line","j":"千葉線","c":"KS","x":"#FF1E56","s":"circle","t":"Keisei-Tsudanuma – Chibachuo","a":"out"},
+      {"i":76,"op":"Keisei","oj":"京成電鉄","n":"Chihara Line","j":"千原線","c":"KS","x":"#FF1E56","s":"circle","t":"Chibachuo – Chiharadai","a":"out"},
+      {"i":77,"op":"Keisei","oj":"京成電鉄","n":"Narita Sky Access Line","j":"成田空港線（成田スカイアクセス）","c":"KS","x":"#FF8620","s":"circle","t":"Keisei-Takasago – Narita Airport","note":"Skyliner route via Hokuso Line tracks","a":"link"},
+      {"i":78,"op":"Keisei","oj":"京成電鉄","n":"Matsudo Line","j":"松戸線","c":"SL","x":"#A97344","s":"circle","t":"Matsudo – Keisei-Tsudanuma","note":"Former Shin-Keisei Line (merged into Keisei 2025); keeps SL station numbers; Shin-Keisei-era color was gentle pink #EF59A1","a":"out"},
+      {"i":79,"op":"Keikyu","oj":"京浜急行電鉄","n":"Keikyu Main Line","j":"京急本線","c":"KK","x":"#00BFFF","s":"circle","t":"Sengakuji – Uraga","note":"Through service with Toei Asakusa Line","a":"link"},
+      {"i":80,"op":"Keikyu","oj":"京浜急行電鉄","n":"Airport Line","j":"空港線","c":"KK","x":"#00BFFF","s":"circle","t":"Keikyu Kamata – Haneda Airport Terminal 1·2","a":"tokyo"},
+      {"i":81,"op":"Keikyu","oj":"京浜急行電鉄","n":"Daishi Line","j":"大師線","c":"KK","x":"#00BFFF","s":"circle","t":"Keikyu Kawasaki – Kojimashinden","a":"out"},
+      {"i":82,"op":"Keikyu","oj":"京浜急行電鉄","n":"Zushi Line","j":"逗子線","c":"KK","x":"#00BFFF","s":"circle","t":"Kanazawa-Hakkei – Zushi·Hayama","a":"out"},
+      {"i":83,"op":"Keikyu","oj":"京浜急行電鉄","n":"Kurihama Line","j":"久里浜線","c":"KK","x":"#00BFFF","s":"circle","t":"Horinouchi – Misakiguchi","a":"out"},
+      {"i":84,"op":"Sotetsu","oj":"相模鉄道","n":"Sotetsu Main Line","j":"相鉄本線","c":"SO","x":"#041452","s":"square","t":"Yokohama – Ebina","note":"Line color is the corporate 'Yokohama Navy Blue'","a":"out"},
+      {"i":85,"op":"Sotetsu","oj":"相模鉄道","n":"Izumino Line","j":"いずみ野線","c":"SO","x":"#041452","s":"square","t":"Futamatagawa – Shonandai","a":"out"},
+      {"i":86,"op":"Sotetsu","oj":"相模鉄道","n":"Sotetsu Shin-Yokohama Line","j":"相鉄新横浜線","c":"SO","x":"#041452","s":"square","t":"Nishiya – Shin-Yokohama","note":"Carries the Sotetsu–JR direct service (via Hazawa yokohama-kokudai) and Tokyu direct service","a":"out"},
+      {"i":87,"op":"Metropolitan Intercity Railway","oj":"首都圏新都市鉄道","n":"Tsukuba Express","j":"つくばエクスプレス","c":"TX","x":"#000084","s":"square","t":"Akihabara – Tsukuba","a":"link"},
+      {"i":88,"op":"Tokyo Waterfront Area Rapid Transit","oj":"東京臨海高速鉄道","n":"Rinkai Line","j":"りんかい線","c":"R","x":"#00B19D","s":"circle","t":"Shin-Kiba – Osaki","note":"Through service with JR Saikyo Line; secondary color #00389E","a":"tokyo"},
+      {"i":89,"op":"Yurikamome","oj":"ゆりかもめ","n":"Yurikamome (Tokyo Waterfront New Transit Line)","j":"ゆりかもめ（東京臨海新交通臨海線）","c":"U","x":"#0067C0","s":"circle","t":"Shimbashi – Toyosu","note":"Automated guideway transit","a":"tokyo"},
+      {"i":90,"op":"Tokyo Monorail","oj":"東京モノレール","n":"Haneda Airport Line","j":"東京モノレール羽田空港線","c":"MO","x":"#003686","s":"square","t":"Monorail Hamamatsucho – Haneda Airport Terminal 2","a":"tokyo"},
+      {"i":91,"op":"Tama Toshi Monorail","oj":"多摩都市モノレール","n":"Tama Toshi Monorail Line","j":"多摩都市モノレール線","c":"TT","x":"#FF6633","s":"square","t":"Tama-Center – Kamikitadai","note":"Line drawn orange on maps; station-number badge is dark teal","a":"tokyo"},
+      {"i":92,"op":"Saitama Railway","oj":"埼玉高速鉄道","n":"Saitama Rapid Railway Line (Saitama Stadium Line)","j":"埼玉高速鉄道線","c":"SR","x":"#345CAA","s":"circle","t":"Akabane-Iwabuchi – Urawa-Misono","note":"Through service with Tokyo Metro Namboku Line","a":"link"},
+      {"i":93,"op":"Toyo Rapid Railway","oj":"東葉高速鉄道","n":"Toyo Rapid Line","j":"東葉高速線","c":"TR","x":"#00B16B","s":"circle","t":"Nishi-Funabashi – Toyo-Katsutadai","note":"Through service with Tokyo Metro Tozai Line","a":"out"},
+      {"i":94,"op":"Hokuso Railway","oj":"北総鉄道","n":"Hokuso Line","j":"北総線","c":"HS","x":"#00BFFF","s":"circle","t":"Keisei-Takasago – Imba-Nihon-Idai","a":"link"},
+      {"i":95,"op":"Shibayama Railway","oj":"芝山鉄道","n":"Shibayama Railway Line","j":"芝山鉄道線","c":"SR","x":"#00A650","s":"circle","t":"Higashi-Narita – Shibayama-Chiyoda","note":"Code SR collides with Saitama Rapid (different operator area)","a":"out"},
+      {"i":96,"op":"Yokohama City Transportation Bureau","oj":"横浜市交通局","n":"Blue Line","j":"ブルーライン","c":"B","x":"#005BA5","s":"circle","t":"Azamino – Shonandai","note":"Entirely outside Tokyo; shown on Greater Tokyo network maps","a":"out"},
+      {"i":97,"op":"Yokohama City Transportation Bureau","oj":"横浜市交通局","n":"Green Line","j":"グリーンライン","c":"G","x":"#048D58","s":"circle","t":"Nakayama – Hiyoshi","note":"Entirely outside Tokyo; shown on Greater Tokyo network maps","a":"out"}
+    ];
+
+    /* Marquee companies lead; every other company keeps dataset order. */
+    const OP_FIRST = ["Tokyo Metro", "Toei", "JR East"];
+    const opRank = op => { const i = OP_FIRST.indexOf(op); return i === -1 ? OP_FIRST.length : i; };
+    LINES.sort((a, b) => opRank(a.op) - opRank(b.op));
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+
+    /* Hue for the by-color order; greys (no saturation) collect at the end. */
+    const hue = hex => {
+      const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+      if (d < 0.08) return 999;
+      const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return (h * 60 + 360) % 360;
+    };
+
+    const badge = (l, extra) => `<span class="rail-badge${extra ? " " + extra : ""}" data-shape="${l.s}"${(l.c || "").length > 1 ? " data-long" : ""} style="--c:${l.x}" aria-hidden="true">${esc(l.c || "·")}</span>`;
+
+    /* One state object; every control writes it, the URL mirrors it. */
+    const state = { arrange: "company", area: "", op: "", q: "" };
+
+    /* The area classes and the human words the dialog prints for them. */
+    const AREAS = { tokyo: "Entirely inside Tokyo", link: "Tokyo ↔ the outskirts", out: "Outside Tokyo" };
+
+    /* 1,140,000 → "1.14M", 68,000 → "68k". */
+    const fmtRiders = n =>
+      n >= 1e6 ? (Math.round(n / 1e4) / 100) + "M" :
+      n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
+
+    const filtered = () => {
+      const q = state.q.trim().toLowerCase();
+      return LINES.filter(l =>
+        (!state.area || l.a === state.area) &&
+        (!state.op || l.op === state.op) &&
+        (!q || [l.n, l.j, l.c, l.op, l.oj].some(v => v && String(v).toLowerCase().includes(q))));
+    };
+    /* [heading|null, lines[]] groups per the arrangement mode. */
+    const grouped = list => {
+      if (state.arrange === "color") return [[null, [...list].sort((a, b) => hue(a.x) - hue(b.x))]];
+      if (state.arrange === "riders") return [[null, [...list].sort((a, b) => (b.r || 0) - (a.r || 0))]];
+      const m = new Map();
+      for (const l of list) { if (!m.has(l.op)) m.set(l.op, []); m.get(l.op).push(l); }
+      return [...m.entries()].map(([op, lines]) => [{ op, oj: lines[0].oj }, lines]);
+    };
+    const heading = h => h ? `<h2 class="text-caption" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-caps); margin: 0;">${esc(h.op)} <span style="letter-spacing: var(--tracking-wide);">${esc(h.oj)}</span></h2>` : "";
+
+    /* The card grid. Every card is a real button opening the dialog; the
+       daily-riders line shows only while arranged by ridership. */
+    const renderCards = lines => `<div class="grid" style="--grid-min: 10.5rem;">` + lines.map(l =>
+      `<button type="button" class="card card-clickable line-card stack-tight" style="--c:${l.x}" data-line="${l.i}" data-event="lines-open">
+        ${badge(l)}
+        <span><strong>${esc(l.n)}</strong><br><span class="line-ja">${esc(l.j)}</span></span>
+        ${state.arrange === "riders" ? `<span class="line-riders">${l.r ? "~" + fmtRiders(l.r) + " riders/day" : "no published figure"}</span>` : ""}
+        <span class="line-op">${esc(l.op)}</span>
+      </button>`).join("") + `</div>`;
+
+    const render = () => {
+      const list = filtered();
+      $("lines").innerHTML = grouped(list).map(([h, lines]) =>
+        `<section class="stack-tight">${heading(h)}${renderCards(lines)}</section>`).join("");
+      const ops = new Set(list.map(l => l.op)).size;
+      $("count").textContent = list.length
+        ? `${list.length} line${list.length === 1 ? "" : "s"} · ${ops} compan${ops === 1 ? "y" : "ies"}`
+        : "";
+      $("no-match").hidden = list.length > 0;
+      const p = new URLSearchParams();
+      if (state.arrange !== "company") p.set("arrange", state.arrange);
+      if (state.area) p.set("area", state.area);
+      if (state.op) p.set("op", state.op);
+      if (state.q.trim()) p.set("q", state.q.trim());
+      const qs = p.toString();
+      history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      /* Company select: All + one entry per company with its line count. */
+      const counts = new Map();
+      for (const l of LINES) counts.set(l.op, (counts.get(l.op) || 0) + 1);
+      $("op").innerHTML = `<option value="">All companies (${LINES.length})</option>` +
+        [...counts.entries()].map(([op, n]) => `<option value="${esc(op)}">${esc(op)} (${n})</option>`).join("");
+
+      /* Restore a shared URL. */
+      const p = new URLSearchParams(location.search);
+      if (["color", "riders"].includes(p.get("arrange"))) state.arrange = p.get("arrange");
+      if (AREAS[p.get("area")]) state.area = p.get("area");
+      if (counts.has(p.get("op"))) state.op = p.get("op");
+      if (p.get("q")) state.q = p.get("q");
+      $("q").value = state.q;
+      $("op").value = state.op;
+      document.querySelector(`#arrange-seg input[value="${state.arrange}"]`).checked = true;
+      document.querySelector(`#area-seg input[value="${state.area}"]`).checked = true;
+
+      /* A2HS nudge is engagement-gated: only after three control changes. */
+      let plays = 0;
+      const markPlay = () => {
+        if (++plays !== 3) return;
+        const scrim = document.querySelector(".nudge-scrim");
+        try {
+          if (localStorage.getItem(scrim.dataset.nudgeKey)) return;
+          if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) return;
+          scrim.hidden = false;
+        } catch (e) { /* private mode */ }
+      };
+
+      $("arrange-seg").addEventListener("change", e => { state.arrange = e.target.value; render(); markPlay(); });
+      $("area-seg").addEventListener("change", e => { state.area = e.target.value; render(); markPlay(); });
+      $("op").addEventListener("change", () => { state.op = $("op").value; render(); markPlay(); });
+      $("q").addEventListener("input", () => { state.q = $("q").value; render(); });
+      $("clear-search").addEventListener("click", () => { state.q = ""; $("q").value = ""; render(); $("q").focus(); });
+
+      /* One delegated opener for every rendered line → the detail dialog. */
+      let current = null;
+      $("lines").addEventListener("click", e => {
+        const btn = e.target.closest("[data-line]");
+        if (!btn) return;
+        const l = LINES.find(x => x.i === +btn.dataset.line);
+        if (!l) return;
+        current = l;
+        $("d-name").textContent = l.n;
+        $("d-ja").textContent = l.j;
+        $("d-op").textContent = `${l.op} · ${l.oj}`;
+        $("d-badge").outerHTML = badge(l).replace('class="rail-badge"', 'class="rail-badge" id="d-badge"');
+        $("d-code").textContent = l.c || "—";
+        $("d-area").textContent = AREAS[l.a] || "—";
+        $("d-riders").textContent = l.r ? `~${fmtRiders(l.r)} a day (${l.ry})` : "—";
+        $("d-chip").style.setProperty("--c", l.x);
+        $("d-hex").textContent = l.x.toUpperCase();
+        $("d-term").textContent = l.t || "—";
+        $("d-note-row").hidden = !l.note;
+        $("d-note").textContent = l.note || "";
+        $("line-dialog").showModal();
+      });
+      $("d-copy").addEventListener("click", async () => {
+        if (!current) return;
+        try {
+          await navigator.clipboard.writeText(current.x.toUpperCase());
+          facet.toast("Hex copied", "success");
+        } catch { /* clipboard denied */ }
+      });
+
+      render();
+    });
+  </script>
 </body>
 </html>
