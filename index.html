@@ -18,6 +18,8 @@
   <link rel="apple-touch-icon" href="/icon.png">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚇</text></svg>">
   <link rel="stylesheet" href="https://facet.tanishksharma.com/lib/facet.css">
+  <!-- app-specific face: the big Japanese line name on each card -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Train+One&display=swap">
   <script src="https://facet.tanishksharma.com/lib/facet.js" defer data-service-worker="/sw.js"></script>
 
   <style>
@@ -50,32 +52,84 @@
       gap: var(--space-stack);
       --card-w: 10.5rem;
     }
-    /* Cards view: a fixed square, the line color underlining its own card.
-       Type is stepped down one notch so both names fit the square. */
+    /* Cards view: a fixed square. The Japanese name is the headline beside
+       the badge; the English name floats as a quiet watermark lower right;
+       the company mark sits lower left; the line's color strips the bottom
+       edge — split in half where a line officially carries two colors. */
     .line-card {
-      border-bottom: 0.375rem solid var(--c); text-align: left;
+      position: relative; text-align: left;
       aspect-ratio: 1; overflow: hidden;
       padding: 0.875rem; gap: 0.5rem;
     }
-    .line-card strong { font-size: 0.95rem; line-height: var(--leading-snug); display: block; }
-    /* Names cut at whole lines, never mid-glyph: three lines normally
-       (name + Japanese), two when the riders figure needs the room. */
-    .line-card .line-nm {
-      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
-      overflow: hidden; flex: none;
+    .line-card::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+      height: 0.375rem;
+      background: linear-gradient(90deg, var(--c) 0 50%, var(--c2, var(--c)) 50% 100%);
     }
-    .line-grid[data-arrange="riders"] .line-nm { -webkit-line-clamp: 2; }
-    .line-card .line-op { margin-top: auto; font-size: 0.65rem; }
-    .line-card .line-op {
-      font-size: var(--text-footnote); font-weight: var(--weight-eyebrow);
-      letter-spacing: var(--tracking-caps); text-transform: uppercase;
-      color: var(--text-muted);
+    /* the whole card opens the dialog through one invisible stretched
+       button — a real control, keyboard operable, and deliberately with
+       NO hover lift (the card stays still) */
+    .line-open {
+      position: absolute; inset: 0; z-index: 1;
+      background: none; border: none; padding: 0; margin: 0;
+      border-radius: inherit; cursor: pointer;
     }
-    .line-card .line-ja { color: var(--text-muted); font-size: var(--text-footnote); }
+    .line-head { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+    .line-jp {
+      font-family: "Train One", var(--font-japanese), sans-serif;
+      font-size: 1.3rem; line-height: 1.25; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      min-width: 0; flex: 1;
+    }
+    /* English name: a large translucent decoration in the lower right */
+    .line-en {
+      position: absolute; right: 0.75rem; bottom: 0.75rem;
+      max-width: 70%; text-align: right;
+      font-size: 1.1rem; font-weight: var(--weight-heading);
+      line-height: 1.15; color: var(--text); opacity: 0.12;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+      overflow: hidden; pointer-events: none; user-select: none;
+    }
+    /* company mark, lower left; a monogram stands in when no logo file */
+    .line-logo {
+      position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
+      width: 1.75rem; height: 1.75rem; object-fit: contain;
+    }
+    .line-logo-mono {
+      position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
+      width: 1.75rem; height: 1.75rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: var(--border-element) solid var(--border-strong);
+      border-radius: 0.4rem;
+      font-size: 0.65rem; font-weight: var(--weight-heading);
+      letter-spacing: var(--tracking-caps); color: var(--text-muted);
+      user-select: none;
+    }
+    /* the chime button: hover plays on fine pointers, tap plays on touch */
+    .line-jingle {
+      position: absolute; top: 0.55rem; right: 0.55rem; z-index: 2;
+      width: 1.9rem; height: 1.9rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: none; border-radius: 50%;
+      color: var(--text-muted); cursor: pointer;
+    }
+    .line-jingle:hover { color: var(--text); }
+    .line-jingle svg { width: 1rem; height: 1rem; }
     /* daily-riders figure, shown only while arranged by ridership */
     .line-card .line-riders {
       color: var(--text-muted); font-size: var(--text-footnote);
       font-variant-numeric: tabular-nums;
+    }
+
+    /* The bar stays a bottom pill on EVERY width — no header nav — so on
+       wide screens the riser panels anchor above the bar instead of
+       hanging from a top one. */
+    @media (min-width: 40rem) {
+      #filter-sheet.sheet.sheet-rise,
+      #settings-sheet.sheet.sheet-rise {
+        top: auto;
+        bottom: calc(var(--space-pin, 20px) + 48px + var(--space-inline, 12px));
+      }
     }
 
     /* The filter riser holds real fields, not menu rows — widen it past the
@@ -83,6 +137,17 @@
     #filter-sheet.sheet.sheet-rise {
       width: min(21rem, calc(100vw - 2 * var(--space-inline)));
     }
+
+    /* The dialog's network map: the CC0 hashcc diagram, one line boosted,
+       the rest dimmed. The map is an artwork with its own light ground, so
+       it keeps a white plate in dark mode too. */
+    .line-map { display: flex; flex-direction: column; gap: 0.375rem; }
+    #d-map-host {
+      height: 17rem; overflow: hidden;
+      border: 1px solid var(--border); border-radius: var(--radius-card, 0.75rem);
+      background: #fff;
+    }
+    #d-map-host svg { width: 100%; height: 100%; display: block; }
 
     /* The detail dialog's color chip. */
     .hex-chip {
@@ -94,7 +159,7 @@
 </head>
 <body>
 
-  <main class="container stack page-under-bar">
+  <main class="container stack" style="padding-top: var(--space-card); padding-bottom: var(--bar-clearance-bottom);">
 
     <h1 class="visually-hidden">Tokyo by rail</h1>
 
@@ -107,7 +172,7 @@
 
   </main>
 
-  <dialog class="modal stack" id="line-dialog">
+  <dialog class="modal modal-lg stack" id="line-dialog">
     <div class="dialog-head">
       <h4 id="d-name">Line</h4>
       <form method="dialog"><button class="btn btn-icon btn-ghost" aria-label="Close"><svg width="20" height="20" data-icon="close" aria-hidden="true"></svg></button></form>
@@ -119,6 +184,10 @@
         <span id="d-op" class="text-caption" style="color: var(--text-muted);"></span>
       </span>
     </div>
+    <figure class="line-map" id="d-map" hidden style="margin: 0;">
+      <div id="d-map-host" role="img" aria-label="Greater Tokyo network map with this line highlighted"></div>
+      <figcaption class="text-caption" style="color: var(--text-muted); margin: 0;">The whole network, this line highlighted. Map: Naoki Hashimoto (CC0).</figcaption>
+    </figure>
     <ul class="list list-boxed">
       <li class="list-item">
         <span class="list-content"><span class="list-title">Symbol</span></span>
@@ -178,7 +247,7 @@
     </div>
   </div>
 
-  <nav class="tab-bar tab-bar-top" aria-label="App controls" data-print="off">
+  <nav class="tab-bar" aria-label="App controls" data-print="off">
     <button type="button" class="tab-menu" aria-controls="filter-sheet"
             aria-expanded="false" aria-label="Open search and filters"
             data-tip="Search, company and arrangement" data-event="open-filters">
@@ -220,9 +289,9 @@
           <div class="field">
             <span class="field-label" id="arrange-label">Arrange</span>
             <fieldset class="segmented segmented-fill" aria-labelledby="arrange-label" id="arrange-seg" data-event="lines-arrange">
-              <label data-tip="Company sections, Tokyo Metro first"><input type="radio" name="arrange" value="company" checked><span>Company</span></label>
+              <label data-tip="Busiest lines first, by average daily riders"><input type="radio" name="arrange" value="riders" checked><span>Ridership</span></label>
+              <label data-tip="Company sections, Tokyo Metro first"><input type="radio" name="arrange" value="company"><span>Company</span></label>
               <label data-tip="One run sorted around the color wheel"><input type="radio" name="arrange" value="color"><span>Color</span></label>
-              <label data-tip="Busiest lines first, by average daily riders"><input type="radio" name="arrange" value="riders"><span>Ridership</span></label>
             </fieldset>
           </div>
           <p class="text-caption" id="count" aria-live="polite" style="color: var(--text-muted); margin: 0;"></p>
@@ -302,7 +371,7 @@
       {"i":28,"op":"Toei","oj":"東京都交通局","n":"Shinjuku Line","j":"新宿線","c":"S","x":"#B0BF1E","s":"circle","t":"Shinjuku – Motoyawata","a":"link","r":740000,"ry":2024},
       {"i":29,"op":"Toei","oj":"東京都交通局","n":"Oedo Line","j":"大江戸線","c":"E","x":"#CE045B","s":"circle","t":"Tochomae – Hikarigaoka (via loop through Daimon and Iidabashi)","note":"Older magenta #B6007A also in use","a":"tokyo","r":889000,"ry":2024},
       {"i":30,"op":"Toei","oj":"東京都交通局","n":"Toden Arakawa Line (Tokyo Sakura Tram)","j":"都電荒川線（東京さくらトラム）","c":"SA","x":"#EE86A7","s":"circle","t":"Minowabashi – Waseda","note":"Tramway","a":"tokyo","r":49100,"ry":2011},
-      {"i":31,"op":"Toei","oj":"東京都交通局","n":"Nippori-Toneri Liner","j":"日暮里・舎人ライナー","c":"NT","x":"#D53A77","s":"square","t":"Nippori – Minumadai-Shinsuikoen","note":"Automated guideway transit; secondary color green #69B444","a":"tokyo","r":95200,"ry":2024},
+      {"i":31,"op":"Toei","oj":"東京都交通局","n":"Nippori-Toneri Liner","j":"日暮里・舎人ライナー","c":"NT","x":"#D53A77","s":"square","t":"Nippori – Minumadai-Shinsuikoen","note":"Automated guideway transit; secondary color green #69B444","a":"tokyo","r":95200,"ry":2024,"x2":"#69B444"},
       {"i":32,"op":"Tokyu","oj":"東急電鉄","n":"Toyoko Line","j":"東横線","c":"TY","x":"#DA0442","s":"square","t":"Shibuya – Yokohama","a":"link","r":1100000,"ry":2024},
       {"i":33,"op":"Tokyu","oj":"東急電鉄","n":"Meguro Line","j":"目黒線","c":"MG","x":"#009CD2","s":"square","t":"Meguro – Hiyoshi","a":"link","r":382000,"ry":2024},
       {"i":34,"op":"Tokyu","oj":"東急電鉄","n":"Tokyu Shin-Yokohama Line","j":"東急新横浜線","c":"SH","x":"#8A1186","s":"square","t":"Hiyoshi – Shin-Yokohama","a":"out","r":97600,"ry":2024},
@@ -359,7 +428,7 @@
       {"i":85,"op":"Sotetsu","oj":"相模鉄道","n":"Izumino Line","j":"いずみ野線","c":"SO","x":"#041452","s":"square","t":"Futamatagawa – Shonandai","a":"out","r":55900,"ry":2024},
       {"i":86,"op":"Sotetsu","oj":"相模鉄道","n":"Sotetsu Shin-Yokohama Line","j":"相鉄新横浜線","c":"SO","x":"#041452","s":"square","t":"Nishiya – Shin-Yokohama","note":"Carries the Sotetsu–JR direct service (via Hazawa yokohama-kokudai) and Tokyu direct service","a":"out","r":50500,"ry":2024},
       {"i":87,"op":"Metropolitan Intercity Railway","oj":"首都圏新都市鉄道","n":"Tsukuba Express","j":"つくばエクスプレス","c":"TX","x":"#000084","s":"square","t":"Akihabara – Tsukuba","a":"link","r":423000,"ry":2025},
-      {"i":88,"op":"Tokyo Waterfront Area Rapid Transit","oj":"東京臨海高速鉄道","n":"Rinkai Line","j":"りんかい線","c":"R","x":"#00B19D","s":"circle","t":"Shin-Kiba – Osaki","note":"Through service with JR Saikyo Line; secondary color #00389E","a":"tokyo","r":225000,"ry":2024},
+      {"i":88,"op":"Tokyo Waterfront Area Rapid Transit","oj":"東京臨海高速鉄道","n":"Rinkai Line","j":"りんかい線","c":"R","x":"#00B19D","s":"circle","t":"Shin-Kiba – Osaki","note":"Through service with JR Saikyo Line; secondary color #00389E","a":"tokyo","r":225000,"ry":2024,"x2":"#00389E"},
       {"i":89,"op":"Yurikamome","oj":"ゆりかもめ","n":"Yurikamome (Tokyo Waterfront New Transit Line)","j":"ゆりかもめ（東京臨海新交通臨海線）","c":"U","x":"#0067C0","s":"circle","t":"Shimbashi – Toyosu","note":"Automated guideway transit","a":"tokyo","r":125000,"ry":2023},
       {"i":90,"op":"Tokyo Monorail","oj":"東京モノレール","n":"Haneda Airport Line","j":"東京モノレール羽田空港線","c":"MO","x":"#003686","s":"square","t":"Monorail Hamamatsucho – Haneda Airport Terminal 2","a":"tokyo","r":108000,"ry":2023},
       {"i":91,"op":"Tama Toshi Monorail","oj":"多摩都市モノレール","n":"Tama Toshi Monorail Line","j":"多摩都市モノレール線","c":"TT","x":"#FF6633","s":"square","t":"Tama-Center – Kamikitadai","note":"Line drawn orange on maps; station-number badge is dark teal","a":"tokyo","r":132000,"ry":2023},
@@ -391,7 +460,23 @@
     const badge = (l, extra) => `<span class="rail-badge${extra ? " " + extra : ""}" data-shape="${l.s}"${(l.c || "").length > 1 ? " data-long" : ""} style="--c:${l.x}" aria-hidden="true">${esc(l.c || "·")}</span>`;
 
     /* One state object; every control writes it, the URL mirrors it. */
-    const state = { arrange: "company", area: "", op: "", q: "" };
+    const state = { arrange: "riders", area: "", op: "", q: "" };
+
+    /* company → logo file slug + monogram fallback */
+    const OPSLUG = {
+      "JR East": "jr-east", "Tokyo Metro": "tokyo-metro", "Toei": "toei",
+      "Tokyu": "tokyu", "Yokohama Minatomirai Railway": "minatomirai",
+      "Odakyu": "odakyu", "Keio": "keio", "Seibu": "seibu", "Tobu": "tobu",
+      "Keisei": "keisei", "Keikyu": "keikyu", "Sotetsu": "sotetsu",
+      "Metropolitan Intercity Railway": "tx",
+      "Tokyo Waterfront Area Rapid Transit": "rinkai",
+      "Yurikamome": "yurikamome", "Tokyo Monorail": "tokyo-monorail",
+      "Tama Toshi Monorail": "tama-monorail", "Saitama Railway": "saitama",
+      "Toyo Rapid Railway": "toyo", "Hokuso Railway": "hokuso",
+      "Shibayama Railway": "shibayama",
+      "Yokohama City Transportation Bureau": "yokohama-city",
+    };
+    const monogram = op => op.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
     /* The area classes and the human words the dialog prints for them. */
     const AREAS = { tokyo: "Entirely inside Tokyo", link: "Tokyo ↔ the outskirts", out: "Outside Tokyo" };
@@ -418,15 +503,30 @@
     };
     const heading = h => h ? `<h2 class="text-caption" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-caps); margin: 0;">${esc(h.op)} <span style="letter-spacing: var(--tracking-wide);">${esc(h.oj)}</span></h2>` : "";
 
-    /* The card grid. Every card is a real button opening the dialog; the
-       daily-riders line shows only while arranged by ridership. */
-    const renderCards = lines => `<div class="line-grid" data-arrange="${state.arrange}">` + lines.map(l =>
-      `<button type="button" class="card card-clickable line-card stack-tight" style="--c:${l.x}" data-line="${l.i}" data-event="lines-open">
-        ${badge(l)}
-        <span class="line-nm"><strong>${esc(l.n)}</strong>${state.arrange === "riders" ? "" : `<br><span class="line-ja">${esc(l.j)}</span>`}</span>
+    /* The card grid. Each square: an invisible stretched button opens the
+       dialog (with the full names as its hover tooltip), the Japanese name
+       headlines beside the badge, the English name floats as a watermark,
+       the company mark sits lower left (logo file, monogram fallback), and
+       the chime button top right. */
+    const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const renderCards = lines => `<div class="line-grid" data-arrange="${state.arrange}">` + lines.map(l => {
+      const slug = OPSLUG[l.op];
+      return `<article class="card line-card stack-tight" style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""}">
+        <button type="button" class="line-open" data-line="${l.i}" data-event="lines-open"
+                data-tip="${esc(l.n)} · ${esc(l.j)} · ${esc(l.op)}" aria-label="${esc(l.n)} details"></button>
+        <span class="line-head">${badge(l)}<span class="line-jp" lang="ja">${esc(l.j)}</span></span>
         ${state.arrange === "riders" ? `<span class="line-riders">${l.r ? "~" + fmtRiders(l.r) + " riders/day" : "no published figure"}</span>` : ""}
-        <span class="line-op">${esc(l.op)}</span>
-      </button>`).join("") + `</div>`;
+        <span class="line-en" aria-hidden="true">${esc(l.n)}</span>
+        <img class="line-logo" src="/logos/${slug}.svg" alt="" data-tip="${esc(l.op)} · ${esc(l.oj)}"
+             onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+        <span class="line-logo-mono" data-tip="${esc(l.op)} · ${esc(l.oj)}" hidden>${esc(monogram(l.op))}</span>
+        <button type="button" class="line-jingle" data-jingle="${l.i}" data-event="lines-jingle"
+                aria-label="Play an original chime for the ${esc(l.n)}"
+                data-tip="${finePointer ? "Hover to hear" : "Tap to hear"} an original chime for this line (not the official station melody)">
+          <svg data-icon="volume" aria-hidden="true"></svg>
+        </button>
+      </article>`;
+    }).join("") + `</div>`;
 
     const render = () => {
       const list = filtered();
@@ -438,7 +538,7 @@
         : "";
       $("no-match").hidden = list.length > 0;
       const p = new URLSearchParams();
-      if (state.arrange !== "company") p.set("arrange", state.arrange);
+      if (state.arrange !== "riders") p.set("arrange", state.arrange);
       if (state.area) p.set("area", state.area);
       if (state.op) p.set("op", state.op);
       if (state.q.trim()) p.set("q", state.q.trim());
@@ -453,6 +553,207 @@
         s.setAttribute("aria-current", String(s.dataset.area === state.area)));
     };
 
+    /* ---- Original line chimes ------------------------------------------
+       Synthesized in the browser, deliberately NOT the official station
+       melodies — those belong to stations (usually single platforms), not
+       lines, and the recordings are copyrighted. Each line gets a stable
+       little bell melody of its own: the key comes from its color's hue,
+       the notes from a seeded walk of a major pentatonic ending on the
+       high octave. Audio can only start after a user gesture, so the
+       first click or tap anywhere unlocks it; until then a hover shows a
+       hint instead. */
+    let audioCtx = null;
+    const unlockAudio = () => {
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+      } catch (e) { /* no WebAudio */ }
+    };
+    document.addEventListener("pointerdown", unlockAudio, { capture: true });
+    let lastPlay = 0;
+    const playJingle = l => {
+      if (!audioCtx || audioCtx.state !== "running") return false;
+      const t0 = audioCtx.currentTime;
+      if (t0 - lastPlay < 0.4) return true;      // sweeping across cards ≠ a carillon
+      lastPlay = t0;
+      let seed = (l.i + 1) * 2654435761 >>> 0;   // stable per line
+      const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+      const h = hue(l.x);
+      const base = 392 * Math.pow(2, ((h === 999 ? 0 : Math.round(h / 30)) % 12) / 12);
+      const steps = [0, 2, 4, 7, 9];
+      const master = audioCtx.createGain();
+      master.gain.value = 0.2;
+      master.connect(audioCtx.destination);
+      let t = t0 + 0.02;
+      const count = 5 + Math.floor(rand() * 2);
+      for (let k = 0; k < count; k++) {
+        const last = k === count - 1;
+        const st = last ? 12 : steps[Math.floor(rand() * steps.length)];
+        const f = base * Math.pow(2, st / 12);
+        const dur = last ? 0.5 : 0.2;
+        for (const [mult, amp] of [[1, 1], [2, 0.3], [4, 0.08]]) {  // bell partials
+          const o = audioCtx.createOscillator();
+          o.type = "sine"; o.frequency.value = f * mult;
+          const g = audioCtx.createGain();
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(amp * 0.5, t + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0008, t + dur + 0.35);
+          o.connect(g); g.connect(master);
+          o.start(t); o.stop(t + dur + 0.4);
+        }
+        t += dur * 0.8;
+      }
+      return true;
+    };
+
+    /* ---- The network map in the dialog --------------------------------
+       /map.svg is the CC0 Greater-Tokyo diagram by Naoki Hashimoto
+       (github.com/hashcc/railmaps): one addressable group per line. Loaded
+       once, lazily, on the first dialog open; per line every line-level
+       element is dimmed except the matches, and the viewBox zooms to their
+       joint bounding box. Lines newer than the map (Sotetsu/Tokyu
+       Shin-Yokohama, Shibayama, Tobu Nikko/Ogose) simply hide the map. */
+    const MAP_ID = {
+      "JR East|Yamanote Line": ["jr-yamanote"],
+      "JR East|Keihin-Tohoku Line": ["jr-keihintohoku", "jr-negishi"],
+      "JR East|Chuo Line (Rapid)": ["jr-chuo"],
+      "JR East|Chuo-Sobu Line (Local)": ["jr-sobulocal"],
+      "JR East|Saikyo Line": ["jr-saikyo"],
+      "JR East|Shonan-Shinjuku Line": ["jr-shonanshinjuku"],
+      "JR East|Yokosuka Line / Sobu Line (Rapid)": ["jr-yokosuka", "jr-soburapid"],
+      "JR East|Tokaido Line": ["jr-tokaido"],
+      "JR East|Utsunomiya Line / Takasaki Line": ["jr-utsunomiya", "jr-takasaki"],
+      "JR East|Ueno-Tokyo Line": ["jr-uenotokyo"],
+      "JR East|Joban Line (Rapid)": ["jr-joban"],
+      "JR East|Joban Line (Local)": ["jr-jobanlocal", "jr-jobanlocal-abiko-toride"],
+      "JR East|Keiyo Line": ["jr-keiyo"],
+      "JR East|Musashino Line": ["jr-musashino"],
+      "JR East|Nambu Line": ["jr-nanbu"],
+      "JR East|Yokohama Line": ["jr-yokohama"],
+      "JR East|Tsurumi Line": ["jr-tsurumi"],
+      "Tokyo Metro|Ginza Line": ["tokyometro-ginza"],
+      "Tokyo Metro|Marunouchi Line": ["tokyometro-marunouchi"],
+      "Tokyo Metro|Hibiya Line": ["tokyometro-hibiya"],
+      "Tokyo Metro|Tozai Line": ["tokyometro-tozai", "tokyometro-tozai-sobu"],
+      "Tokyo Metro|Chiyoda Line": ["tokyometro-chiyoda"],
+      "Tokyo Metro|Yurakucho Line": ["tokyometro-yurakucho"],
+      "Tokyo Metro|Hanzomon Line": ["tokyometro-hanzomon"],
+      "Tokyo Metro|Namboku Line": ["tokyometro-nanboku"],
+      "Tokyo Metro|Fukutoshin Line": ["tokyometro-fukutoshin"],
+      "Toei|Asakusa Line": ["toei-asakusa"],
+      "Toei|Mita Line": ["toei-mita"],
+      "Toei|Shinjuku Line": ["toei-shinjuku"],
+      "Toei|Oedo Line": ["toei-oedo"],
+      "Toei|Toden Arakawa Line (Tokyo Sakura Tram)": ["toei-arakawa"],
+      "Toei|Nippori-Toneri Liner": ["toei-nipporitoneriliner"],
+      "Tokyu|Toyoko Line": ["tokyu-toyoko"],
+      "Tokyu|Meguro Line": ["tokyu-meguro"],
+      "Tokyu|Den-en-toshi Line": ["tokyu-denentoshi"],
+      "Tokyu|Oimachi Line": ["tokyu-oimachi"],
+      "Tokyu|Ikegami Line": ["tokyu-ikegami"],
+      "Tokyu|Tokyu Tamagawa Line": ["tokyu-tamagawa"],
+      "Tokyu|Kodomonokuni Line": ["tokyu-kodomonokuni"],
+      "Tokyu|Setagaya Line": ["tokyu-setagaya"],
+      "Yokohama Minatomirai Railway|Minatomirai Line": ["minatomirai"],
+      "Odakyu|Odawara Line": ["odakyu-odawara"],
+      "Odakyu|Enoshima Line": ["odakyu-enoshima"],
+      "Odakyu|Tama Line": ["odakyu-tama"],
+      "Keio|Keio Line": ["keio-keio"],
+      "Keio|Keio New Line": ["keio-new"],
+      "Keio|Sagamihara Line": ["keio-sagamihara"],
+      "Keio|Takao Line": ["keio-takao"],
+      "Keio|Keibajo Line": ["keio-keibajo"],
+      "Keio|Dobutsuen Line": ["keio-dobutsuen"],
+      "Keio|Inokashira Line": ["keio-inokashira"],
+      "Seibu|Ikebukuro Line": ["seibu-ikebukuro"],
+      "Seibu|Seibu Chichibu Line": ["seibu-chichibu"],
+      "Seibu|Toshima Line": ["seibu-toshima"],
+      "Seibu|Sayama Line": ["seibu-sayama"],
+      "Seibu|Seibu Yurakucho Line": ["seibu-yurakucho"],
+      "Seibu|Shinjuku Line": ["seibu-shinjuku"],
+      "Seibu|Haijima Line": ["seibu-haijima"],
+      "Seibu|Tamako Line": ["seibu-tamako"],
+      "Seibu|Kokubunji Line": ["seibu-kokubunji"],
+      "Seibu|Seibuen Line": ["seibu-seibuen"],
+      "Seibu|Seibu Tamagawa Line": ["seibu-tamagawa"],
+      "Seibu|Yamaguchi Line (Leo Liner)": ["seibu-yamaguchi"],
+      "Tobu|Tobu Skytree Line": ["tobu-skytree"],
+      "Tobu|Isesaki Line": ["tobu-isezaki"],
+      "Tobu|Kameido Line": ["tobu-kameido"],
+      "Tobu|Daishi Line": ["tobu-taishi"],
+      "Tobu|Urban Park Line (Noda Line)": ["tobu-noda"],
+      "Tobu|Tojo Line": ["tobu-tojo"],
+      "Keisei|Keisei Main Line": ["keisei-keisei", "keisei-higashinarita"],
+      "Keisei|Oshiage Line": ["keisei-oshiage"],
+      "Keisei|Kanamachi Line": ["keisei-kanamachi"],
+      "Keisei|Chiba Line": ["keisei-chiba"],
+      "Keisei|Chihara Line": ["keisei-chihara"],
+      "Keisei|Narita Sky Access Line": ["keisei-naritaskyaccess"],
+      "Keisei|Matsudo Line": ["shinkeisei-shinkeisei"],
+      "Keikyu|Keikyu Main Line": ["keikyu-keikyu"],
+      "Keikyu|Airport Line": ["keikyu-airport"],
+      "Keikyu|Daishi Line": ["keikyu-taishi"],
+      "Keikyu|Zushi Line": ["keikyu-zushi"],
+      "Keikyu|Kurihama Line": ["keikyu-kurihama"],
+      "Sotetsu|Sotetsu Main Line": ["soutetsu-main"],
+      "Sotetsu|Izumino Line": ["soutetsu-izumino"],
+      "Metropolitan Intercity Railway|Tsukuba Express": ["tsukubaexpress"],
+      "Tokyo Waterfront Area Rapid Transit|Rinkai Line": ["rinkai"],
+      "Yurikamome|Yurikamome (Tokyo Waterfront New Transit Line)": ["yurikamome"],
+      "Tokyo Monorail|Haneda Airport Line": ["jr-tokyomonorail"],
+      "Tama Toshi Monorail|Tama Toshi Monorail Line": ["tamatoshimonorail"],
+      "Saitama Railway|Saitama Rapid Railway Line (Saitama Stadium Line)": ["saitamakosoku"],
+      "Toyo Rapid Railway|Toyo Rapid Line": ["toyokosoku"],
+      "Hokuso Railway|Hokuso Line": ["hokuso-hokuso"],
+      "Yokohama City Transportation Bureau|Blue Line": ["yokohama-blue"],
+      "Yokohama City Transportation Bureau|Green Line": ["yokohama-green"],
+    };
+    let mapLoading = null, mapView0 = null;
+    const loadMap = () => mapLoading ||= fetch("/map.svg")
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(txt => {
+        const host = $("d-map-host");
+        host.innerHTML = txt;
+        const svg = host.querySelector("svg");
+        svg.removeAttribute("width"); svg.removeAttribute("height");
+        mapView0 = svg.getAttribute("viewBox");
+        return svg;
+      })
+      .catch(() => null);
+    const showMap = l => {
+      const ids = MAP_ID[l.op + "|" + l.n];
+      const fig = $("d-map");
+      fig.hidden = !ids;
+      if (!ids) return;
+      loadMap().then(svg => {
+        if (!svg) { fig.hidden = true; return; }
+        const linesG = svg.querySelector("#lines");
+        const targets = new Set(ids);
+        const matched = [];
+        // line-level elements are the children of each operator group;
+        // Illustrator numbered split groups (_1_, _2_) normalize back
+        for (const opG of Array.from(linesG.children)) {
+          const kids = opG.tagName === "g" ? Array.from(opG.children) : [opG];
+          for (const el of kids) {
+            const base = (el.id || "").replace(/_x?\d+_?$/, "");
+            const on = targets.has(base);
+            el.style.opacity = on ? "1" : "0.1";
+            if (on) matched.push(el);
+          }
+        }
+        if (!matched.length) { fig.hidden = true; return; }
+        let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        for (const el of matched) {
+          const b = el.getBBox();
+          x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y);
+          x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height);
+        }
+        const pad = Math.max(x1 - x0, y1 - y0) * 0.18 + 120;
+        svg.setAttribute("viewBox",
+          `${x0 - pad} ${y0 - pad} ${(x1 - x0) + 2 * pad} ${(y1 - y0) + 2 * pad}`);
+      });
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
       /* Company select: All + one entry per company with its line count. */
       const counts = new Map();
@@ -462,7 +763,7 @@
 
       /* Restore a shared URL. */
       const p = new URLSearchParams(location.search);
-      if (["color", "riders"].includes(p.get("arrange"))) state.arrange = p.get("arrange");
+      if (["color", "company"].includes(p.get("arrange"))) state.arrange = p.get("arrange");
       if (AREAS[p.get("area")]) state.area = p.get("area");
       if (counts.has(p.get("op"))) state.op = p.get("op");
       if (p.get("q")) state.q = p.get("q");
@@ -497,6 +798,28 @@
       $("q").addEventListener("input", () => { state.q = $("q").value; render(); });
       $("clear-search").addEventListener("click", () => { state.q = ""; $("q").value = ""; render(); $("q").focus(); });
 
+      /* Chime wiring: hover plays on fine pointers (once a click has
+         unlocked audio — until then the hover shows a hint); on touch the
+         tap itself is the unlocking gesture and plays directly. */
+      let hintShown = false;
+      $("lines").addEventListener("pointerover", e => {
+        const b = e.target.closest(".line-jingle");
+        if (!b || (e.relatedTarget && b.contains(e.relatedTarget))) return;
+        if (!finePointer) return;
+        const l = LINES.find(x => x.i === +b.dataset.jingle);
+        if (l && !playJingle(l) && !hintShown) {
+          hintShown = true;
+          facet.toast("Click anywhere once to enable sound");
+        }
+      });
+      $("lines").addEventListener("click", e => {
+        const b = e.target.closest(".line-jingle");
+        if (!b) return;
+        unlockAudio();
+        const l = LINES.find(x => x.i === +b.dataset.jingle);
+        if (l) setTimeout(() => playJingle(l), 40);   // resume() settles async
+      });
+
       /* One delegated opener for every rendered line → the detail dialog. */
       let current = null;
       $("lines").addEventListener("click", e => {
@@ -518,6 +841,7 @@
         $("d-note-row").hidden = !l.note;
         $("d-note").textContent = l.note || "";
         $("line-dialog").showModal();
+        showMap(l);
       });
       $("d-copy").addEventListener("click", async () => {
         if (!current) return;
