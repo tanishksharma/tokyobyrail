@@ -93,7 +93,7 @@
     /* company mark, lower left; a monogram stands in when no logo file */
     .line-logo {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
-      width: 1.75rem; height: 1.75rem; object-fit: contain;
+      width: 2.5rem; height: 1.75rem; object-fit: contain; object-position: left center;
     }
     .line-logo-mono {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
@@ -477,6 +477,8 @@
       "Yokohama City Transportation Bureau": "yokohama-city",
     };
     const monogram = op => op.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    /* two marks only exist as PNG renders (their Commons SVGs stay throttled) */
+    const LOGO_EXT = { "tokyo-metro": "png", "hokuso": "png" };
 
     /* The area classes and the human words the dialog prints for them. */
     const AREAS = { tokyo: "Entirely inside Tokyo", link: "Tokyo ↔ the outskirts", out: "Outside Tokyo" };
@@ -517,7 +519,7 @@
         <span class="line-head">${badge(l)}<span class="line-jp" lang="ja">${esc(l.j)}</span></span>
         ${state.arrange === "riders" ? `<span class="line-riders">${l.r ? "~" + fmtRiders(l.r) + " riders/day" : "no published figure"}</span>` : ""}
         <span class="line-en" aria-hidden="true">${esc(l.n)}</span>
-        <img class="line-logo" src="/logos/${slug}.svg" alt="" data-tip="${esc(l.op)} · ${esc(l.oj)}"
+        <img class="line-logo" src="/logos/${slug}.${LOGO_EXT[slug] || "svg"}" alt="" data-tip="${esc(l.op)} · ${esc(l.oj)}"
              onerror="this.hidden=true;this.nextElementSibling.hidden=false">
         <span class="line-logo-mono" data-tip="${esc(l.op)} · ${esc(l.oj)}" hidden>${esc(monogram(l.op))}</span>
         <button type="button" class="line-jingle" data-jingle="${l.i}" data-event="lines-jingle"
