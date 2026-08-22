@@ -743,9 +743,9 @@
       {"i": 4, "op": "JR East", "oj": "JR東日本", "n": "Saikyo Line", "j": "埼京線", "c": "JA", "x": "#00AC9A", "s": "square", "t": "Osaki – Omiya", "note": "Through services to Rinkai Line, Kawagoe Line and Sotetsu Line", "a": "link", "r": 1110000, "ry": 2015, "km": 36.9, "st": 19, "y": 1985},
       {"i": 5, "op": "JR East", "oj": "JR東日本", "n": "Shonan-Shinjuku Line", "j": "湘南新宿ライン", "c": "JS", "x": "#E31F26", "s": "square", "t": "Ofuna – Shinjuku – Omiya", "note": "Through-running corridor (Zushi/Odawara – Utsunomiya/Takasaki)", "a": "link", "r": 479000, "ry": 2015, "km": 86.4, "st": 16, "y": 2001},
       {"i": 6, "op": "JR East", "oj": "JR東日本", "n": "Yokosuka Line / Sobu Line (Rapid)", "j": "横須賀・総武快速線", "c": "JO", "x": "#0067C0", "s": "square", "t": "Kurihama – Tokyo – Chiba", "a": "link", "r": 1450000, "ry": 2015, "km": 112.5, "st": 28, "y": 1889},
-      {"i": 7, "op": "JR East", "oj": "JR東日本", "n": "Tokaido Line", "j": "東海道線", "c": "JT", "x": "#F68B1E", "s": "square", "t": "Tokyo – Atami", "a": "link", "km": 104.6, "st": 21},
-      {"i": 8, "op": "JR East", "oj": "JR東日本", "n": "Utsunomiya Line / Takasaki Line", "j": "宇都宮線・高崎線", "c": "JU", "x": "#F68B1E", "s": "square", "t": "Tokyo – Omiya (– Utsunomiya / Takasaki)", "note": "JU applies Tokyo – Omiya", "a": "link", "km": 238.2, "st": 52},
-      {"i": 9, "op": "JR East", "oj": "JR東日本", "n": "Ueno-Tokyo Line", "j": "上野東京ライン", "c": "JU", "x": "#91278F", "s": "square", "t": "Ueno – Tokyo", "note": "Through-running corridor; trains carry the JT/JU/JJ codes of their own lines; shown purple on maps", "a": "tokyo", "r": 320000, "ry": 2015, "km": 3.6, "st": 2, "y": 2015},
+      {"i": 7, "op": "JR East", "oj": "JR東日本", "n": "Tokaido Line", "j": "東海道線", "c": "JT", "x": "#F68B1E", "s": "square", "t": "Tokyo – Atami", "a": "link", "km": 104.6, "st": 21, "x2": "#009900", "note": "Officially a two-colour line: the Shonan colours, orange #F68B1E over green #009900, which is why its trains wear an orange and green band"},
+      {"i": 8, "op": "JR East", "oj": "JR東日本", "n": "Utsunomiya Line / Takasaki Line", "j": "宇都宮線・高崎線", "c": "JU", "x": "#F68B1E", "s": "square", "t": "Tokyo – Omiya (– Utsunomiya / Takasaki)", "note": "JU applies Tokyo – Omiya; Officially a two-colour line: the Shonan colours, orange #F68B1E over green #009900, which is why its trains wear an orange and green band", "a": "link", "km": 238.2, "st": 52, "x2": "#009900"},
+      {"i": 9, "op": "JR East", "oj": "JR東日本", "n": "Ueno-Tokyo Line", "j": "上野東京ライン", "c": "JU", "x": "#91278F", "s": "square", "t": "Ueno – Tokyo", "note": "Through-running corridor; trains carry the JT/JU/JJ codes of their own lines; shown purple on maps; Signed purple as its own brand, but it carries Tokaido, Utsunomiya, Takasaki and Joban services, so its trains wear the Shonan orange and green", "a": "tokyo", "r": 320000, "ry": 2015, "km": 3.6, "st": 2, "y": 2015},
       {"i": 10, "op": "JR East", "oj": "JR東日本", "n": "Joban Line (Rapid)", "j": "常磐線快速", "c": "JJ", "x": "#00B261", "s": "square", "t": "Ueno – Toride", "a": "link", "km": 39.6, "st": 10},
       {"i": 11, "op": "JR East", "oj": "JR東日本", "n": "Joban Line (Local)", "j": "常磐線各駅停車", "c": "JL", "x": "#00B261", "s": "square", "t": "Ayase – Toride", "note": "Through service with Tokyo Metro Chiyoda Line; grey is sometimes used to distinguish it from JJ", "a": "link", "km": 29.7, "st": 14},
       {"i": 12, "op": "JR East", "oj": "JR東日本", "n": "Keiyo Line", "j": "京葉線", "c": "JE", "x": "#C9252F", "s": "square", "t": "Tokyo – Soga", "a": "link", "r": 660000, "ry": 2024, "km": 43.0, "st": 19, "y": 1975},
@@ -1610,7 +1610,10 @@
         say("How old", `Opened in ${l.y}, ${new Date().getFullYear() - l.y} years ago — ${rank} of the ${dated.length} lines whose opening year is confirmed.`);
       }
       say("Where it runs", `${AREAS[l.a] || "—"}. ${esc(l.t || "")}`);
-      if (l.x2) say("Two colours", "One of only two lines that officially carry a second colour, which is why its card is striped in both.");
+      if (l.x2) {
+        const two = LINES.filter(x => x.x2).length;
+        say("Two colours", `One of ${two} lines that officially carry a second colour, which is why its card is striped in both.`);
+      }
       if (l.note) say("Worth knowing", esc(l.note));
       say("Its chime, ours",
         `<p>An original bell melody, generated from this line's own colour. It is not the official melody, and deliberately so.</p>
