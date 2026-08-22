@@ -18,8 +18,9 @@
   <link rel="apple-touch-icon" href="/icon.png">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚇</text></svg>">
   <link rel="stylesheet" href="https://facet.tanishksharma.com/lib/facet.css">
-  <!-- app-specific face: the big Japanese line name on each card -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Train+One&display=swap">
+  <!-- app-specific faces for the station-number badges: Jost stands in for
+       Futura (the Metro/Toei badge face), Hind for Frutiger (JR East's) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Hind:wght@700&display=swap">
   <script src="https://facet.tanishksharma.com/lib/facet.js" defer data-service-worker="/sw.js"></script>
 
   <style>
@@ -30,19 +31,31 @@
        badge's signage white/black (real Tokyo station badges are
        white-ground with black letters in every light). */
 
-    /* The station-number badge: a subway roundel (ring circle) or a
-       JR/private rounded-square frame, the ring in the line's color. */
+    /* The station-number badge, built to the real signage specs (measured
+       from the operators' own symbol artwork): the Metro/Toei letter-only
+       roundel — ring 22.5% of the diameter, geometric Futura-Bold letters
+       (Jost is the Google-Fonts Futura) — and JR East's rounded square —
+       frame ~11% of width, corner radius ~11.6%, humanist Frutiger-Bold
+       letters (Hind is the closest free face). */
     .rail-badge {
       display: inline-flex; align-items: center; justify-content: center;
       flex: none; width: 2.25rem; height: 2.25rem;
       background: #fff; color: #111;
-      border: 0.3125rem solid var(--c);
-      font-weight: var(--weight-heading); font-size: 0.95rem; line-height: 1;
-      user-select: none;
+      border-style: solid; border-color: var(--c);
+      line-height: 1; user-select: none;
     }
-    .rail-badge[data-shape="circle"] { border-radius: 50%; }
-    .rail-badge[data-shape="square"] { border-radius: 0.5rem; font-size: 0.8rem; }
+    .rail-badge[data-shape="circle"] {
+      border-radius: 50%; border-width: 0.5rem;
+      font-family: "Jost", var(--font-body), sans-serif;
+      font-weight: 600; font-size: 1.05rem;
+    }
+    .rail-badge[data-shape="square"] {
+      border-radius: 0.26rem; border-width: 0.25rem;
+      font-family: "Hind", var(--font-body), sans-serif;
+      font-weight: 700; font-size: 0.9rem;
+    }
     .rail-badge[data-long] { font-size: 0.7rem; letter-spacing: -0.02em; }
+    .rail-badge[data-shape="square"][data-long] { font-size: 0.85rem; }
 
     /* The card wall: fixed-width tracks so a card is the same size whether a
        company has two lines or seventeen — never stretched by a short row. */
@@ -74,26 +87,30 @@
       background: none; border: none; padding: 0; margin: 0;
       border-radius: inherit; cursor: pointer;
     }
-    .line-head { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
-    .line-jp {
-      font-family: "Train One", var(--font-japanese), sans-serif;
-      font-size: 1.3rem; line-height: 1.25; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      min-width: 0; flex: 1;
-    }
-    /* English name: a large translucent decoration in the lower right */
-    .line-en {
-      position: absolute; right: 0.75rem; bottom: 0.75rem;
-      max-width: 70%; text-align: right;
-      font-size: 1.1rem; font-weight: var(--weight-heading);
-      line-height: 1.15; color: var(--text); opacity: 0.12;
+    /* English name under the badge, cut at whole lines (full names live in
+       the card's hover tooltip) */
+    .line-name {
+      font-size: 1rem; line-height: 1.2; color: var(--text);
       display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-      overflow: hidden; pointer-events: none; user-select: none;
+      overflow: hidden; flex: none;
+    }
+    /* Japanese name: a large translucent decoration in the lower right, in
+       the library's brush-calligraphy Japanese face (Yuji Syuku) */
+    .line-jpbg {
+      position: absolute; right: 0.7rem; bottom: 0.7rem;
+      max-width: 88%; text-align: right;
+      font-family: var(--font-japanese);
+      font-size: 1.8rem; line-height: 1.1; color: var(--text); opacity: 0.16;
+      white-space: nowrap; overflow: hidden;
+      pointer-events: none; user-select: none;
     }
     /* company mark, lower left; a monogram stands in when no logo file */
+    /* Logo viewBoxes are trimmed to their content, so caps mean the same
+       thing for every mark: square symbols stand 1.5rem tall, wide
+       wordmarks run up to 3.25rem long — optically comparable sizes. */
     .line-logo {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
-      width: 2.5rem; height: 1.75rem; object-fit: contain; object-position: left center;
+      width: auto; height: auto; max-width: 3.25rem; max-height: 1.5rem;
     }
     .line-logo-mono {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
@@ -121,22 +138,25 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* The bar stays a bottom pill on EVERY width — no header nav — so on
-       wide screens the riser panels anchor above the bar instead of
-       hanging from a top one. */
-    @media (min-width: 40rem) {
-      #filter-sheet.sheet.sheet-rise,
-      #settings-sheet.sheet.sheet-rise {
-        top: auto;
-        bottom: calc(var(--space-pin, 20px) + 48px + var(--space-inline, 12px));
-      }
+    /* The floating pill row: every sort and filter as its own pill at the
+       bottom centre, each opening a small menu UPWARD (the library drops
+       menus down; at the screen foot they rise instead). */
+    .line-pills {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: calc(var(--space-pin, 20px) + env(safe-area-inset-bottom, 0px));
+      z-index: 30;
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 0.5rem; align-items: center;
+      width: max-content; max-width: calc(100vw - 2 * var(--space-inline, 12px));
+      user-select: none;
     }
-
-    /* The filter riser holds real fields, not menu rows — widen it past the
-       library's slim left-menu default so the Arrange segments fit. */
-    #filter-sheet.sheet.sheet-rise {
-      width: min(21rem, calc(100vw - 2 * var(--space-inline)));
+    .line-pills .dropdown-menu {
+      top: auto; bottom: calc(100% + 0.5rem);
+      max-height: min(24rem, 60vh); overflow-y: auto;
     }
+    .line-pills .menu-value { max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill-menu-search { min-width: 17rem; padding: 0.75rem; }
+    .pill-menu button[aria-pressed="true"] { font-weight: var(--weight-strong); }
 
     /* The dialog's network map: the CC0 hashcc diagram, one line boosted,
        the rest dimmed. The map is an artwork with its own light ground, so
@@ -221,110 +241,47 @@
     </ul>
   </dialog>
 
-  <div class="overlay-guide" hidden>
-    <p class="overlay-title">Add to your Home&nbsp;Screen</p>
-    <div class="a2hs-entry" style="display: flex; align-items: center; gap: var(--space-stack); text-align: left; max-width: 24rem; margin-block: 4vh 6vh;">
-      <img src="/icon.png" alt="" width="84" height="84" style="border-radius: 22.5%;">
-      <div>
-        <strong style="display: block; color: #fff;">Tokyo by rail</strong>
-        <span style="color: rgb(255 255 255 / 0.65);">Every line, every color</span>
+  <nav class="line-pills" aria-label="Search, filters and arrangement" data-print="off">
+    <details class="dropdown">
+      <summary class="btn btn-pill" data-event="pill-search" data-tip="Search by name, code or company, in English or Japanese">
+        <svg data-icon="search" aria-hidden="true"></svg> <span class="nav-label">Search</span></summary>
+      <div class="dropdown-menu pill-menu pill-menu-search">
+        <label class="field">
+          <span class="field-label">Search</span>
+          <input type="search" id="q" placeholder="Line, code or company"
+                 autocomplete="off" data-event="lines-search">
+        </label>
       </div>
-    </div>
-    <p class="overlay-sub"><strong>1.</strong> Open your browser&rsquo;s <strong>menu</strong></p>
-    <p class="overlay-sub"><strong>2.</strong> Tap the <strong>Share</strong> button</p>
-    <p class="overlay-sub"><strong>3.</strong> Choose <strong>Add to Home Screen</strong></p>
-    <p class="overlay-sub" style="opacity: .55;">Tap anywhere to close</p>
-  </div>
-
-  <div class="nudge-scrim" data-nudge-key="tokyobyrail-a2hs" data-nudge-delay="999999999" hidden>
-    <div class="nudge-card" role="dialog" aria-modal="true" aria-labelledby="nudge-title">
-      <span class="eyebrow">One tap away</span>
-      <h2 id="nudge-title">Add this to your Home Screen</h2>
-      <p>The whole network in your pocket &mdash; full screen, works offline.</p>
-      <button type="button" class="btn btn-primary" data-nudge="add">Add now</button>
-      <button type="button" class="btn btn-ghost" data-nudge="later">Add it later</button>
-      <button type="button" class="nudge-never" data-nudge="never">Don&rsquo;t ask again</button>
-    </div>
-  </div>
-
-  <nav class="tab-bar" aria-label="App controls" data-print="off">
-    <button type="button" class="tab-menu" aria-controls="filter-sheet"
-            aria-expanded="false" aria-label="Open search and filters"
-            data-tip="Search, company and arrangement" data-event="open-filters">
-      <svg data-icon="search" aria-hidden="true"></svg>
-    </button>
-    <div class="tab-set" id="area-tabs">
-      <button type="button" class="tab-seg" data-area="" aria-current="true"
-              data-tip="Every line on the map" data-event="area-all">All</button>
-      <button type="button" class="tab-seg" data-area="tokyo" aria-current="false"
-              data-tip="Lines running entirely inside Tokyo" data-event="area-tokyo">In Tokyo</button>
-      <button type="button" class="tab-seg" data-area="link" aria-current="false"
-              data-tip="Lines linking Tokyo with the surrounding prefectures" data-event="area-suburbs">To suburbs</button>
-      <button type="button" class="tab-seg" data-area="out" aria-current="false"
-              data-tip="Lines entirely outside Tokyo that Tokyo maps still show" data-event="area-outside">Outside</button>
-    </div>
-    <button type="button" class="tab-settings" aria-controls="settings-sheet"
-            aria-expanded="false" aria-label="Open settings"
-            data-tip="Theme, appearance, motion, sound" data-event="open-settings">
-      <svg data-icon="sliders" aria-hidden="true"></svg>
-    </button>
+    </details>
+    <details class="dropdown">
+      <summary class="btn btn-pill" data-event="pill-area" data-tip="Keep only one part of the map">
+        <span class="nav-label">Area</span> <span class="menu-value" id="area-value">All</span></summary>
+      <div class="dropdown-menu pill-menu" id="area-menu">
+        <button type="button" data-area="">All lines</button>
+        <button type="button" data-area="tokyo">In Tokyo</button>
+        <button type="button" data-area="link">To suburbs</button>
+        <button type="button" data-area="out">Outside</button>
+      </div>
+    </details>
+    <details class="dropdown">
+      <summary class="btn btn-pill" data-event="pill-company" data-tip="One company's lines only">
+        <span class="nav-label">Company</span> <span class="menu-value" id="op-value">All</span></summary>
+      <div class="dropdown-menu pill-menu pill-menu-scroll" id="op-menu"></div>
+    </details>
+    <details class="dropdown">
+      <summary class="btn btn-pill" data-event="pill-arrange" data-tip="The order the wall renders in">
+        <span class="nav-label">Arrange</span> <span class="menu-value" id="arrange-value">Ridership</span></summary>
+      <div class="dropdown-menu pill-menu" id="arrange-menu">
+        <button type="button" data-arrange="riders">Ridership</button>
+        <button type="button" data-arrange="company">Company</button>
+        <button type="button" data-arrange="color">Color</button>
+      </div>
+    </details>
   </nav>
-
-  <div class="sheet-scrim" data-open="false"></div>
-  <aside class="sheet sheet-left sheet-rise" id="filter-sheet" data-open="false"
-         aria-hidden="true" aria-label="Search and filters">
-    <div class="sheet-scroll">
-      <div class="sheet-group">
-        <p class="menu-label">Search &amp; filters</p>
-        <div class="stack-tight" style="padding: 0 var(--space-card) var(--space-card);">
-          <label class="field">
-            <span class="field-label">Search</span>
-            <input type="search" id="q" placeholder="Line, code or company"
-                   autocomplete="off" data-event="lines-search" data-tip="Matches names, codes and companies, in English and Japanese">
-          </label>
-          <label class="field">
-            <span class="field-label">Company</span>
-            <select id="op" data-event="lines-company" data-tip="Show one company's lines only"></select>
-          </label>
-          <div class="field">
-            <span class="field-label" id="arrange-label">Arrange</span>
-            <fieldset class="segmented segmented-fill" aria-labelledby="arrange-label" id="arrange-seg" data-event="lines-arrange">
-              <label data-tip="Busiest lines first, by average daily riders"><input type="radio" name="arrange" value="riders" checked><span>Ridership</span></label>
-              <label data-tip="Company sections, Tokyo Metro first"><input type="radio" name="arrange" value="company"><span>Company</span></label>
-              <label data-tip="One run sorted around the color wheel"><input type="radio" name="arrange" value="color"><span>Color</span></label>
-            </fieldset>
-          </div>
-          <p class="text-caption" id="count" aria-live="polite" style="color: var(--text-muted); margin: 0;"></p>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <div class="sheet-scrim" data-open="false"></div>
-  <aside class="sheet sheet-rise" id="settings-sheet" data-open="false"
-         aria-hidden="true" aria-label="Settings">
-    <div class="sheet-scroll">
-      <div class="sheet-group">
-        <p class="menu-label">Options</p>
-        <button type="button" class="menu-item" data-control="theme" aria-label="Theme: tap to cycle">
-          <svg width="18" height="18" data-icon="contrast" aria-hidden="true"></svg> Theme <span class="menu-value">Default</span></button>
-        <button type="button" class="menu-item" data-control="appearance" aria-label="Appearance: light, dark or auto">
-          <svg width="18" height="18" data-icon="sun" aria-hidden="true"></svg> Appearance <span class="menu-value">Auto</span></button>
-        <button type="button" class="menu-item" data-control="motion" aria-label="Motion: off, idle or responsive">
-          <svg width="18" height="18" data-icon="motion" aria-hidden="true"></svg> Motion <span class="menu-value">Off</span></button>
-        <button type="button" class="menu-item" data-control="sounds" aria-label="Sounds: on or off">
-          <svg width="18" height="18" data-icon="volume" aria-hidden="true"></svg> Sounds <span class="menu-value">On</span></button>
-        <button type="button" class="menu-item" data-control="haptics" aria-label="Haptics: on or off">
-          <svg width="18" height="18" data-icon="vibrate" aria-hidden="true"></svg> Haptics <span class="menu-value">On</span></button>
-        <button type="button" class="menu-item" data-nudge="add" aria-label="Install the app">
-          <svg width="18" height="18" data-icon="plus-square" aria-hidden="true"></svg> Install app</button>
-      </div>
-    </div>
-  </aside>
 
   <script>
     /* App data + list logic only — the nav-menu, settings pills, install
-       nudge, tooltips, sounds and haptics are all wired by the Facet
+       tooltips, dropdown menus, sounds and haptics are all wired by the Facet
        library straight from the markup.
 
        Dataset: every passenger line on the Greater Tokyo network with its
@@ -516,9 +473,10 @@
       return `<article class="card line-card stack-tight" style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""}">
         <button type="button" class="line-open" data-line="${l.i}" data-event="lines-open"
                 data-tip="${esc(l.n)} · ${esc(l.j)} · ${esc(l.op)}" aria-label="${esc(l.n)} details"></button>
-        <span class="line-head">${badge(l)}<span class="line-jp" lang="ja">${esc(l.j)}</span></span>
-        ${state.arrange === "riders" ? `<span class="line-riders">${l.r ? "~" + fmtRiders(l.r) + " riders/day" : "no published figure"}</span>` : ""}
-        <span class="line-en" aria-hidden="true">${esc(l.n)}</span>
+        ${badge(l)}
+        <strong class="line-name">${esc(l.n)}</strong>
+        <span class="line-riders">${l.r ? "~" + fmtRiders(l.r) + " riders/day" : "no published figure"}</span>
+        <span class="line-jpbg" lang="ja" aria-hidden="true">${esc(l.j)}</span>
         <img class="line-logo" src="/logos/${slug}.${LOGO_EXT[slug] || "svg"}" alt="" data-tip="${esc(l.op)} · ${esc(l.oj)}"
              onerror="this.hidden=true;this.nextElementSibling.hidden=false">
         <span class="line-logo-mono" data-tip="${esc(l.op)} · ${esc(l.oj)}" hidden>${esc(monogram(l.op))}</span>
@@ -534,10 +492,6 @@
       const list = filtered();
       $("lines").innerHTML = grouped(list).map(([h, lines]) =>
         `<section class="stack-tight">${heading(h)}${renderCards(lines)}</section>`).join("");
-      const ops = new Set(list.map(l => l.op)).size;
-      $("count").textContent = list.length
-        ? `${list.length} line${list.length === 1 ? "" : "s"} · ${ops} compan${ops === 1 ? "y" : "ies"}`
-        : "";
       $("no-match").hidden = list.length > 0;
       const p = new URLSearchParams();
       if (state.arrange !== "riders") p.set("arrange", state.arrange);
@@ -548,11 +502,20 @@
       history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
     };
 
-    /* Mirror state.area onto the tab-bar segments (aria-current drives the
-       library's sliding indicator). */
-    const syncAreaTabs = () => {
-      document.querySelectorAll("#area-tabs .tab-seg").forEach(s =>
-        s.setAttribute("aria-current", String(s.dataset.area === state.area)));
+    /* Mirror the state onto every pill's value chip and its menu's
+       pressed marks. */
+    const AREA_WORD = { "": "All", tokyo: "In Tokyo", link: "To suburbs", out: "Outside" };
+    const ARRANGE_WORD = { riders: "Ridership", company: "Company", color: "Color" };
+    const setPillValues = () => {
+      $("area-value").textContent = AREA_WORD[state.area];
+      $("op-value").textContent = state.op || "All";
+      $("arrange-value").textContent = ARRANGE_WORD[state.arrange];
+      document.querySelectorAll("#area-menu button").forEach(b =>
+        b.setAttribute("aria-pressed", String(b.dataset.area === state.area)));
+      document.querySelectorAll("#op-menu button").forEach(b =>
+        b.setAttribute("aria-pressed", String((b.dataset.op || "") === state.op)));
+      document.querySelectorAll("#arrange-menu button").forEach(b =>
+        b.setAttribute("aria-pressed", String(b.dataset.arrange === state.arrange)));
     };
 
     /* ---- Original line chimes ------------------------------------------
@@ -757,11 +720,12 @@
     };
 
     document.addEventListener("DOMContentLoaded", () => {
-      /* Company select: All + one entry per company with its line count. */
+      /* Company menu: All + one button per company with its line count. */
       const counts = new Map();
       for (const l of LINES) counts.set(l.op, (counts.get(l.op) || 0) + 1);
-      $("op").innerHTML = `<option value="">All companies (${LINES.length})</option>` +
-        [...counts.entries()].map(([op, n]) => `<option value="${esc(op)}">${esc(op)} (${n})</option>`).join("");
+      $("op-menu").innerHTML = `<button type="button" data-op="">All companies (${LINES.length})</button>` +
+        [...counts.entries()].map(([op, n]) =>
+          `<button type="button" data-op="${esc(op)}">${esc(op)} (${n})</button>`).join("");
 
       /* Restore a shared URL. */
       const p = new URLSearchParams(location.search);
@@ -770,35 +734,26 @@
       if (counts.has(p.get("op"))) state.op = p.get("op");
       if (p.get("q")) state.q = p.get("q");
       $("q").value = state.q;
-      $("op").value = state.op;
-      document.querySelector(`#arrange-seg input[value="${state.arrange}"]`).checked = true;
-      syncAreaTabs();
+      setPillValues();
 
-      /* A2HS nudge is engagement-gated: only after three control changes. */
-      let plays = 0;
-      const markPlay = () => {
-        if (++plays !== 3) return;
-        const scrim = document.querySelector(".nudge-scrim");
-        try {
-          if (localStorage.getItem(scrim.dataset.nudgeKey)) return;
-          if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) return;
-          scrim.hidden = false;
-        } catch (e) { /* private mode */ }
-      };
-
-      $("arrange-seg").addEventListener("change", e => { state.arrange = e.target.value; render(); markPlay(); });
-      /* The tab bar's pill IS the area filter: a tapped segment takes
-         aria-current and the library's indicator glides onto it. */
-      $("area-tabs").addEventListener("click", e => {
-        const seg = e.target.closest(".tab-seg");
-        if (!seg) return;
-        state.area = seg.dataset.area;
-        syncAreaTabs();
-        render(); markPlay();
+      /* Pill menus: one delegated pick per menu; the library's dropdown
+         closes itself when an item is picked. */
+      const pickFrom = (menuId, apply) => $(menuId).addEventListener("click", e => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        apply(b);
+        setPillValues();
+        render();
       });
-      $("op").addEventListener("change", () => { state.op = $("op").value; render(); markPlay(); });
+      pickFrom("area-menu", b => { state.area = b.dataset.area; });
+      pickFrom("op-menu", b => { state.op = b.dataset.op || ""; });
+      pickFrom("arrange-menu", b => { state.arrange = b.dataset.arrange; });
       $("q").addEventListener("input", () => { state.q = $("q").value; render(); });
-      $("clear-search").addEventListener("click", () => { state.q = ""; $("q").value = ""; render(); $("q").focus(); });
+      /* opening the Search pill lands the caret in the field */
+      $("q").closest("details").addEventListener("toggle", e => {
+        if (e.target.open) setTimeout(() => $("q").focus(), 50);
+      });
+      $("clear-search").addEventListener("click", () => { state.q = ""; $("q").value = ""; render(); });
 
       /* Chime wiring: hover plays on fine pointers (once a click has
          unlocked audio — until then the hover shows a hint); on touch the
