@@ -66,6 +66,21 @@ a second recipe. Line data is baked into the file as constants, verified Aug
 railway line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out
 of scope.
 
+`stations.json` is the second data file and the only one fetched at runtime:
+the running order of all 98 lines, 1,631 stations, keyed by line index. A row
+is `[badge, english, japanese]`. The badge is TEXT, not a number, because a
+stop does not always wear its own line's code — Narita Sky Access shares
+Hokuso track and shows Hokuso numbers, the Keiyo Line's last two stops carry
+other lines' numbers, and the Utsunomiya and Takasaki runs beyond Omiya are
+not numbered at all; an empty badge is correct and renders as an empty slot.
+A row whose badge reads `head` is a heading, marking where a line forks.
+
+Every line now carries its opening year. Riders a day is the ONE field left
+blank, on 11 lines, and it stays blank on purpose: the Japanese sources
+publish 輸送密度 (passenger density), which measures something else, and
+mixing the two would corrupt the column. The Fun tab says so on those lines
+rather than showing a gap.
+
 This project GREW OUT OF the tanishksharmacom mini app (`/apps/tokyo-lines`,
 never shipped to its live grid) but is NOT bound by that repo's mini-app
 conventions: no `/apps` plumbing, no shared About page, no Supabase
