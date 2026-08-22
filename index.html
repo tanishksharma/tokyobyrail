@@ -950,7 +950,9 @@
 
       host.addEventListener("pointerdown", e => {
         live.set(e.pointerId, { x: e.clientX, y: e.clientY });
-        host.setPointerCapture(e.pointerId);
+        /* capture keeps a drag alive outside the box; never let it throw
+           away the gesture it was meant to help */
+        try { host.setPointerCapture(e.pointerId); } catch (err) { /* no active pointer */ }
         host.dataset.panning = "";
         if (live.size === 1) {
           pan = { x: e.clientX, y: e.clientY, vb: vb(), line: lineUnder(e.target), moved: false };
@@ -983,7 +985,7 @@
       const lift = e => {
         if (pan && !pan.moved && pan.line && live.size === 1) openLine(pan.line);
         live.delete(e.pointerId);
-        if (host.hasPointerCapture?.(e.pointerId)) host.releasePointerCapture(e.pointerId);
+        try { if (host.hasPointerCapture?.(e.pointerId)) host.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
         if (live.size < 2) pinch = null;
         if (!live.size) { pan = null; delete host.dataset.panning; }
       };
