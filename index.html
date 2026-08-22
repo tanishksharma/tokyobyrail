@@ -45,13 +45,20 @@
       border-style: solid; border-color: var(--c);
       line-height: 1; user-select: none;
     }
+    /* Ring and frame weights. The official artwork is more lopsided than
+       it looks on a screen — a Metro roundel's ring is about 22% of its
+       diameter and a JR frame about 11% of its width — which at 36px reads
+       as a heavy ring crowding its letter beside a hairline square. These
+       are pulled toward each other: the ring down to 17%, the frame up to
+       14%, still thinner ring than frame, so the two shapes carry the same
+       optical weight in a row. */
     .rail-badge[data-shape="circle"] {
-      border-radius: 50%; border-width: 0.5rem;
+      border-radius: 50%; border-width: 0.375rem;
       font-family: "Jost", var(--font-body), sans-serif;
       font-weight: 600; font-size: 1.05rem;
     }
     .rail-badge[data-shape="square"] {
-      border-radius: 0.26rem; border-width: 0.25rem;
+      border-radius: 0.26rem; border-width: 0.3125rem;
       font-family: "Hind", var(--font-body), sans-serif;
       font-weight: 700; font-size: 0.9rem;
     }
