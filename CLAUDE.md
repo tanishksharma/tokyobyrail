@@ -41,9 +41,16 @@ the library gives its tab bar — the recipe is lifted into `--glass-*`
 tokens and a `.glass` class in the page, so the cards, the control pills
 and the library's own bars are one material. Letters on glass are embossed
 with the `--emboss-up` / `--emboss-down` pair, which swaps weight in the
-dark. Glass needs something to blur, so the page's first child is the
-library's `.bg-grid .bg-fixed` plus-mark grid. A new pane takes `.glass`;
-never hand-roll a second recipe. Line data is baked into the file as constants, verified Aug
+dark. Glass needs something to blur, so the page's first child is the ground:
+a DIAMOND LATTICE of the library's own icons, drawn by `drawGround()` as
+two interleaved square grids (corners and cell centres) so the rows run
+on the diagonal while every glyph stays upright — rotating the layer
+would tip the icons over with it. Which glyph lands where is a hash of
+the lattice position, so the field looks random but is identical on every
+draw and a resize re-lays it rather than reshuffling it; the seed changes
+per page load. It keeps the library's `.bg-fixed`, its ink tokens and its
+print and contrast behaviour. A new pane takes `.glass`; never hand-roll
+a second recipe. Line data is baked into the file as constants, verified Aug
 2026 against the line articles on English/Japanese Wikipedia and the Japanese
 railway line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out
 of scope.
