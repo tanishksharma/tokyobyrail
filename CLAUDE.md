@@ -19,6 +19,10 @@ sections, switched by the top tab bar and each with its own URL
   the suburbs / outside) and company; a per-line detail dialog carries the map
   with that line highlighted, filling the whole top of the popup and taking
   the same gestures plus a zoom pill. Every control mirrors into the URL.
+  Company marks are GREY on the wall, on the cards and in the section
+  headings alike: twenty-two corporate palettes across one screen fought
+  the line colours, which are the only colours here that mean anything.
+  The popup shows the mark once, at size, in its own colours.
   Every line wears a HEART anyone can leave without an account (see The
   backend below) — red once this browser has left one, with the count
   rolling up beside it.
