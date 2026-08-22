@@ -153,7 +153,7 @@
       padding-bottom: var(--space-tight);
       border-bottom: var(--border-hairline, 1px) solid var(--border);
     }
-    .op-head img { width: auto; height: auto; max-width: 6.5rem; max-height: 1.7rem; }
+    .op-head img { width: auto; height: auto; max-width: 6.5rem; max-height: 1.7rem; filter: grayscale(1); }
     .op-name { font-weight: var(--weight-strong); font-size: 0.95rem; }
     .op-ja { color: var(--text-muted); font-weight: var(--weight-body); margin-left: 0.4rem; }
 
@@ -161,9 +161,15 @@
     /* Logo viewBoxes are trimmed to their content, so caps mean the same
        thing for every mark: square symbols stand 1.5rem tall, wide
        wordmarks run up to 3.25rem long — optically comparable sizes. */
+    /* On the wall a company mark is a label, not a brand: twenty-two
+       different corporate palettes across one screen fought the line
+       colours, which are the only colours here that carry meaning. They
+       go grey on the cards and in the section headings; the popup shows
+       the mark in full colour, once, at size. */
     .line-logo {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
       width: auto; height: auto; max-width: 3.25rem; max-height: 1.5rem;
+      filter: grayscale(1);
     }
     .line-logo-mono {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
@@ -220,6 +226,25 @@
       gap: 0.35rem; font-size: 0.85rem;
     }
     .heart-row .line-heart svg { width: 1.05rem; height: 1.05rem; }
+
+    /* The company, once, properly: the fuller wordmark at size and in its
+       own colours, with both operator names beside it. This is the one
+       place a brand gets to be itself. */
+    .d-company {
+      align-items: center; gap: var(--space-inline);
+      padding: var(--space-tight) 0;
+      border-top: var(--border-hairline, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
+      border-bottom: var(--border-hairline, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
+    }
+    .d-company img { width: auto; height: auto; max-width: 9rem; max-height: 2.4rem; flex: none; }
+    .d-company .d-op-mono {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2.4rem; height: 2.4rem; flex: none;
+      border: var(--border-element) solid var(--border-strong); border-radius: 0.45rem;
+      font-size: 0.8rem; font-weight: var(--weight-heading);
+      letter-spacing: var(--tracking-caps); color: var(--text-muted);
+    }
+    .d-company span.d-op-name { color: var(--text-muted); font-size: 0.85rem; }
 
     /* THE POPUP'S TABS — the line, its stops, and the fun of it. */
     .d-tabs { align-self: flex-start; }
@@ -538,9 +563,9 @@
         <span>
           <h4 id="d-name" style="margin: 0;">Line</h4>
           <span id="d-ja" style="display: block;"></span>
-          <span id="d-op" class="text-caption" style="color: var(--text-muted);"></span>
         </span>
       </div>
+      <div class="row d-company" id="d-company"></div>
       <div class="row heart-row" id="d-heart-row"></div>
 
       <div class="tab-set d-tabs" role="tablist" aria-label="About this line">
@@ -1535,7 +1560,15 @@
       current = l;
       $("d-name").textContent = l.n;
       $("d-ja").textContent = l.j;
-      $("d-op").textContent = `${l.op} · ${l.oj}`;
+      /* the wordmark, not the compact mark: this is the one place the
+         company is the subject rather than a label */
+      const slug = OPSLUG[l.op];
+      $("d-company").innerHTML = (slug
+        ? `<img src="${logoSrc(slug)}" alt="${esc(l.op)}"
+                onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+           <span class="d-op-mono" hidden>${esc(monogram(l.op))}</span>`
+        : `<span class="d-op-mono">${esc(monogram(l.op))}</span>`)
+        + `<span class="d-op-name">${esc(l.op)} · ${esc(l.oj)}</span>`;
       $("d-badge").outerHTML = badge(l).replace('class="rail-badge"', 'class="rail-badge" id="d-badge"');
       $("d-code").textContent = l.c || "—";
       $("d-area").textContent = AREAS[l.a] || "—";
