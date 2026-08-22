@@ -21,7 +21,7 @@
   <!-- app-specific faces: Jost stands in for Futura (the Metro/Toei badge
        face), Hind for Frutiger (JR East's), and a plain Japanese sans for
        the card's kanji watermark -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Hind:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Hind:wght@700&family=Noto+Sans+JP:wght@400;900&display=swap">
   <script src="https://facet.tanishksharma.com/lib/facet.js" defer data-service-worker="/sw.js"></script>
 
   <style>
@@ -43,7 +43,12 @@
        needing a second set of numbers: the card asks for a larger one and
        the ground for the base, and neither has to restate the geometry. */
     .rail-badge {
-      --badge: 2.25rem;
+      --badge-base: 2.25rem;
+      /* A square of the circle's diameter covers 27% more ink than the
+         circle does, which is why the squares read bigger at matching
+         widths. sqrt(pi/4) = 0.886 is the side that carries the same area,
+         so the two shapes weigh the same on the page. */
+      --badge: var(--badge-base);
       display: inline-flex; align-items: center; justify-content: center;
       flex: none; width: var(--badge); height: var(--badge);
       background: #fff; color: #111;
@@ -63,6 +68,7 @@
       font-weight: 600; font-size: calc(var(--badge) * 0.467);
     }
     .rail-badge[data-shape="square"] {
+      --badge: calc(var(--badge-base) * 0.886);
       border-radius: calc(var(--badge) * 0.116); border-width: calc(var(--badge) * 0.139);
       font-family: "Hind", var(--font-body), sans-serif;
       font-weight: 700; font-size: calc(var(--badge) * 0.4);
@@ -71,7 +77,7 @@
     .rail-badge[data-shape="square"][data-long] { font-size: calc(var(--badge) * 0.378); }
     /* the card's badge stands larger: it is the line's face, and the card
        is where a reader picks a line out of ninety-eight */
-    .line-card .rail-badge { --badge: 2.9rem; }
+    .line-card .rail-badge { --badge-base: 2.9rem; }
 
     /* The card wall: fixed-width tracks so a card is the same size whether a
        company has two lines or seventeen — never stretched by a short row. */
@@ -94,6 +100,10 @@
       position: relative; text-align: left;
       aspect-ratio: 1; overflow: hidden;
       padding: 0.875rem; gap: 0.5rem;
+      /* the company mark sits in the bottom-left corner OUT of flow, so
+         the flowing content keeps clear of it: without this a stat strip
+         that wraps to two lines runs straight through the mark */
+      padding-bottom: 2.2rem;
     }
     /* every letter on the pane is embossed into it */
     .line-card .line-name,
@@ -129,11 +139,11 @@
        short name, two smaller ones for a long one (sized in JS from the
        character count, handed over as --jp). */
     .line-jpbg {
-      position: absolute; right: 0.6rem; bottom: 0.5rem;
-      width: 60%; height: 60%;
+      position: absolute; right: 0.5rem; bottom: 0.35rem;
+      width: 74%; height: 64%;
       display: flex; align-items: flex-end; justify-content: flex-end;
       font-family: "Noto Sans JP", var(--font-body), sans-serif;
-      font-weight: 700; font-size: var(--jp, 1.8rem); line-height: 1.05;
+      font-weight: 900; font-size: var(--jp, 1.8rem); line-height: 1.0;
       color: var(--text); opacity: 0.035;
       text-align: right; overflow: hidden;
       pointer-events: none; user-select: none;
@@ -146,13 +156,16 @@
     .line-jpbg > span { width: 100%; word-break: break-all; line-break: anywhere; }
 
     /* The stat strip: riders, route length, stops — icons, not words. */
+    /* The stat strip holds ONE line. It used to wrap, and a wrapped strip
+       ran straight through the company mark in the corner below it, so the
+       three figures are sized to fit the card's width instead. */
     .line-stats {
-      display: flex; flex-wrap: wrap; gap: 0.15rem 0.45rem; align-items: center;
-      font-size: 0.68rem; color: var(--text-muted);
+      display: flex; flex-wrap: nowrap; gap: 0.3rem; align-items: center;
+      font-size: 0.62rem; color: var(--text-muted);
       font-variant-numeric: tabular-nums; white-space: nowrap;
     }
-    .line-stats span { display: inline-flex; align-items: center; gap: 0.2rem; }
-    .line-stats svg { width: 0.75rem; height: 0.75rem; flex: none; opacity: 0.7; }
+    .line-stats span { display: inline-flex; align-items: center; gap: 0.15rem; }
+    .line-stats svg { width: 0.68rem; height: 0.68rem; flex: none; opacity: 0.7; }
 
     /* Company section heading: the company's own mark, its name, its
        Japanese name, over a hairline. */
@@ -161,7 +174,8 @@
       padding-bottom: var(--space-tight);
       border-bottom: var(--border-hairline, 1px) solid var(--border);
     }
-    .op-head img { width: auto; height: auto; max-width: 6.5rem; max-height: 1.7rem; filter: grayscale(1); }
+    .op-head img { width: auto; height: auto; max-width: 6.5rem; max-height: 1.7rem;
+      filter: var(--mark-ink); opacity: var(--mark-fade); }
     .op-name { font-weight: var(--weight-strong); font-size: 0.95rem; }
     .op-ja { color: var(--text-muted); font-weight: var(--weight-body); margin-left: 0.4rem; }
 
@@ -176,9 +190,18 @@
        the mark in full colour, once, at size. */
     .line-logo {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
-      width: auto; height: auto; max-width: 2.4rem; max-height: 1.05rem;
-      filter: grayscale(1);
+      /* the size comes from the mark's own proportions, set inline: see
+         logoBox() — a cap alone made a five-to-one wordmark and a square
+         mark cover wildly different amounts of the card */
+      filter: var(--mark-ink); opacity: var(--mark-fade);
     }
+    /* The flat art is already one black shape, so the wall only has to say
+       how dark, and turn it over in the dark where black would vanish. */
+    :root { --mark-ink: none; --mark-fade: 0.42; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-mode="light"]) { --mark-ink: invert(1); --mark-fade: 0.5; }
+    }
+    :root[data-mode="dark"] { --mark-ink: invert(1); --mark-fade: 0.5; }
     .line-logo-mono {
       position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
       width: 1.3rem; height: 1.3rem;
@@ -880,20 +903,43 @@
       for (const l of list) { if (!m.has(l.op)) m.set(l.op, []); m.get(l.op).push(l); }
       return [...m.entries()].map(([op, lines]) => [{ op, oj: lines[0].oj }, lines]);
     };
+    /* Every mark's own width-to-height ratio, measured from its trimmed
+       artwork. A single max-width/max-height cap made a 5:1 wordmark cover
+       far more of a card than a 1:1 symbol; sizing each one so the
+       GEOMETRIC MEAN of its width and height is the same makes them weigh
+       the same instead. A wide mark is still wide — it is just no longer
+       also big. */
+    const LOGO_AR = { "hokuso": 5.05, "jr-east": 1.79, "keikyu": 2.04, "keio": 3.57, "keisei": 2.7, "minatomirai": 1.58, "odakyu": 1.14, "rinkai": 2.3, "saitama": 2.64, "seibu": 1.01, "shibayama": 1.15, "sotetsu": 0.93, "tama-monorail": 0.82, "tobu": 1.0, "toei": 1.0, "tokyo-metro": 1.0, "tokyo-monorail": 2.59, "tokyu": 1.23, "toyo": 1.18, "tx": 1.0, "yokohama-city": 1.0, "yurikamome": 1.0 };
+    const LOGO_MEAN = 21;                  /* px: the size every mark averages */
+    const logoBox = slug => {
+      const a = LOGO_AR[slug] || 1;
+      const r = Math.sqrt(a);
+      return `width:${(LOGO_MEAN * r).toFixed(1)}px;height:${(LOGO_MEAN / r).toFixed(1)}px`;
+    };
+
     /* Logo files: the compact MARK on a card, the fuller wordmark in a
        section heading — the two live side by side in /logos, and a company
        with only one file uses it for both. */
-    const logoSrc = (slug, kind) => {
+    const logoFile = (slug, kind) => {
       const suffix = kind === "mark" ? (LOGO_MARK.has(slug) ? "-mark" : "")
                                      : (LOGO_WORD.has(slug) ? "-word" : "");
-      return `/logos/${slug}${suffix}.${suffix ? "svg" : LOGO_EXT[slug] || "svg"}`;
+      return `${slug}${suffix}.${suffix ? "svg" : LOGO_EXT[slug] || "svg"}`;
     };
+    /* The mark in the company's own colours — the popup, and nowhere else. */
+    const logoSrc = (slug, kind) => `/logos/${logoFile(slug, kind)}`;
+    /* The same artwork reduced to one alpha shape, for the wall. Greyscale
+       kept LUMINANCE, so a yellow mark went pale and a navy one went dark
+       and they still read as different colours; a flat copy cannot. A mark
+       that is a coloured BOX with a white knockout — Tokyo Metro, TX,
+       Yurikamome — had its knockout taken instead, or it would have
+       flattened into a solid block. */
+    const flatSrc = (slug, kind) => `/logos/flat/${logoFile(slug, kind).replace(/\.svg$/, ".png")}`;
 
     const heading = h => {
       if (!h) return "";
       const slug = OPSLUG[h.op];
       return `<header class="op-head">
-        <img src="${logoSrc(slug, "word")}" alt="" onerror="this.hidden=true">
+        <img src="${flatSrc(slug, "word")}" alt="" onerror="this.hidden=true">
         <span class="op-name">${esc(h.op)}<span class="op-ja" lang="ja">${esc(h.oj)}</span></span>
       </header>`;
     };
@@ -905,9 +951,10 @@
     const jpSize = j => {
       const n = [...j].length;
       const per = n <= 4 ? n : Math.ceil(n / 2);
-      /* 5.9, not the full 6.3: a hair of slack, or the last character of an
-         exactly-fitting line wraps to a line of its own */
-      return Math.min(5.9 / per, n <= 4 ? 2.6 : 1.75).toFixed(2);
+      /* 7.4, not the full 7.8 the box measures: a hair of slack, or the
+         last character of an exactly-fitting line wraps to a line of its
+         own. The caps are what a short name is allowed to grow to. */
+      return Math.min(7.4 / per, n <= 4 ? 3.5 : 2.35).toFixed(2);
     };
 
     /* The card grid. Each square: an invisible stretched button opens the
@@ -1102,7 +1149,7 @@
           ${stat("map-pin", l.st, `${l.st} stations`)}
         </span>
         <span class="line-jpbg" lang="ja" aria-hidden="true" style="--jp:${jpSize(l.j)}rem"><span>${esc(l.j)}</span></span>
-        <img class="line-logo" src="${logoSrc(slug, "mark")}" alt="" data-tip="${esc(l.op)} · ${esc(l.oj)}"
+        <img class="line-logo" src="${flatSrc(slug, "mark")}" alt="" style="${logoBox(slug)}" data-tip="${esc(l.op)} · ${esc(l.oj)}"
              onerror="this.hidden=true;this.nextElementSibling.hidden=false">
         <span class="line-logo-mono" data-tip="${esc(l.op)} · ${esc(l.oj)}" hidden>${esc(monogram(l.op))}</span>
         ${heartBtn(l)}
