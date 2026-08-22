@@ -295,15 +295,15 @@
       padding-top: var(--bar-clearance-top);
       padding-bottom: var(--bar-clearance-bottom);
     }
-    /* On wide screens the library hangs a risen sheet from the TOP bar's
-       corners; ours belong to the bottom bar, so anchor them above it. */
-    @media (min-width: 40rem) {
-      #sort-sheet.sheet.sheet-rise,
-      #area-sheet.sheet.sheet-rise,
-      #op-sheet.sheet.sheet-rise {
-        top: auto;
-        bottom: calc(var(--space-inline) + var(--safe-bottom) + var(--bar-height) + var(--space-inline));
-      }
+    /* The library hangs a risen panel off a bar CORNER — one on the left,
+       one on the right. Ours belong to four pills strung along the bottom,
+       so placePanel() below puts each one over its own pill at open time.
+       These rules are the JS-off floor: above the bar, never at the top. */
+    #sort-sheet.sheet.sheet-rise,
+    #area-sheet.sheet.sheet-rise,
+    #op-sheet.sheet.sheet-rise {
+      top: auto;
+      bottom: calc(var(--space-inline) + var(--safe-bottom) + var(--bar-height) + var(--space-inline));
     }
     /* THE CONTROL ROW — one glass pill per control, laid along the bottom
        edge. A pill says what it controls with its icon and what it is set
@@ -818,6 +818,58 @@
        English name lead, a strip of figures follows, the Japanese name
        washes across the bottom-right corner, the company mark sits lower
        left, and the chime button top right. */
+    /* ---- The panels ----------------------------------------------------
+       Each bottom pill owns a panel, and a panel opens OUT OF ITS PILL.
+       The library places a risen panel at a bar corner, which is right for
+       a two-corner tab bar and wrong for four pills in a row, so the
+       geometry is set here at open time: the panel centres on its pill and
+       is clamped to the screen, so a middle pill grows evenly to both
+       sides and an edge pill grows inwards.
+
+       The wipe is ours for the same reason. The library collapses the
+       panel into a corner; this one collapses into a sliver at the pill's
+       own x, so the panel grows up and out from the button that was
+       pressed wherever that button happens to be. The library's animation
+       is cancelled first, and with it the visibility it would have set on
+       close, so that is done here too. */
+    const PANELS = [["sort-sheet", "arrange-pill"], ["area-sheet", "area-pill"], ["op-sheet", "op-pill"]];
+    const PANEL_GAP = 8;               /* air between a panel and the bar */
+    const placePanel = (sheet, pill, open) => {
+      const inset = 12;
+      const row = document.querySelector(".ctl-row").getBoundingClientRect();
+      const p = pill.getBoundingClientRect();
+      const width = Math.min(288, innerWidth - 2 * inset);
+      /* centred on the pill, then pushed back inside the screen */
+      const left = Math.max(inset, Math.min(p.left + p.width / 2 - width / 2, innerWidth - width - inset));
+      sheet.style.width = width + "px";
+      sheet.style.left = left + "px";
+      sheet.style.right = "auto";
+      sheet.style.top = "auto";
+      sheet.style.bottom = (innerHeight - row.top + PANEL_GAP) + "px";
+
+      /* where the pill sits along the panel's own width */
+      const x = Math.max(0, Math.min(p.left + p.width / 2 - left, width));
+      const r = getComputedStyle(sheet).borderRadius || "16px";
+      const half = 14;                 /* the shut sliver's half-width */
+      const shut = `inset(100% ${Math.max(0, width - x - half)}px 0 ${Math.max(0, x - half)}px round ${r})`;
+      const wide = `inset(0px 0px 0px 0px round ${r})`;
+      for (const a of sheet.getAnimations()) a.cancel();   /* the library's corner wipe */
+      if (!sheet.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        sheet.style.clipPath = open ? wide : "none";
+        if (!open) sheet.style.visibility = "hidden";
+        return;
+      }
+      const run = sheet.animate([{ clipPath: shut }, { clipPath: wide }], {
+        duration: open ? 340 : 260,
+        direction: open ? "normal" : "reverse",
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        fill: "forwards",
+      });
+      /* the library's onfinish is what normally hides a shut panel; it was
+         cancelled above, so the hiding belongs to this animation now */
+      run.onfinish = () => { if (!open) sheet.style.visibility = "hidden"; run.cancel(); };
+    };
+
     /* ---- The ground ----------------------------------------------------
        The station-number badges, scattered behind everything. Two
        interleaved square grids — one on the cell corners, one on the cell
@@ -1393,6 +1445,18 @@
       showView(viewFromPath(), false);
       /* the wall renders with zeros and fills in when the counts land */
       loadHearts();
+
+      /* the panel follows its pill: the library flips data-open, this
+         places the panel and runs the wipe from that pill */
+      for (const [sheetId, pillId] of PANELS) {
+        const sheet = $(sheetId), pill = $(pillId);
+        if (!sheet || !pill) continue;
+        new MutationObserver(() => {
+          const open = sheet.dataset.open === "true";
+          if (open) sheet.style.visibility = "visible";
+          placePanel(sheet, pill, open);
+        }).observe(sheet, { attributes: true, attributeFilter: ["data-open"] });
+      }
 
       drawGround();
       let groundTimer = 0;

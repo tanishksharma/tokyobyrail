@@ -26,7 +26,11 @@ sections, switched by the top tab bar and each with its own URL
   arrange, area, company): each carries an icon for what it controls and
   the WORD it is currently set to, and wears the accent while that is not
   the default — which is why there is no longer a dot or a count badge.
-  The view pill toggles; the other three open a sheet each.
+  The view pill toggles; the other three open a panel each, and a panel
+  opens OUT OF ITS OWN PILL: `placePanel()` centres it on the pill,
+  clamps it inside the screen, and runs its own clip wipe out of a sliver
+  at the pill's x — the library's own riser hangs off a bar corner, which
+  is right for a two-corner tab bar and wrong for pills in a row.
 - **Learn** (`/learn`) — placeholder. Planned: a grid of topics on the
   network's history, each opening as an Instagram-style story.
 - **Quiz** (`/quiz`) — placeholder. Planned: scored rounds with a live
