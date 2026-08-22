@@ -55,9 +55,25 @@ card should read as printed, not pressed. A card is a plain 4:3 rectangle on
 `--surface` — the badge, then the line's reading over its Japanese name
 (four units to six, from one `--u` the card works out from the name's
 length), the English name underneath at the size the extra width bought,
-the figures at the foot and the company mark below them. Below 34rem the
-card drops the 4:3 and takes only the height it needs, or one card would
-fill a third of a phone. Glass needs something to blur, so the page's first child is the ground:
+and the same Japanese name again behind all of it as a very large, very
+bold, almost-gone watermark in the lower right.
+
+Along the foot runs the BAND: the line's own colour, full width, carrying
+the figures on the left and the company mark on the right. It is the old
+hairline strip grown into a real area, and the second place a line's colour
+appears at size. Its ink is not fixed — `bandInk()` runs the WCAG
+relative-luminance formula on the line's hex and hands the card `--ink`
+(`#111` or `#fff`) plus `--mark-band`, the filter that turns the one-shape
+mark to match. Every one of the 98 clears 4.5:1; the worst is the
+Shonan-Shinjuku red at 4.68. The band is SOLID, in the primary colour
+only: no single ink reads on both halves of a split, the Rinkai Line's
+teal and navy wanting opposite ones, so the two-colour signal stays where
+it was, as the strip along the very bottom edge.
+
+Below 34rem the card drops the 4:3 and takes only the height it needs, or
+one card would fill a third of a phone, and the watermark goes with it —
+a short card leaves no clear ground and the watermark climbs behind the
+names. Glass needs something to blur, so the page's first child is the ground:
 a DIAMOND LATTICE of the station-number badges themselves — the same
 roundels and rounded squares the cards wear, in each line's own colour,
 as outlines with no fill so they never punch bright holes through a dark

@@ -95,20 +95,22 @@
       position: relative; text-align: left;
       aspect-ratio: 4 / 3; overflow: hidden;
       padding: 0.875rem; gap: 0.45rem;
-      /* the company mark sits in the bottom-left corner OUT of flow, so
-         the flowing content keeps clear of it: without this a stat strip
-         that wraps to two lines runs straight through the mark */
-      padding-bottom: 2.2rem;
+      /* the band runs along the foot OUT of flow, so the flowing content
+         above it keeps clear */
+      padding-bottom: 2.5rem;
     }
-    /* On a phone only one fixed track fits, and the leftover splits into
-       two wide gutters. Below that width the track gives up its fixed size
-       and takes the screen. */
-    @media (max-width: 34rem) {
-      .line-grid { grid-template-columns: 1fr; }
-      /* and a full-width card held to 4:3 would be a third of the screen
-         tall, so on a phone the card takes only the height it needs and
-         the wall stays a wall */
-      .line-card { aspect-ratio: auto; }
+    /* THE BAND — the line's colour, full width, along the foot. It is the
+       old hairline strip grown into a real area: the figures sit on it at
+       the left, the company mark at the right, both in an ink chosen for
+       that colour. It is the second place a line's colour appears at size,
+       after the badge, and it is what makes a card belong to its line
+       rather than merely mention it. */
+    .line-band {
+      position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+      height: 2.5rem; background: var(--c);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.5rem; padding: 0 0.875rem 0.375rem;
+      color: var(--ink); pointer-events: none;
     }
     /* The name block: the badge, then the reading over the name. The two
        Japanese lines are set from ONE unit so their relation holds at any
@@ -138,9 +140,14 @@
     .line-kana { font-size: calc(var(--u) * 4); font-weight: 400; color: var(--text-muted); }
 
     .line-kanji { font-size: calc(var(--u) * 6); font-weight: 700; color: var(--text); }
+    /* The band is solid, in the line's ONE colour, because no single ink
+       reads on both halves of a split — the Rinkai Line's teal and navy
+       want opposite inks. So the two-colour signal stays where it always
+       was, as the strip along the very bottom edge, and on a single-colour
+       line that strip is simply the same colour as the band above it. */
     .line-card::after {
       content: ""; position: absolute; left: 0; right: 0; bottom: 0;
-      height: 0.375rem;
+      height: 0.375rem; z-index: 3;
       background: linear-gradient(90deg, var(--c) 0 50%, var(--c2, var(--c)) 50% 100%);
     }
     /* the whole card opens the dialog through one invisible stretched
@@ -159,20 +166,41 @@
       display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
       overflow: hidden; flex: none;
     }
-    /* The stat strip: riders, route length, stops — icons, not words. */
-    /* The stat strip holds ONE line. It used to wrap, and a wrapped strip
-       ran straight through the company mark in the corner below it, so the
-       three figures are sized to fit the card's width instead. */
+    /* THE WATERMARK — the Japanese name again, very large, very bold and
+       almost gone, laid into the bottom-right of the card above the band.
+       It is not there to be read: the name is already set beside the badge
+       at a size that is. It is there so the card has something behind its
+       words, the way a platform sign has the wall behind it. Sized in JS
+       from its own character count, handed over as --jp. */
+    .line-jpbg {
+      position: absolute; right: 0.6rem; bottom: 2.7rem;
+      /* it keeps to the lower half: any taller and a two-line name climbs
+         behind the English name, which is the one thing on the card that
+         must stay clean */
+      width: 82%; height: 40%;
+      display: flex; align-items: flex-end; justify-content: flex-end;
+      font-family: "Noto Sans JP", var(--font-body), sans-serif;
+      font-weight: 900; font-size: var(--jp, 3rem); line-height: 0.92;
+      color: var(--text); opacity: 0.05;
+      text-align: right; overflow: hidden;
+      pointer-events: none; user-select: none;
+    }
+    /* the inner span holds the full box width; a bare text node would
+       become a flex item and shrink to one character. line-break: anywhere
+       overrides Japanese kinsoku, which otherwise refuses to start a line
+       with a character like "・" and spills a two-line name onto three */
+    .line-jpbg > span { width: 100%; word-break: break-all; line-break: anywhere; }
+
+    /* The figures: riders, route length, stops — icons, not words. They
+       ride the band now, so they are set on the line's colour rather than
+       against the page, and they are big enough to read at a glance. */
     .line-stats {
-      /* pushed to the foot of the card, so a short name does not leave a
-         hole under it and every card reads top-and-bottom alike */
-      margin-top: auto;
-      display: flex; flex-wrap: nowrap; gap: 0.3rem; align-items: center;
-      font-size: 0.62rem; color: var(--text-muted);
+      display: flex; flex-wrap: nowrap; gap: 0.5rem; align-items: center;
+      font-size: 0.78rem; color: inherit;
       font-variant-numeric: tabular-nums; white-space: nowrap;
     }
-    .line-stats span { display: inline-flex; align-items: center; gap: 0.15rem; }
-    .line-stats svg { width: 0.68rem; height: 0.68rem; flex: none; opacity: 0.7; }
+    .line-stats span { display: inline-flex; align-items: center; gap: 0.2rem; }
+    .line-stats svg { width: 0.85rem; height: 0.85rem; flex: none; opacity: 0.8; }
 
     /* Company section heading: the company's own mark, its name, its
        Japanese name, over a hairline. */
@@ -196,11 +224,14 @@
        go grey on the cards and in the section headings; the popup shows
        the mark in full colour, once, at size. */
     .line-logo {
-      position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
+      flex: none;
       /* the size comes from the mark's own proportions, set inline: see
          logoBox() — a cap alone made a five-to-one wordmark and a square
          mark cover wildly different amounts of the card */
-      filter: var(--mark-ink); opacity: var(--mark-fade);
+      /* on the band it takes the band's ink, not the page's: --mark-band
+         is set per card from whichever of black or white reads on that
+         line's colour */
+      filter: var(--mark-band); opacity: 0.85;
     }
     /* The flat art is already one black shape, so the wall only has to say
        how dark, and turn it over in the dark where black would vanish. */
@@ -210,15 +241,29 @@
     }
     :root[data-mode="dark"] { --mark-ink: invert(1); --mark-fade: 0.5; }
     .line-logo-mono {
-      position: absolute; left: 0.875rem; bottom: 0.875rem; z-index: 2;
+      flex: none;
       width: 1.3rem; height: 1.3rem;
       display: inline-flex; align-items: center; justify-content: center;
-      border: var(--border-element) solid var(--border-strong);
+      border: var(--border-element) solid currentColor;
       border-radius: 0.4rem;
       font-size: 0.65rem; font-weight: var(--weight-heading);
-      letter-spacing: var(--tracking-caps); color: var(--text-muted);
+      letter-spacing: var(--tracking-caps); color: inherit; opacity: 0.85;
       user-select: none;
     }
+    /* On a phone only one fixed track fits, and the leftover splits into
+       two wide gutters. Below that width the track gives up its fixed size
+       and takes the screen. */
+    @media (max-width: 34rem) {
+      .line-grid { grid-template-columns: 1fr; }
+      /* and a full-width card held to 4:3 would be a third of the screen
+         tall, so on a phone the card takes only the height it needs and
+         the wall stays a wall */
+      .line-card { aspect-ratio: auto; }
+      /* which leaves no clear ground under the names, and a watermark with
+         nowhere to go climbs behind them */
+      .line-jpbg { display: none; }
+    }
+
     /* THE HEART — leave one on a line without an account of any kind.
        Pressed it goes red; the count beside it rolls: the old number lifts
        away and fades, the new one rises into its place. The roll is one
@@ -1008,6 +1053,35 @@
        than losing its tail to the clamp. */
     const nameSize = n => n.length > 30 ? 1.05 : n.length > 22 ? 1.15 : 1.3;
 
+    /* The watermark is sized from its own length: a short name fills the
+       corner on one line, a long one drops to two smaller ones. Kanji are
+       square, so characters-per-line IS the divisor. The box is 82% of a
+       16rem card; 12.4 rather than the full 13.1 leaves a hair of slack,
+       or the last character of an exactly-fitting line wraps alone. */
+    const jpSize = j => {
+      const n = [...j].length;
+      const per = n <= 5 ? n : Math.ceil(n / 2);
+      return Math.min(12.4 / per, n <= 5 ? 4.4 : 3.1).toFixed(2);
+    };
+
+    /* THE BAND'S INK. The band is a line's own colour, and those run from
+       Keiyo's near-black navy to the Chuo-Sobu's yellow, so the ink cannot
+       be fixed: each card is told whether black or white reads on it. This
+       is the WCAG relative-luminance formula, and picking the better of
+       the two puts every one of the 98 above 4.5:1 — the worst is the
+       Shonan-Shinjuku red at 4.68. The mark is one black shape, so the
+       same answer becomes a filter: leave it black, or turn it white. */
+    const bandInk = hex => {
+      const chan = i => {
+        const v = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      };
+      const L = 0.2126 * chan(0) + 0.7152 * chan(1) + 0.0722 * chan(2);
+      return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05)
+        ? { ink: "#111", mark: "brightness(0)" }
+        : { ink: "#fff", mark: "brightness(0) invert(1)" };
+    };
+
     /* The card grid. Each card: an invisible stretched button opens the
        dialog (with the full names as its hover tooltip), the badge leads
        with the line's reading and Japanese name beside it, the English
@@ -1188,9 +1262,9 @@
     const stat = (icon, text, tip) => text
       ? `<span data-tip="${esc(tip)}"><svg data-icon="${icon}" aria-hidden="true"></svg>${esc(text)}</span>` : "";
     const renderCards = lines => `<div class="line-grid" data-arrange="${state.arrange}">` + lines.map(l => {
-      const slug = OPSLUG[l.op];
+      const slug = OPSLUG[l.op], band = bandInk(l.x);
       return `<article class="card line-card stack-tight"
-        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(cardJa(l.j))}rem;--name:${nameSize(l.n)}rem">
+        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(cardJa(l.j))}rem;--name:${nameSize(l.n)}rem;--ink:${band.ink};--mark-band:${band.mark};--jp:${jpSize(cardJa(l.j))}rem">
         <button type="button" class="line-open" data-line="${l.i}" data-event="lines-open"
                 data-tip="${esc(l.n)} · ${esc(l.j)} · ${esc(l.op)}" aria-label="${esc(l.n)} details"></button>
         <span class="line-head">
@@ -1201,14 +1275,17 @@
           </span>
         </span>
         <strong class="line-name">${esc(l.n)}</strong>
-        <span class="line-stats">
-          ${stat("users", l.r && fmtRiders(l.r), `About ${l.r ? fmtRiders(l.r) : "?"} riders a day`)}
-          ${stat("flag", l.km && fmtKm(l.km), `${l.km} km end to end`)}
-          ${stat("map-pin", l.st, `${l.st} stations`)}
+        <span class="line-jpbg" lang="ja" aria-hidden="true"><span>${esc(cardJa(l.j))}</span></span>
+        <span class="line-band">
+          <span class="line-stats">
+            ${stat("users", l.r && fmtRiders(l.r), `About ${l.r ? fmtRiders(l.r) : "?"} riders a day`)}
+            ${stat("flag", l.km && fmtKm(l.km), `${l.km} km end to end`)}
+            ${stat("map-pin", l.st, `${l.st} stations`)}
+          </span>
+          <img class="line-logo" src="${flatSrc(slug, "mark")}" alt="" style="${logoBox(slug)}"
+               onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+          <span class="line-logo-mono" hidden>${esc(monogram(l.op))}</span>
         </span>
-        <img class="line-logo" src="${flatSrc(slug, "mark")}" alt="" style="${logoBox(slug)}" data-tip="${esc(l.op)} · ${esc(l.oj)}"
-             onerror="this.hidden=true;this.nextElementSibling.hidden=false">
-        <span class="line-logo-mono" data-tip="${esc(l.op)} · ${esc(l.oj)}" hidden>${esc(monogram(l.op))}</span>
         ${heartBtn(l)}
       </article>`;
     }).join("") + `</div>`;
