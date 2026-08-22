@@ -4,15 +4,31 @@
 > share this evolving link, never a per-deployment URL.
 
 The standalone site for the Tokyo by rail project, deployed on Vercel as a
-static site from `main`. The site's root page (`index.html`) IS the Tokyo rail
-lines app: all 98 Greater-Tokyo passenger lines across 22 companies, each with
-its official color, line symbol and station-number badge — a card grid
-arranged by company, color or ridership, an area filter (entirely inside
-Tokyo / linking Tokyo with the suburbs / outside Tokyo), a company filter,
-bilingual search, and a per-line detail dialog. Every control mirrors into the
-URL. Data is baked into the file as constants, verified Aug 2026 against the
-line articles on English/Japanese Wikipedia and the Japanese railway
-line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out of scope.
+static site from `main`. It is ONE file — `index.html` — holding three
+sections, switched by the top tab bar and each with its own URL
+(`vercel.json` rewrites `/learn` and `/quiz` onto the same page; JS reads
+`location.pathname`):
+
+- **Explore** (`/`) — all 98 Greater-Tokyo passenger lines across 22
+  companies, each with its official color, line symbol and station-number
+  badge. Two view modes: the card wall, and the network map (`map.svg`, the
+  CC0 Greater-Tokyo diagram by Naoki Hashimoto — pan, zoom, tap a line, and
+  the current filters dim everything else). Sorted by ridership, company or
+  colour; filtered by area (inside Tokyo / to the suburbs / outside), company
+  and bilingual search; a per-line detail dialog carries the map with that
+  line highlighted. Every control mirrors into the URL.
+- **Learn** (`/learn`) — placeholder. Planned: a grid of topics on the
+  network's history, each opening as an Instagram-style story.
+- **Quiz** (`/quiz`) — placeholder. Planned: scored rounds with a live
+  leaderboard and sign-in to save progress.
+
+The bar convention: the TOP bar navigates between the three sections; the
+BOTTOM bar belongs to whichever section is open and controls its state (on
+Explore: view mode in the pill, sort behind the left button, filters behind
+the right one). Line data is baked into the file as constants, verified Aug
+2026 against the line articles on English/Japanese Wikipedia and the Japanese
+railway line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out
+of scope.
 
 This project GREW OUT OF the tanishksharmacom mini app (`/apps/tokyo-lines`,
 never shipped to its live grid) but is NOT bound by that repo's mini-app

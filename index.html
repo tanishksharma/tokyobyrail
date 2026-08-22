@@ -138,25 +138,51 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* The floating pill row: every sort and filter as its own pill at the
-       bottom centre, each opening a small menu UPWARD (the library drops
-       menus down; at the screen foot they rise instead). */
-    .line-pills {
-      position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: calc(var(--space-pin, 20px) + env(safe-area-inset-bottom, 0px));
-      z-index: 30;
-      display: flex; flex-wrap: wrap; justify-content: center;
-      gap: 0.5rem; align-items: center;
-      width: max-content; max-width: calc(100vw - 2 * var(--space-inline, 12px));
-      user-select: none;
+    /* App shell: the section bar stays pinned to the TOP at every width
+       (the library folds it to the bottom on phones, but the bottom edge
+       belongs to the section's own controls here), and the page clears
+       both bars. */
+    .nav-top { top: calc(var(--space-pin) + var(--safe-top)); bottom: auto; }
+    /* three tabs only — the pill hugs them instead of spanning a
+       reading column the way a full site bar does */
+    .nav-top .tab-set { flex: 0 0 auto; }
+    .app-main {
+      padding-top: var(--bar-clearance-top);
+      padding-bottom: var(--bar-clearance-bottom);
     }
-    .line-pills .dropdown-menu {
-      top: auto; bottom: calc(100% + 0.5rem);
-      max-height: min(24rem, 60vh); overflow-y: auto;
+    /* On wide screens the library hangs a risen sheet from the TOP bar's
+       corners; ours belong to the bottom bar, so anchor them above it. */
+    @media (min-width: 40rem) {
+      #sort-sheet.sheet.sheet-rise,
+      #filter-sheet.sheet.sheet-rise {
+        top: auto;
+        bottom: calc(var(--space-inline) + var(--safe-bottom) + var(--bar-height) + var(--space-inline));
+      }
     }
-    .line-pills .menu-value { max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pill-menu-search { min-width: 17rem; padding: 0.75rem; }
-    .pill-menu button[aria-pressed="true"] { font-weight: var(--weight-strong); }
+    /* the picked row in a sheet menu wears a check in its value slot */
+    .menu-item[aria-pressed="true"] .menu-value::after { content: "✓"; }
+
+    /* Coming-soon panels: one centred column, nothing else. */
+    .soon {
+      min-height: 60vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      gap: var(--space-stack);
+    }
+    .soon p { max-width: 32ch; color: var(--text-muted); margin: 0; }
+    .soon h2 { margin: 0; }
+
+    /* Map mode: the whole network on one plate, panned and zoomed by hand.
+       The map is artwork with its own light ground, so it keeps a white
+       plate in dark mode too. */
+    .map-stage { display: flex; flex-direction: column; gap: var(--space-tight); }
+    #map-host {
+      height: min(70vh, 46rem); overflow: hidden; touch-action: none;
+      border: 1px solid var(--border); border-radius: var(--radius-card, 0.75rem);
+      background: #fff; cursor: grab;
+    }
+    #map-host[data-panning] { cursor: grabbing; }
+    #map-host svg { width: 100%; height: 100%; display: block; }
+    .map-stage figcaption { color: var(--text-muted); margin: 0; }
 
     /* The dialog's network map: the CC0 hashcc diagram, one line boosted,
        the rest dimmed. The map is an artwork with its own light ground, so
@@ -179,16 +205,60 @@
 </head>
 <body>
 
-  <main class="container stack" style="padding-top: var(--space-card); padding-bottom: var(--bar-clearance-bottom);">
+  <!-- ==============================
+       Section navigation
+       The three sections of the app; real links, so each has its own URL
+       (vercel rewrites /learn and /quiz onto this page) and JS switches
+       views in place. Pinned to the TOP at every width, since the bottom
+       edge belongs to each section's own controls.
+       ============================== -->
+  <nav class="tab-bar tab-bar-top nav-top" aria-label="Sections" data-print="off">
+    <div class="tab-set">
+      <a class="tab-seg" href="/" data-view="explore" aria-current="page">Explore</a>
+      <a class="tab-seg" href="/learn" data-view="learn" aria-current="false">Learn</a>
+      <a class="tab-seg" href="/quiz" data-view="quiz" aria-current="false">Quiz</a>
+    </div>
+  </nav>
+
+  <main class="container stack app-main">
 
     <h1 class="visually-hidden">Tokyo by rail</h1>
 
-    <section id="lines" class="stack"></section>
+    <!-- ==============================
+         Explore
+         The whole network as a wall of cards, or as the network map.
+         ============================== -->
+    <section id="view-explore" class="app-view">
+      <section id="line-wall" class="stack"></section>
 
-    <div class="empty" id="no-match" hidden>
-      <strong>No lines match</strong>
-      <button type="button" class="btn btn-primary btn-small" id="clear-search" data-event="lines-clear">Clear the search</button>
-    </div>
+      <figure id="map-view" class="map-stage" hidden style="margin: 0;">
+        <div id="map-host" aria-label="Greater Tokyo network map"></div>
+        <figcaption class="text-caption">Drag to pan, scroll to zoom, tap a line for its details. Filters dim the rest. Map: Naoki Hashimoto (CC0).</figcaption>
+      </figure>
+
+      <div class="empty" id="no-match" hidden>
+        <strong>No lines match</strong>
+        <button type="button" class="btn btn-primary btn-small" id="clear-search" data-event="lines-clear">Clear the search</button>
+      </div>
+    </section>
+
+    <!-- ==============================
+         Learn · Quiz
+         Both are placeholders until their own builds.
+         ============================== -->
+    <section id="view-learn" class="app-view soon" hidden>
+      <span class="eyebrow">Learn</span>
+      <h2>Coming soon</h2>
+      <p>The story of the network — why Tokyo grew this many lines, who built
+        them, and how they knit together.</p>
+    </section>
+
+    <section id="view-quiz" class="app-view soon" hidden>
+      <span class="eyebrow">Quiz</span>
+      <h2>Coming soon</h2>
+      <p>Guess the line from its colour, its symbol or its map — with a
+        scoreboard and a live leaderboard.</p>
+    </section>
 
   </main>
 
@@ -241,43 +311,65 @@
     </ul>
   </dialog>
 
-  <nav class="line-pills" aria-label="Search, filters and arrangement" data-print="off">
-    <details class="dropdown">
-      <summary class="btn btn-pill" data-event="pill-search" data-tip="Search by name, code or company, in English or Japanese">
-        <svg data-icon="search" aria-hidden="true"></svg> <span class="nav-label">Search</span></summary>
-      <div class="dropdown-menu pill-menu pill-menu-search">
-        <label class="field">
-          <span class="field-label">Search</span>
+  <!-- ==============================
+       Explore controls
+       The bottom bar owns this section's state: view mode in the pill,
+       sort behind the left button, filters behind the right one.
+       ============================== -->
+  <nav class="tab-bar" id="explore-bar" aria-label="Explore controls" data-print="off">
+    <button type="button" class="tab-menu" aria-controls="sort-sheet" aria-expanded="false"
+            aria-label="Sort" data-tip="The order the lines come in" data-event="open-sort">
+      <svg data-icon="sliders" aria-hidden="true"></svg>
+    </button>
+    <div class="tab-set" id="mode-tabs">
+      <button type="button" class="tab-seg" data-mode="list" aria-current="true"
+              data-tip="Every line as a card">List</button>
+      <button type="button" class="tab-seg" data-mode="map" aria-current="false"
+              data-tip="Every line on the network map">Map</button>
+    </div>
+    <button type="button" class="tab-settings" aria-controls="filter-sheet" aria-expanded="false"
+            aria-label="Filter" data-tip="Search, area and company" data-event="open-filter">
+      <svg data-icon="filter" aria-hidden="true"></svg>
+    </button>
+  </nav>
+
+  <div class="sheet-scrim" data-open="false"></div>
+  <aside class="sheet sheet-left sheet-rise" id="sort-sheet" data-open="false"
+         aria-hidden="true" aria-label="Sort">
+    <div class="sheet-scroll">
+      <div class="sheet-group" id="arrange-menu">
+        <p class="menu-label">Arrange by</p>
+        <button type="button" class="menu-item" data-arrange="riders">Ridership<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-arrange="company">Company<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-arrange="color">Colour<span class="menu-value"></span></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="sheet-scrim" data-open="false"></div>
+  <aside class="sheet sheet-rise" id="filter-sheet" data-open="false"
+         aria-hidden="true" aria-label="Filter">
+    <div class="sheet-scroll">
+      <div class="sheet-group">
+        <p class="menu-label">Search</p>
+        <label class="field" style="padding: 0 var(--space-card) var(--space-stack);">
+          <span class="field-label visually-hidden">Search lines</span>
           <input type="search" id="q" placeholder="Line, code or company"
                  autocomplete="off" data-event="lines-search">
         </label>
       </div>
-    </details>
-    <details class="dropdown">
-      <summary class="btn btn-pill" data-event="pill-area" data-tip="Keep only one part of the map">
-        <span class="nav-label">Area</span> <span class="menu-value" id="area-value">All</span></summary>
-      <div class="dropdown-menu pill-menu" id="area-menu">
-        <button type="button" data-area="">All lines</button>
-        <button type="button" data-area="tokyo">In Tokyo</button>
-        <button type="button" data-area="link">To suburbs</button>
-        <button type="button" data-area="out">Outside</button>
+      <div class="sheet-group" id="area-menu">
+        <p class="menu-label">Area</p>
+        <button type="button" class="menu-item" data-area="">All lines<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-area="tokyo">In Tokyo<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-area="link">To the suburbs<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-area="out">Outside Tokyo<span class="menu-value"></span></button>
       </div>
-    </details>
-    <details class="dropdown">
-      <summary class="btn btn-pill" data-event="pill-company" data-tip="One company's lines only">
-        <span class="nav-label">Company</span> <span class="menu-value" id="op-value">All</span></summary>
-      <div class="dropdown-menu pill-menu pill-menu-scroll" id="op-menu"></div>
-    </details>
-    <details class="dropdown">
-      <summary class="btn btn-pill" data-event="pill-arrange" data-tip="The order the wall renders in">
-        <span class="nav-label">Arrange</span> <span class="menu-value" id="arrange-value">Ridership</span></summary>
-      <div class="dropdown-menu pill-menu" id="arrange-menu">
-        <button type="button" data-arrange="riders">Ridership</button>
-        <button type="button" data-arrange="company">Company</button>
-        <button type="button" data-arrange="color">Color</button>
+      <div class="sheet-group" id="op-menu">
+        <p class="menu-label">Company</p>
       </div>
-    </details>
-  </nav>
+    </div>
+  </aside>
 
   <script>
     /* App data + list logic only — the nav-menu, settings pills, install
@@ -417,7 +509,7 @@
     const badge = (l, extra) => `<span class="rail-badge${extra ? " " + extra : ""}" data-shape="${l.s}"${(l.c || "").length > 1 ? " data-long" : ""} style="--c:${l.x}" aria-hidden="true">${esc(l.c || "·")}</span>`;
 
     /* One state object; every control writes it, the URL mirrors it. */
-    const state = { arrange: "riders", area: "", op: "", q: "" };
+    const state = { view: "explore", mode: "list", arrange: "riders", area: "", op: "", q: "" };
 
     /* company → logo file slug + monogram fallback */
     const OPSLUG = {
@@ -490,10 +582,12 @@
 
     const render = () => {
       const list = filtered();
-      $("lines").innerHTML = grouped(list).map(([h, lines]) =>
+      $("line-wall").innerHTML = grouped(list).map(([h, lines]) =>
         `<section class="stack-tight">${heading(h)}${renderCards(lines)}</section>`).join("");
-      $("no-match").hidden = list.length > 0;
+      $("no-match").hidden = list.length > 0 || state.mode === "map";
+      if (state.mode === "map") paintMap(list);
       const p = new URLSearchParams();
+      if (state.mode !== "list") p.set("mode", state.mode);
       if (state.arrange !== "riders") p.set("arrange", state.arrange);
       if (state.area) p.set("area", state.area);
       if (state.op) p.set("op", state.op);
@@ -502,20 +596,17 @@
       history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
     };
 
-    /* Mirror the state onto every pill's value chip and its menu's
-       pressed marks. */
-    const AREA_WORD = { "": "All", tokyo: "In Tokyo", link: "To suburbs", out: "Outside" };
-    const ARRANGE_WORD = { riders: "Ridership", company: "Company", color: "Color" };
-    const setPillValues = () => {
-      $("area-value").textContent = AREA_WORD[state.area];
-      $("op-value").textContent = state.op || "All";
-      $("arrange-value").textContent = ARRANGE_WORD[state.arrange];
-      document.querySelectorAll("#area-menu button").forEach(b =>
-        b.setAttribute("aria-pressed", String(b.dataset.area === state.area)));
-      document.querySelectorAll("#op-menu button").forEach(b =>
-        b.setAttribute("aria-pressed", String((b.dataset.op || "") === state.op)));
-      document.querySelectorAll("#arrange-menu button").forEach(b =>
-        b.setAttribute("aria-pressed", String(b.dataset.arrange === state.arrange)));
+    /* Mirror the state onto the sheets' menu rows and the mode pill. */
+    const syncControls = () => {
+      const mark = (sel, key, val) => document.querySelectorAll(sel).forEach(b =>
+        b.setAttribute("aria-pressed", String((b.dataset[key] || "") === val)));
+      mark("#area-menu .menu-item", "area", state.area);
+      mark("#op-menu .menu-item", "op", state.op);
+      mark("#arrange-menu .menu-item", "arrange", state.arrange);
+      document.querySelectorAll("#mode-tabs .tab-seg").forEach(t =>
+        t.setAttribute("aria-current", String(t.dataset.mode === state.mode)));
+      $("line-wall").hidden = state.mode === "map";
+      $("map-view").hidden = state.mode !== "map";
     };
 
     /* ---- Original line chimes ------------------------------------------
@@ -673,45 +764,58 @@
       "Yokohama City Transportation Bureau|Blue Line": ["yokohama-blue"],
       "Yokohama City Transportation Bureau|Green Line": ["yokohama-green"],
     };
-    let mapLoading = null, mapView0 = null;
-    const loadMap = () => mapLoading ||= fetch("/map.svg")
+    /* One fetch of the 2MB diagram, shared by the dialog and map mode;
+       each host parses its own copy so their views pan independently. */
+    let mapText = null;
+    const fetchMap = () => mapText ||= fetch("/map.svg")
       .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
-      .then(txt => {
-        const host = $("d-map-host");
+      .catch(() => null);
+    const mountMap = hostId => fetchMap().then(txt => {
+      if (!txt) return null;
+      const host = $(hostId);
+      if (!host.querySelector("svg")) {
         host.innerHTML = txt;
         const svg = host.querySelector("svg");
         svg.removeAttribute("width"); svg.removeAttribute("height");
-        mapView0 = svg.getAttribute("viewBox");
-        return svg;
-      })
-      .catch(() => null);
+      }
+      return host.querySelector("svg");
+    });
+    /* every line-level element in the diagram, keyed by its normalised id */
+    const mapEls = svg => {
+      const out = [];
+      for (const opG of Array.from(svg.querySelector("#lines").children)) {
+        const kids = opG.tagName === "g" ? Array.from(opG.children) : [opG];
+        for (const el of kids) out.push([(el.id || "").replace(/_x?\d+_?$/, ""), el]);
+      }
+      return out;
+    };
+    /* svg line id -> our line, so a tap on the map opens the right card */
+    const ID_LINE = new Map();
+    for (const [key, ids] of Object.entries(MAP_ID)) {
+      const line = LINES.find(l => l.op + "|" + l.n === key);
+      if (line) for (const id of ids) ID_LINE.set(id, line);
+    }
+
+    /* The dialog's map: this line lit, the network dimmed behind it. */
     const showMap = l => {
       const ids = MAP_ID[l.op + "|" + l.n];
       const fig = $("d-map");
       fig.hidden = !ids;
       if (!ids) return;
-      loadMap().then(svg => {
+      mountMap("d-map-host").then(svg => {
         if (!svg) { fig.hidden = true; return; }
-        const linesG = svg.querySelector("#lines");
-        const targets = new Set(ids);
-        const matched = [];
-        // line-level elements are the children of each operator group;
-        // Illustrator numbered split groups (_1_, _2_) normalize back
-        for (const opG of Array.from(linesG.children)) {
-          const kids = opG.tagName === "g" ? Array.from(opG.children) : [opG];
-          for (const el of kids) {
-            const base = (el.id || "").replace(/_x?\d+_?$/, "");
-            const on = targets.has(base);
-            el.style.opacity = on ? "1" : "0.1";
-            if (on) matched.push(el);
-          }
+        const targets = new Set(ids), matched = [];
+        for (const [base, el] of mapEls(svg)) {
+          const on = targets.has(base);
+          el.style.opacity = on ? "1" : "0.1";
+          if (on) matched.push(el);
         }
         if (!matched.length) { fig.hidden = true; return; }
         let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
         for (const el of matched) {
-          const b = el.getBBox();
-          x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y);
-          x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height);
+          const bb = el.getBBox();
+          x0 = Math.min(x0, bb.x); y0 = Math.min(y0, bb.y);
+          x1 = Math.max(x1, bb.x + bb.width); y1 = Math.max(y1, bb.y + bb.height);
         }
         const pad = Math.max(x1 - x0, y1 - y0) * 0.18 + 120;
         svg.setAttribute("viewBox",
@@ -719,47 +823,158 @@
       });
     };
 
+    /* Map mode: the whole network, with the filtered-out lines dimmed. */
+    let mapReady = false;
+    const paintMap = list => mountMap("map-host").then(svg => {
+      if (!svg) return;
+      const shown = new Set(list.map(l => l.i));
+      for (const [base, el] of mapEls(svg)) {
+        const line = ID_LINE.get(base);
+        el.style.opacity = !line ? "0.25" : shown.has(line.i) ? "1" : "0.08";
+      }
+      if (!mapReady) { mapReady = true; initMapGestures(svg); }
+    });
+
+    /* Drag to pan, wheel to zoom — the viewBox is the camera. A tap that
+       does not travel opens the line under the finger; the element is read
+       at pointerDOWN because the pan's pointer capture retargets every
+       later event (including the click) to the container. */
+    const initMapGestures = svg => {
+      const host = $("map-host");
+      const vb = () => svg.getAttribute("viewBox").split(/\s+/).map(Number);
+      const setVb = v => svg.setAttribute("viewBox", v.join(" "));
+      let from = null;
+      const lineUnder = el => {
+        for (; el && el !== svg; el = el.parentElement) {
+          const line = ID_LINE.get((el.id || "").replace(/_x?\d+_?$/, ""));
+          if (line) return line;
+        }
+        return null;
+      };
+      host.addEventListener("pointerdown", e => {
+        from = { x: e.clientX, y: e.clientY, vb: vb(), line: lineUnder(e.target), moved: false };
+        host.dataset.panning = "";
+        host.setPointerCapture(e.pointerId);
+      });
+      host.addEventListener("pointermove", e => {
+        if (!from) return;
+        if (Math.abs(e.clientX - from.x) + Math.abs(e.clientY - from.y) > 4) from.moved = true;
+        const scale = from.vb[2] / host.clientWidth;
+        setVb([from.vb[0] - (e.clientX - from.x) * scale,
+               from.vb[1] - (e.clientY - from.y) * scale, from.vb[2], from.vb[3]]);
+      });
+      host.addEventListener("pointerup", e => {
+        if (from && !from.moved && from.line) openLine(from.line);
+        from = null;
+        delete host.dataset.panning;
+        if (host.hasPointerCapture(e.pointerId)) host.releasePointerCapture(e.pointerId);
+      });
+      host.addEventListener("pointercancel", () => { from = null; delete host.dataset.panning; });
+      host.addEventListener("wheel", e => {
+        e.preventDefault();
+        const [x, y, w, h] = vb();
+        const k = Math.exp(e.deltaY * 0.0015);
+        const r = host.getBoundingClientRect();
+        const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+        setVb([x + w * fx * (1 - k), y + h * fy * (1 - k), w * k, h * k]);
+      }, { passive: false });
+    };
+
+    /* Opening a line's card — from a tile, or from a line on the map. */
+    let current = null;
+    const openLine = l => {
+      current = l;
+      $("d-name").textContent = l.n;
+      $("d-ja").textContent = l.j;
+      $("d-op").textContent = `${l.op} · ${l.oj}`;
+      $("d-badge").outerHTML = badge(l).replace('class="rail-badge"', 'class="rail-badge" id="d-badge"');
+      $("d-code").textContent = l.c || "—";
+      $("d-area").textContent = AREAS[l.a] || "—";
+      $("d-riders").textContent = l.r ? `~${fmtRiders(l.r)} a day (${l.ry})` : "—";
+      $("d-chip").style.setProperty("--c", l.x);
+      $("d-hex").textContent = l.x.toUpperCase();
+      $("d-term").textContent = l.t || "—";
+      $("d-note-row").hidden = !l.note;
+      $("d-note").textContent = l.note || "";
+      $("line-dialog").showModal();
+      showMap(l);
+    };
+
+    /* The three sections. Each has its own URL; the tabs swap views in
+       place and push history, so Back walks the sections. */
+    const VIEWS = ["explore", "learn", "quiz"];
+    const viewFromPath = () => {
+      const seg = location.pathname.replace(/^\/|\/$/g, "");
+      return VIEWS.includes(seg) ? seg : "explore";
+    };
+    const showView = (view, push) => {
+      state.view = view;
+      for (const v of VIEWS) $("view-" + v).hidden = v !== view;
+      document.querySelectorAll(".nav-top .tab-seg").forEach(t =>
+        t.setAttribute("aria-current", t.dataset.view === view ? "page" : "false"));
+      $("explore-bar").hidden = view !== "explore";   // the bar belongs to Explore
+      if (push) history.pushState(null, "", view === "explore" ? "/" : "/" + view);
+      if (view === "explore") render();
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
-      /* Company menu: All + one button per company with its line count. */
+      /* Company menu: All + one row per company with its line count. */
       const counts = new Map();
       for (const l of LINES) counts.set(l.op, (counts.get(l.op) || 0) + 1);
-      $("op-menu").innerHTML = `<button type="button" data-op="">All companies (${LINES.length})</button>` +
+      $("op-menu").insertAdjacentHTML("beforeend",
+        `<button type="button" class="menu-item" data-op="">All companies (${LINES.length})<span class="menu-value"></span></button>` +
         [...counts.entries()].map(([op, n]) =>
-          `<button type="button" data-op="${esc(op)}">${esc(op)} (${n})</button>`).join("");
+          `<button type="button" class="menu-item" data-op="${esc(op)}">${esc(op)} (${n})<span class="menu-value"></span></button>`).join(""));
 
       /* Restore a shared URL. */
       const p = new URLSearchParams(location.search);
+      if (p.get("mode") === "map") state.mode = "map";
       if (["color", "company"].includes(p.get("arrange"))) state.arrange = p.get("arrange");
       if (AREAS[p.get("area")]) state.area = p.get("area");
       if (counts.has(p.get("op"))) state.op = p.get("op");
       if (p.get("q")) state.q = p.get("q");
       $("q").value = state.q;
-      setPillValues();
+      syncControls();
+      showView(viewFromPath(), false);
 
-      /* Pill menus: one delegated pick per menu; the library's dropdown
-         closes itself when an item is picked. */
+      /* Section tabs: swap in place, keep the real URLs. */
+      document.querySelector(".nav-top").addEventListener("click", e => {
+        const tab = e.target.closest(".tab-seg");
+        if (!tab || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        showView(tab.dataset.view, true);
+      });
+      addEventListener("popstate", () => showView(viewFromPath(), false));
+
+      /* Mode pill: list or map. */
+      $("mode-tabs").addEventListener("click", e => {
+        const tab = e.target.closest(".tab-seg");
+        if (!tab) return;
+        state.mode = tab.dataset.mode;
+        syncControls();
+        render();
+      });
+
+      /* Sheet menus: one delegated pick each; picking closes the sheet. */
       const pickFrom = (menuId, apply) => $(menuId).addEventListener("click", e => {
-        const b = e.target.closest("button");
+        const b = e.target.closest(".menu-item");
         if (!b) return;
         apply(b);
-        setPillValues();
+        syncControls();
         render();
+        b.closest(".sheet")?.facetSheet?.close();
       });
       pickFrom("area-menu", b => { state.area = b.dataset.area; });
       pickFrom("op-menu", b => { state.op = b.dataset.op || ""; });
       pickFrom("arrange-menu", b => { state.arrange = b.dataset.arrange; });
       $("q").addEventListener("input", () => { state.q = $("q").value; render(); });
-      /* opening the Search pill lands the caret in the field */
-      $("q").closest("details").addEventListener("toggle", e => {
-        if (e.target.open) setTimeout(() => $("q").focus(), 50);
-      });
       $("clear-search").addEventListener("click", () => { state.q = ""; $("q").value = ""; render(); });
 
       /* Chime wiring: hover plays on fine pointers (once a click has
          unlocked audio — until then the hover shows a hint); on touch the
          tap itself is the unlocking gesture and plays directly. */
       let hintShown = false;
-      $("lines").addEventListener("pointerover", e => {
+      $("line-wall").addEventListener("pointerover", e => {
         const b = e.target.closest(".line-jingle");
         if (!b || (e.relatedTarget && b.contains(e.relatedTarget))) return;
         if (!finePointer) return;
@@ -769,7 +984,7 @@
           facet.toast("Click anywhere once to enable sound");
         }
       });
-      $("lines").addEventListener("click", e => {
+      $("line-wall").addEventListener("click", e => {
         const b = e.target.closest(".line-jingle");
         if (!b) return;
         unlockAudio();
@@ -777,28 +992,12 @@
         if (l) setTimeout(() => playJingle(l), 40);   // resume() settles async
       });
 
-      /* One delegated opener for every rendered line → the detail dialog. */
-      let current = null;
-      $("lines").addEventListener("click", e => {
+      /* One delegated opener for every rendered card. */
+      $("line-wall").addEventListener("click", e => {
         const btn = e.target.closest("[data-line]");
         if (!btn) return;
         const l = LINES.find(x => x.i === +btn.dataset.line);
-        if (!l) return;
-        current = l;
-        $("d-name").textContent = l.n;
-        $("d-ja").textContent = l.j;
-        $("d-op").textContent = `${l.op} · ${l.oj}`;
-        $("d-badge").outerHTML = badge(l).replace('class="rail-badge"', 'class="rail-badge" id="d-badge"');
-        $("d-code").textContent = l.c || "—";
-        $("d-area").textContent = AREAS[l.a] || "—";
-        $("d-riders").textContent = l.r ? `~${fmtRiders(l.r)} a day (${l.ry})` : "—";
-        $("d-chip").style.setProperty("--c", l.x);
-        $("d-hex").textContent = l.x.toUpperCase();
-        $("d-term").textContent = l.t || "—";
-        $("d-note-row").hidden = !l.note;
-        $("d-note").textContent = l.note || "";
-        $("line-dialog").showModal();
-        showMap(l);
+        if (l) openLine(l);
       });
       $("d-copy").addEventListener("click", async () => {
         if (!current) return;
@@ -807,8 +1006,6 @@
           facet.toast("Hex copied", "success");
         } catch { /* clipboard denied */ }
       });
-
-      render();
     });
   </script>
 </body>
