@@ -1036,6 +1036,10 @@
       if (state.op) p.set("op", state.op);
       const qs = p.toString();
       history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
+      /* the wall was rewritten, so every <svg data-icon> in it is an empty
+         placeholder again — the library fills them once at load, not on
+         our re-renders */
+      facet.icon?.();
     };
 
     /* Mirror the state onto the sheets' menu rows and the mode pill. */
