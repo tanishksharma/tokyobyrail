@@ -122,7 +122,10 @@ The rules it establishes for anything added later:
   improve the library upstream, never fork it here). Default theme, library
   components only; bespoke CSS is tokens-only and justified in a banner
   comment (currently: the station-number badge and line-color card underline —
-  official signage colors are data, not theme).
+  official signage colors are data, not theme). The badge is THE SITE'S
+  badge, not a facsimile: one size knob, both shapes 16% border, equal
+  AREA rather than equal width, and ONE face — Jost, the closest free cut
+  of Futura, which is what Tokyo Metro sets its station numbers in.
 - `vercel.json` ships every file no-cache (`max-age=0, must-revalidate`) and
   `cleanUrls`, so internal links are extensionless and every deploy shows up
   immediately.
