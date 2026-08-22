@@ -185,5 +185,12 @@
     "file": "jr-east-word.svg",
     "source": "https://commons.wikimedia.org/wiki/File:Logo_JR_East.svg",
     "license": "Public domain"
+  },
+  {
+    "slug": "keio",
+    "file": "keio.svg",
+    "note": "Keio has NO compact symbol mark. Checked twice on Commons — the only marks published are KeioRailway logo.svg / logo m.svg / logo w.svg, and all three are the same KEIO logotype in different inks. Its cards keep the logotype; do not go looking again without new evidence.",
+    "source": "https://commons.wikimedia.org/wiki/File:KeioRailway_logo.svg",
+    "license": "Public domain"
   }
 ]
