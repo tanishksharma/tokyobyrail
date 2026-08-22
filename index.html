@@ -18,9 +18,10 @@
   <link rel="apple-touch-icon" href="/icon.png">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚇</text></svg>">
   <link rel="stylesheet" href="https://facet.tanishksharma.com/lib/facet.css">
-  <!-- app-specific faces for the station-number badges: Jost stands in for
-       Futura (the Metro/Toei badge face), Hind for Frutiger (JR East's) -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Hind:wght@700&display=swap">
+  <!-- app-specific faces: Jost stands in for Futura (the Metro/Toei badge
+       face), Hind for Frutiger (JR East's), and a plain Japanese sans for
+       the card's kanji watermark -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Hind:wght@700&family=Noto+Sans+JP:wght@400&display=swap">
   <script src="https://facet.tanishksharma.com/lib/facet.js" defer data-service-worker="/sw.js"></script>
 
   <style>
@@ -94,16 +95,47 @@
       display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
       overflow: hidden; flex: none;
     }
-    /* Japanese name: a large translucent decoration in the lower right, in
-       the library's brush-calligraphy Japanese face (Yuji Syuku) */
+    /* Japanese name: the card's watermark, plain sans and very light, laid
+       into the bottom-right 60% x 60% of the square — one big line for a
+       short name, two smaller ones for a long one (sized in JS from the
+       character count, handed over as --jp). */
     .line-jpbg {
-      position: absolute; right: 0.7rem; bottom: 0.7rem;
-      max-width: 88%; text-align: right;
-      font-family: var(--font-japanese);
-      font-size: 1.8rem; line-height: 1.1; color: var(--text); opacity: 0.16;
-      white-space: nowrap; overflow: hidden;
+      position: absolute; right: 0.6rem; bottom: 0.5rem;
+      width: 60%; height: 60%;
+      display: flex; align-items: flex-end; justify-content: flex-end;
+      font-family: "Noto Sans JP", var(--font-body), sans-serif;
+      font-weight: 400; font-size: var(--jp, 1.8rem); line-height: 1.05;
+      color: var(--text); opacity: 0.11;
+      text-align: right; overflow: hidden;
       pointer-events: none; user-select: none;
     }
+    /* the inner span holds the full box width; a bare text node would become
+       a flex item and shrink to one character */
+    /* line-break: anywhere overrides Japanese kinsoku, which otherwise
+       refuses to start a line with a character like "・" and spills a
+       two-line name onto three */
+    .line-jpbg > span { width: 100%; word-break: break-all; line-break: anywhere; }
+
+    /* The stat strip: riders, route length, stops — icons, not words. */
+    .line-stats {
+      display: flex; gap: 0.55rem; align-items: center;
+      font-size: 0.7rem; color: var(--text-muted);
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .line-stats span { display: inline-flex; align-items: center; gap: 0.2rem; }
+    .line-stats svg { width: 0.8rem; height: 0.8rem; flex: none; opacity: 0.75; }
+
+    /* Company section heading: the company's own mark, its name, its
+       Japanese name, over a hairline. */
+    .op-head {
+      display: flex; align-items: center; gap: var(--space-inline);
+      padding-bottom: var(--space-tight);
+      border-bottom: var(--border-hairline, 1px) solid var(--border);
+    }
+    .op-head img { width: auto; height: auto; max-width: 6.5rem; max-height: 1.7rem; }
+    .op-name { font-weight: var(--weight-strong); font-size: 0.95rem; }
+    .op-ja { color: var(--text-muted); font-weight: var(--weight-body); margin-left: 0.4rem; }
+
     /* company mark, lower left; a monogram stands in when no logo file */
     /* Logo viewBoxes are trimmed to their content, so caps mean the same
        thing for every mark: square symbols stand 1.5rem tall, wide
@@ -132,11 +164,6 @@
     }
     .line-jingle:hover { color: var(--text); }
     .line-jingle svg { width: 1rem; height: 1rem; }
-    /* daily-riders figure, shown only while arranged by ridership */
-    .line-card .line-riders {
-      color: var(--text-muted); font-size: var(--text-footnote);
-      font-variant-numeric: tabular-nums;
-    }
 
     /* App shell: the section bar stays pinned to the TOP at every width
        (the library folds it to the bottom on phones, but the bottom edge
@@ -159,6 +186,24 @@
         bottom: calc(var(--space-inline) + var(--safe-bottom) + var(--bar-height) + var(--space-inline));
       }
     }
+    /* The control buttons report their own state: the sort button wears a
+       dot once the order leaves its default, the filter button a count of
+       how many filters are narrowing the wall. */
+    .ctl-btn { position: relative; overflow: visible; }
+    .ctl-dot, .ctl-badge {
+      position: absolute; top: -0.15rem; right: -0.15rem;
+      border: 2px solid var(--background); border-radius: 999px;
+      background: var(--error, #e5484d); color: #fff;
+      pointer-events: none;
+    }
+    .ctl-dot { width: 0.7rem; height: 0.7rem; }
+    .ctl-badge {
+      min-width: 1.1rem; height: 1.1rem; padding: 0 0.2rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: var(--weight-strong); line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
     /* the picked row in a sheet menu wears a check in its value slot */
     .menu-item[aria-pressed="true"] .menu-value::after { content: "✓"; }
 
@@ -237,8 +282,7 @@
       </figure>
 
       <div class="empty" id="no-match" hidden>
-        <strong>No lines match</strong>
-        <button type="button" class="btn btn-primary btn-small" id="clear-search" data-event="lines-clear">Clear the search</button>
+        <strong>No lines match these filters</strong>
       </div>
     </section>
 
@@ -317,9 +361,10 @@
        sort behind the left button, filters behind the right one.
        ============================== -->
   <nav class="tab-bar" id="explore-bar" aria-label="Explore controls" data-print="off">
-    <button type="button" class="tab-menu" aria-controls="sort-sheet" aria-expanded="false"
+    <button type="button" class="tab-menu ctl-btn" id="sort-btn" aria-controls="sort-sheet" aria-expanded="false"
             aria-label="Sort" data-tip="The order the lines come in" data-event="open-sort">
       <svg data-icon="sliders" aria-hidden="true"></svg>
+      <span class="ctl-dot" hidden aria-hidden="true"></span>
     </button>
     <div class="tab-set" id="mode-tabs">
       <button type="button" class="tab-seg" data-mode="list" aria-current="true"
@@ -327,9 +372,10 @@
       <button type="button" class="tab-seg" data-mode="map" aria-current="false"
               data-tip="Every line on the network map">Map</button>
     </div>
-    <button type="button" class="tab-settings" aria-controls="filter-sheet" aria-expanded="false"
-            aria-label="Filter" data-tip="Search, area and company" data-event="open-filter">
+    <button type="button" class="tab-settings ctl-btn" id="filter-btn" aria-controls="filter-sheet" aria-expanded="false"
+            aria-label="Filter" data-tip="Area and company" data-event="open-filter">
       <svg data-icon="filter" aria-hidden="true"></svg>
+      <span class="ctl-badge" hidden aria-hidden="true">0</span>
     </button>
   </nav>
 
@@ -350,14 +396,6 @@
   <aside class="sheet sheet-rise" id="filter-sheet" data-open="false"
          aria-hidden="true" aria-label="Filter">
     <div class="sheet-scroll">
-      <div class="sheet-group">
-        <p class="menu-label">Search</p>
-        <label class="field" style="padding: 0 var(--space-card) var(--space-stack);">
-          <span class="field-label visually-hidden">Search lines</span>
-          <input type="search" id="q" placeholder="Line, code or company"
-                 autocomplete="off" data-event="lines-search">
-        </label>
-      </div>
       <div class="sheet-group" id="area-menu">
         <p class="menu-label">Area</p>
         <button type="button" class="menu-item" data-area="">All lines<span class="menu-value"></span></button>
@@ -509,7 +547,7 @@
     const badge = (l, extra) => `<span class="rail-badge${extra ? " " + extra : ""}" data-shape="${l.s}"${(l.c || "").length > 1 ? " data-long" : ""} style="--c:${l.x}" aria-hidden="true">${esc(l.c || "·")}</span>`;
 
     /* One state object; every control writes it, the URL mirrors it. */
-    const state = { view: "explore", mode: "list", arrange: "riders", area: "", op: "", q: "" };
+    const state = { view: "explore", mode: "list", arrange: "riders", area: "", op: "" };
 
     /* company → logo file slug + monogram fallback */
     const OPSLUG = {
@@ -528,6 +566,9 @@
     const monogram = op => op.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
     /* two marks only exist as PNG renders (their Commons SVGs stay throttled) */
     const LOGO_EXT = { "tokyo-metro": "png", "hokuso": "png" };
+    /* companies whose wide wordmark has a compact <slug>-mark.svg twin, used
+       on the cards while the heading keeps the wordmark */
+    const LOGO_MARK = new Set([]);
 
     /* The area classes and the human words the dialog prints for them. */
     const AREAS = { tokyo: "Entirely inside Tokyo", link: "Tokyo ↔ the outskirts", out: "Outside Tokyo" };
@@ -537,13 +578,8 @@
       n >= 1e6 ? (Math.round(n / 1e4) / 100) + "M" :
       n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
 
-    const filtered = () => {
-      const q = state.q.trim().toLowerCase();
-      return LINES.filter(l =>
-        (!state.area || l.a === state.area) &&
-        (!state.op || l.op === state.op) &&
-        (!q || [l.n, l.j, l.c, l.op, l.oj].some(v => v && String(v).toLowerCase().includes(q))));
-    };
+    const filtered = () => LINES.filter(l =>
+      (!state.area || l.a === state.area) && (!state.op || l.op === state.op));
     /* [heading|null, lines[]] groups per the arrangement mode. */
     const grouped = list => {
       if (state.arrange === "color") return [[null, [...list].sort((a, b) => hue(a.x) - hue(b.x))]];
@@ -552,14 +588,40 @@
       for (const l of list) { if (!m.has(l.op)) m.set(l.op, []); m.get(l.op).push(l); }
       return [...m.entries()].map(([op, lines]) => [{ op, oj: lines[0].oj }, lines]);
     };
-    const heading = h => h ? `<h2 class="text-caption" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: var(--tracking-caps); margin: 0;">${esc(h.op)} <span style="letter-spacing: var(--tracking-wide);">${esc(h.oj)}</span></h2>` : "";
+    /* Logo files: the compact MARK on a card, the fuller wordmark in a
+       section heading — the two live side by side in /logos, and a company
+       with only one file uses it for both. */
+    const logoSrc = (slug, kind) => `/logos/${slug}${kind === "mark" && LOGO_MARK.has(slug) ? "-mark" : ""}.${LOGO_EXT[slug] || "svg"}`;
+
+    const heading = h => {
+      if (!h) return "";
+      const slug = OPSLUG[h.op];
+      return `<header class="op-head">
+        <img src="${logoSrc(slug, "word")}" alt="" onerror="this.hidden=true">
+        <span class="op-name">${esc(h.op)}<span class="op-ja" lang="ja">${esc(h.oj)}</span></span>
+      </header>`;
+    };
+
+    /* The kanji watermark is sized from its own length: a short name fills
+       the corner on one line, a long one drops to two smaller ones. The box
+       is 60% of a 10.5rem card, and kanji are square, so characters-per-line
+       IS the divisor. */
+    const jpSize = j => {
+      const n = [...j].length;
+      const per = n <= 4 ? n : Math.ceil(n / 2);
+      /* 5.9, not the full 6.3: a hair of slack, or the last character of an
+         exactly-fitting line wraps to a line of its own */
+      return Math.min(5.9 / per, n <= 4 ? 2.6 : 1.75).toFixed(2);
+    };
 
     /* The card grid. Each square: an invisible stretched button opens the
-       dialog (with the full names as its hover tooltip), the Japanese name
-       headlines beside the badge, the English name floats as a watermark,
-       the company mark sits lower left (logo file, monogram fallback), and
-       the chime button top right. */
+       dialog (with the full names as its hover tooltip), the badge and
+       English name lead, a strip of figures follows, the Japanese name
+       washes across the bottom-right corner, the company mark sits lower
+       left, and the chime button top right. */
     const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const stat = (icon, text, tip) => text
+      ? `<span data-tip="${esc(tip)}"><svg data-icon="${icon}" aria-hidden="true"></svg>${esc(text)}</span>` : "";
     const renderCards = lines => `<div class="line-grid" data-arrange="${state.arrange}">` + lines.map(l => {
       const slug = OPSLUG[l.op];
       return `<article class="card line-card stack-tight" style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""}">
@@ -567,9 +629,13 @@
                 data-tip="${esc(l.n)} · ${esc(l.j)} · ${esc(l.op)}" aria-label="${esc(l.n)} details"></button>
         ${badge(l)}
         <strong class="line-name">${esc(l.n)}</strong>
-        <span class="line-riders">${l.r ? "~" + fmtRiders(l.r) + " riders/day" : "no published figure"}</span>
-        <span class="line-jpbg" lang="ja" aria-hidden="true">${esc(l.j)}</span>
-        <img class="line-logo" src="/logos/${slug}.${LOGO_EXT[slug] || "svg"}" alt="" data-tip="${esc(l.op)} · ${esc(l.oj)}"
+        <span class="line-stats">
+          ${stat("users", l.r && fmtRiders(l.r), `About ${l.r ? fmtRiders(l.r) : "?"} riders a day`)}
+          ${stat("flag", l.km && l.km + "km", `${l.km} km end to end`)}
+          ${stat("map-pin", l.st, `${l.st} stations`)}
+        </span>
+        <span class="line-jpbg" lang="ja" aria-hidden="true" style="--jp:${jpSize(l.j)}rem"><span>${esc(l.j)}</span></span>
+        <img class="line-logo" src="${logoSrc(slug, "mark")}" alt="" data-tip="${esc(l.op)} · ${esc(l.oj)}"
              onerror="this.hidden=true;this.nextElementSibling.hidden=false">
         <span class="line-logo-mono" data-tip="${esc(l.op)} · ${esc(l.oj)}" hidden>${esc(monogram(l.op))}</span>
         <button type="button" class="line-jingle" data-jingle="${l.i}" data-event="lines-jingle"
@@ -591,7 +657,6 @@
       if (state.arrange !== "riders") p.set("arrange", state.arrange);
       if (state.area) p.set("area", state.area);
       if (state.op) p.set("op", state.op);
-      if (state.q.trim()) p.set("q", state.q.trim());
       const qs = p.toString();
       history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
     };
@@ -607,7 +672,21 @@
         t.setAttribute("aria-current", String(t.dataset.mode === state.mode)));
       $("line-wall").hidden = state.mode === "map";
       $("map-view").hidden = state.mode !== "map";
+
+      /* The two buttons carry their own state: a dot when the order is no
+         longer the default, a count when filters are narrowing the wall. */
+      const sorted = state.arrange !== "riders";
+      $("sort-btn").querySelector(".ctl-dot").hidden = !sorted;
+      $("sort-btn").setAttribute("aria-label",
+        sorted ? `Sort — by ${ARRANGE_WORD[state.arrange]}` : "Sort");
+      const n = (state.area ? 1 : 0) + (state.op ? 1 : 0);
+      const badge = $("filter-btn").querySelector(".ctl-badge");
+      badge.hidden = !n;
+      badge.textContent = String(n);
+      $("filter-btn").setAttribute("aria-label",
+        n ? `Filter — ${n} applied` : "Filter");
     };
+    const ARRANGE_WORD = { riders: "ridership", company: "company", color: "colour" };
 
     /* ---- Original line chimes ------------------------------------------
        Synthesized in the browser, deliberately NOT the official station
@@ -835,15 +914,16 @@
       if (!mapReady) { mapReady = true; initMapGestures(svg); }
     });
 
-    /* Drag to pan, wheel to zoom — the viewBox is the camera. A tap that
-       does not travel opens the line under the finger; the element is read
-       at pointerDOWN because the pan's pointer capture retargets every
-       later event (including the click) to the container. */
+    /* Map gestures: one finger pans, TWO FINGERS PINCH to zoom, a wheel
+       zooms on a desktop, and a tap that does not travel opens the line
+       under it. The element is read at pointerDOWN because the pan's
+       pointer capture retargets every later event to the container. */
     const initMapGestures = svg => {
       const host = $("map-host");
       const vb = () => svg.getAttribute("viewBox").split(/\s+/).map(Number);
       const setVb = v => svg.setAttribute("viewBox", v.join(" "));
-      let from = null;
+      const live = new Map();               // every finger currently down
+      let pan = null, pinch = null;
       const lineUnder = el => {
         for (; el && el !== svg; el = el.parentElement) {
           const line = ID_LINE.get((el.id || "").replace(/_x?\d+_?$/, ""));
@@ -851,33 +931,66 @@
         }
         return null;
       };
+      const spread = () => {
+        const [a, b] = [...live.values()];
+        return { d: Math.hypot(a.x - b.x, a.y - b.y),
+                 x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      };
+      /* zoom by factor k about a client point, keeping that point fixed */
+      const zoomAt = (k, cx, cy, base) => {
+        const r = host.getBoundingClientRect();
+        const [x, y, w, h] = base;
+        const fx = (cx - r.left) / r.width, fy = (cy - r.top) / r.height;
+        setVb([x + w * fx * (1 - k), y + h * fy * (1 - k), w * k, h * k]);
+      };
+
       host.addEventListener("pointerdown", e => {
-        from = { x: e.clientX, y: e.clientY, vb: vb(), line: lineUnder(e.target), moved: false };
-        host.dataset.panning = "";
+        live.set(e.pointerId, { x: e.clientX, y: e.clientY });
         host.setPointerCapture(e.pointerId);
+        host.dataset.panning = "";
+        if (live.size === 1) {
+          pan = { x: e.clientX, y: e.clientY, vb: vb(), line: lineUnder(e.target), moved: false };
+        } else if (live.size === 2) {
+          pan = null;                        // a second finger ends the pan
+          const s0 = spread();
+          pinch = { d: s0.d, vb: vb() };
+        }
       });
       host.addEventListener("pointermove", e => {
-        if (!from) return;
-        if (Math.abs(e.clientX - from.x) + Math.abs(e.clientY - from.y) > 4) from.moved = true;
-        const scale = from.vb[2] / host.clientWidth;
-        setVb([from.vb[0] - (e.clientX - from.x) * scale,
-               from.vb[1] - (e.clientY - from.y) * scale, from.vb[2], from.vb[3]]);
+        if (!live.has(e.pointerId)) return;
+        live.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pinch && live.size >= 2) {
+          const s1 = spread();
+          if (s1.d > 0) {
+            const r = host.getBoundingClientRect();
+            const k = pinch.d / s1.d;
+            const [x, y, w, h] = pinch.vb;
+            /* the world point under the pinch centre stays under it */
+            const fx = (s1.x - r.left) / r.width, fy = (s1.y - r.top) / r.height;
+            setVb([x + w * fx - w * k * fx, y + h * fy - h * k * fy, w * k, h * k]);
+          }
+        } else if (pan) {
+          if (Math.abs(e.clientX - pan.x) + Math.abs(e.clientY - pan.y) > 4) pan.moved = true;
+          const scale = pan.vb[2] / host.clientWidth;
+          setVb([pan.vb[0] - (e.clientX - pan.x) * scale,
+                 pan.vb[1] - (e.clientY - pan.y) * scale, pan.vb[2], pan.vb[3]]);
+        }
       });
-      host.addEventListener("pointerup", e => {
-        if (from && !from.moved && from.line) openLine(from.line);
-        from = null;
-        delete host.dataset.panning;
-        if (host.hasPointerCapture(e.pointerId)) host.releasePointerCapture(e.pointerId);
-      });
-      host.addEventListener("pointercancel", () => { from = null; delete host.dataset.panning; });
+      const lift = e => {
+        if (pan && !pan.moved && pan.line && live.size === 1) openLine(pan.line);
+        live.delete(e.pointerId);
+        if (host.hasPointerCapture?.(e.pointerId)) host.releasePointerCapture(e.pointerId);
+        if (live.size < 2) pinch = null;
+        if (!live.size) { pan = null; delete host.dataset.panning; }
+      };
+      host.addEventListener("pointerup", lift);
+      host.addEventListener("pointercancel", lift);
       host.addEventListener("wheel", e => {
         e.preventDefault();
-        const [x, y, w, h] = vb();
-        const k = Math.exp(e.deltaY * 0.0015);
-        const r = host.getBoundingClientRect();
-        const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
-        setVb([x + w * fx * (1 - k), y + h * fy * (1 - k), w * k, h * k]);
+        zoomAt(Math.exp(e.deltaY * 0.0015), e.clientX, e.clientY, vb());
       }, { passive: false });
+      /* older iOS fires its own pinch on the page; keep it off the map */
+      host.addEventListener("gesturestart", e => e.preventDefault());
     };
 
     /* Opening a line's card — from a tile, or from a line on the map. */
@@ -932,8 +1045,6 @@
       if (["color", "company"].includes(p.get("arrange"))) state.arrange = p.get("arrange");
       if (AREAS[p.get("area")]) state.area = p.get("area");
       if (counts.has(p.get("op"))) state.op = p.get("op");
-      if (p.get("q")) state.q = p.get("q");
-      $("q").value = state.q;
       syncControls();
       showView(viewFromPath(), false);
 
@@ -967,8 +1078,6 @@
       pickFrom("area-menu", b => { state.area = b.dataset.area; });
       pickFrom("op-menu", b => { state.op = b.dataset.op || ""; });
       pickFrom("arrange-menu", b => { state.arrange = b.dataset.arrange; });
-      $("q").addEventListener("input", () => { state.q = $("q").value; render(); });
-      $("clear-search").addEventListener("click", () => { state.q = ""; $("q").value = ""; render(); });
 
       /* Chime wiring: hover plays on fine pointers (once a click has
          unlocked audio — until then the hover shows a hint); on touch the
