@@ -17,7 +17,11 @@ sections, switched by the top tab bar and each with its own URL
   zooms, a tap opens a line, and the current filters dim everything else).
   Sorted by ridership, company or colour; filtered by area (inside Tokyo / to
   the suburbs / outside) and company; a per-line detail dialog carries the map
-  with that line highlighted. Every control mirrors into the URL.
+  with that line highlighted, filling the whole top of the popup and taking
+  the same gestures plus a zoom pill. Every control mirrors into the URL.
+  Every line wears a HEART anyone can leave without an account (see The
+  backend below) — red once this browser has left one, with the count
+  rolling up beside it.
   The two bottom-bar buttons report their own state: the sort button wears a
   dot once the order leaves its default, the filter button a count of applied
   filters.
@@ -56,6 +60,29 @@ staging-first workflow used in the other projects:
 - Feature-branch previews (Vercel deploys every branch) are the only
   pre-production look.
 
+## The backend
+
+The site is static except for one thing: the heart on a line. It runs in
+the `tanishksharmacom` Supabase project (`ndgzwmyqnldlkmjwlmwr`), sharing
+that database and its `VIEW_IP_SALT` secret, with every object prefixed
+`rail_` so the two sites never touch each other's rows. `supabase/` in this
+repo mirrors what is deployed: the migration, the Edge Function and a
+README explaining the shape and its consequences. Change the deployed
+object and the mirror in the same commit.
+
+The rules it establishes for anything added later:
+
+- The browser reads with the public anon key and writes NOTHING directly.
+  A write goes through an Edge Function that checks the Origin, so a branch
+  preview and localhost can never move production numbers.
+- Anything derived from a visitor (an IP) is salted and hashed server-side,
+  and the table holding it carries zero RLS policies, so it is service-role
+  only and never reaches a browser.
+- Public tables get a SELECT policy and no other policy. Never grant the
+  anon key insert, update or delete.
+- No account, no sign-in, no cookie. If a feature needs identity, raise it
+  before building it.
+
 ## Stack rules
 
 - Vanilla HTML, CSS and JS. No frameworks, no build step, no npm runtime
@@ -76,6 +103,8 @@ staging-first workflow used in the other projects:
 
 - Do not add a staging branch or environment (see above).
 - Do not introduce a bundler, framework, or package.json.
+- Do not let the browser write to the database directly, and do not put a
+  service-role key anywhere near the client (see The backend above).
 - Do not vendor the Facet library or pin its files locally.
 - Do not import anything from the tanishksharmacom repo's `/apps` area — this
   site stands alone.
