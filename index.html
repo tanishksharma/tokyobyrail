@@ -230,15 +230,41 @@
     .map-stage figcaption { color: var(--text-muted); margin: 0; }
 
     /* The dialog's network map: the CC0 hashcc diagram, one line boosted,
-       the rest dimmed. The map is an artwork with its own light ground, so
-       it keeps a white plate in dark mode too. */
-    .line-map { display: flex; flex-direction: column; gap: 0.375rem; }
+       the rest dimmed. It FILLS THE WHOLE TOP of the dialog, edge to edge —
+       the dialog clips its children, so the map takes the rounded top
+       corners for free — and it pans, pinches and wheel-zooms exactly like
+       map mode. The map is an artwork with its own light ground, so it
+       keeps a white plate in dark mode too. */
+    .line-map { position: relative; flex: 0 0 auto; margin: 0; }
     #d-map-host {
-      height: 17rem; overflow: hidden;
-      border: 1px solid var(--border); border-radius: var(--radius-card, 0.75rem);
-      background: #fff;
+      height: min(42vh, 20rem); overflow: hidden; touch-action: none;
+      background: #fff; cursor: grab;
+      border-bottom: var(--border-hairline, 1px) solid var(--border);
     }
+    #d-map-host[data-panning] { cursor: grabbing; }
     #d-map-host svg { width: 100%; height: 100%; display: block; }
+
+    /* Chrome that floats ON the map rather than taking rows of its own:
+       the credit bottom-left, the zoom pill bottom-right, the close button
+       top-right. The close sits outside the figure so it survives the
+       lines the diagram is too old to show. */
+    .line-map figcaption {
+      position: absolute; left: 0.5rem; bottom: 0.5rem; margin: 0;
+      padding: 0.05rem 0.35rem; border-radius: 0.3rem;
+      background: rgba(255, 255, 255, 0.75); color: #5b6672;
+      pointer-events: none;
+    }
+    .map-zoom {
+      position: absolute; right: 0.5rem; bottom: 0.5rem;
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .dialog-close {
+      position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2;
+      display: inline-flex;
+    }
+    .dialog-close .btn { background: var(--surface); }
+    /* the head row keeps clear of the floating close button */
+    .dialog-head-row { padding-right: 2.5rem; }
 
     /* The detail dialog's color chip. */
     .hex-chip {
@@ -306,53 +332,58 @@
 
   </main>
 
-  <dialog class="modal modal-lg stack" id="line-dialog">
-    <div class="dialog-head">
-      <h4 id="d-name">Line</h4>
-      <form method="dialog"><button class="btn btn-icon btn-ghost" aria-label="Close"><svg width="20" height="20" data-icon="close" aria-hidden="true"></svg></button></form>
-    </div>
-    <div class="row" style="align-items: center; gap: var(--space-inline);">
-      <span class="rail-badge" id="d-badge" aria-hidden="true"></span>
-      <span>
-        <span id="d-ja" style="display: block;"></span>
-        <span id="d-op" class="text-caption" style="color: var(--text-muted);"></span>
-      </span>
-    </div>
-    <figure class="line-map" id="d-map" hidden style="margin: 0;">
+  <dialog class="modal modal-lg" id="line-dialog">
+    <figure class="line-map" id="d-map" hidden>
       <div id="d-map-host" role="img" aria-label="Greater Tokyo network map with this line highlighted"></div>
-      <figcaption class="text-caption" style="color: var(--text-muted); margin: 0;">The whole network, this line highlighted. Map: Naoki Hashimoto (CC0).</figcaption>
+      <figcaption class="text-caption">Map: Naoki Hashimoto (CC0)</figcaption>
+      <div class="map-zoom" role="group" aria-label="Zoom the map">
+        <button type="button" class="btn btn-icon btn-small" id="d-zoom-in" aria-label="Zoom in" data-tip="Zoom in on the map"><svg data-icon="plus" aria-hidden="true"></svg></button>
+        <button type="button" class="btn btn-icon btn-small" id="d-zoom-out" aria-label="Zoom out" data-tip="Zoom out of the map"><svg data-icon="minus" aria-hidden="true"></svg></button>
+        <button type="button" class="btn btn-icon btn-small" id="d-zoom-fit" aria-label="Fit the line" data-tip="Frame the whole line again"><svg data-icon="refresh" aria-hidden="true"></svg></button>
+      </div>
     </figure>
-    <ul class="list list-boxed">
-      <li class="list-item">
-        <span class="list-content"><span class="list-title">Symbol</span></span>
-        <span class="list-trail" id="d-code"></span>
-      </li>
-      <li class="list-item">
-        <span class="list-content"><span class="list-title">Area</span></span>
-        <span class="list-trail" id="d-area"></span>
-      </li>
-      <li class="list-item">
-        <span class="list-content"><span class="list-title">Daily riders</span></span>
-        <span class="list-trail" id="d-riders"></span>
-      </li>
-      <li class="list-item">
-        <span class="list-content"><span class="list-title">Official color</span></span>
-        <span class="list-trail"><span class="hex-chip" id="d-chip" aria-hidden="true"></span><span id="d-hex"></span>
-          <button type="button" class="btn btn-icon btn-small" id="d-copy" aria-label="Copy the hex" data-tip="Copies the hex to your clipboard" data-event="lines-copy-hex"><svg data-icon="copy" aria-hidden="true"></svg></button></span>
-      </li>
-      <li class="list-item">
-        <span class="list-content">
-          <span class="list-title">Runs</span>
-          <span class="list-desc" id="d-term"></span>
+    <form method="dialog" class="dialog-close"><button class="btn btn-icon" aria-label="Close"><svg width="20" height="20" data-icon="close" aria-hidden="true"></svg></button></form>
+    <div class="dialog-body stack">
+      <div class="row dialog-head-row" style="align-items: center; gap: var(--space-inline);">
+        <span class="rail-badge" id="d-badge" aria-hidden="true"></span>
+        <span>
+          <h4 id="d-name" style="margin: 0;">Line</h4>
+          <span id="d-ja" style="display: block;"></span>
+          <span id="d-op" class="text-caption" style="color: var(--text-muted);"></span>
         </span>
-      </li>
-      <li class="list-item" id="d-note-row">
-        <span class="list-content">
-          <span class="list-title">Note</span>
-          <span class="list-desc" id="d-note"></span>
-        </span>
-      </li>
-    </ul>
+      </div>
+      <ul class="list list-boxed">
+        <li class="list-item">
+          <span class="list-content"><span class="list-title">Symbol</span></span>
+          <span class="list-trail" id="d-code"></span>
+        </li>
+        <li class="list-item">
+          <span class="list-content"><span class="list-title">Area</span></span>
+          <span class="list-trail" id="d-area"></span>
+        </li>
+        <li class="list-item">
+          <span class="list-content"><span class="list-title">Daily riders</span></span>
+          <span class="list-trail" id="d-riders"></span>
+        </li>
+        <li class="list-item">
+          <span class="list-content"><span class="list-title">Official color</span></span>
+          <span class="list-trail"><span class="hex-chip" id="d-chip" aria-hidden="true"></span><span id="d-hex"></span>
+            <button type="button" class="btn btn-icon btn-small" id="d-copy" aria-label="Copy the hex" data-tip="Copies the hex to your clipboard" data-event="lines-copy-hex"><svg data-icon="copy" aria-hidden="true"></svg></button></span>
+        </li>
+        <li class="list-item">
+          <span class="list-content">
+            <span class="list-title">Runs</span>
+            <span class="list-desc" id="d-term"></span>
+          </span>
+        </li>
+        <li class="list-item" id="d-note-row">
+          <span class="list-content">
+            <span class="list-title">Note</span>
+            <span class="list-desc" id="d-note"></span>
+          </span>
+        </li>
+      </ul>
+    </div>
   </dialog>
 
   <!-- ==============================
@@ -887,7 +918,9 @@
       if (line) for (const id of ids) ID_LINE.set(id, line);
     }
 
-    /* The dialog's map: this line lit, the network dimmed behind it. */
+    /* The dialog's map: this line lit, the network dimmed behind it, and
+       roamable — dMap is its gesture handle, dFit the view it opened at. */
+    let dMap = null, dFit = null;
     const showMap = l => {
       const ids = MAP_ID[l.op + "|" + l.n];
       const fig = $("d-map");
@@ -909,13 +942,14 @@
           x1 = Math.max(x1, bb.x + bb.width); y1 = Math.max(y1, bb.y + bb.height);
         }
         const pad = Math.max(x1 - x0, y1 - y0) * 0.18 + 120;
-        svg.setAttribute("viewBox",
-          `${x0 - pad} ${y0 - pad} ${(x1 - x0) + 2 * pad} ${(y1 - y0) + 2 * pad}`);
+        /* the framed view is remembered so the Fit button can return to it */
+        dFit = [x0 - pad, y0 - pad, (x1 - x0) + 2 * pad, (y1 - y0) + 2 * pad];
+        svg.setAttribute("viewBox", dFit.join(" "));
+        dMap = initMapGestures(svg, $("d-map-host"));
       });
     };
 
     /* Map mode: the whole network, with the filtered-out lines dimmed. */
-    let mapReady = false;
     const paintMap = list => mountMap("map-host").then(svg => {
       if (!svg) return;
       const shown = new Set(list.map(l => l.i));
@@ -923,15 +957,16 @@
         const line = ID_LINE.get(base);
         el.style.opacity = !line ? "0.25" : shown.has(line.i) ? "1" : "0.08";
       }
-      if (!mapReady) { mapReady = true; initMapGestures(svg); }
+      initMapGestures(svg, $("map-host"));
     });
 
     /* Map gestures: one finger pans, TWO FINGERS PINCH to zoom, a wheel
        zooms on a desktop, and a tap that does not travel opens the line
        under it. The element is read at pointerDOWN because the pan's
        pointer capture retargets every later event to the container. */
-    const initMapGestures = svg => {
-      const host = $("map-host");
+    const gestures = new WeakMap();
+    const initMapGestures = (svg, host) => {
+      if (gestures.has(host)) return gestures.get(host);
       const vb = () => svg.getAttribute("viewBox").split(/\s+/).map(Number);
       const setVb = v => svg.setAttribute("viewBox", v.join(" "));
       const live = new Map();               // every finger currently down
@@ -1005,6 +1040,18 @@
       }, { passive: false });
       /* older iOS fires its own pinch on the page; keep it off the map */
       host.addEventListener("gesturestart", e => e.preventDefault());
+
+      /* the handle a zoom button pulls: k < 1 moves closer, about the
+         middle of the box, since a button has no pointer of its own */
+      const ctl = {
+        setVb,
+        zoomBy: k => {
+          const r = host.getBoundingClientRect();
+          zoomAt(k, r.left + r.width / 2, r.top + r.height / 2, vb());
+        },
+      };
+      gestures.set(host, ctl);
+      return ctl;
     };
 
     /* Opening a line's card — from a tile, or from a line on the map. */
@@ -1122,6 +1169,12 @@
         const l = LINES.find(x => x.i === +btn.dataset.line);
         if (l) openLine(l);
       });
+      /* Zooming the dialog's map without a pointer: 1.5x a step, and Fit
+         returns to the view the line opened at. */
+      $("d-zoom-in").addEventListener("click", () => dMap && dMap.zoomBy(1 / 1.5));
+      $("d-zoom-out").addEventListener("click", () => dMap && dMap.zoomBy(1.5));
+      $("d-zoom-fit").addEventListener("click", () => dMap && dFit && dMap.setVb(dFit));
+
       $("d-copy").addEventListener("click", async () => {
         if (!current) return;
         try {
