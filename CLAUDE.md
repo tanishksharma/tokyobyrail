@@ -11,7 +11,8 @@ sections, switched by the top tab bar and each with its own URL
 
 - **Explore** (`/`) — all 98 Greater-Tokyo passenger lines across 22
   companies, each with its official color, line symbol and station-number
-  badge, its riders a day, its route length and its stop count. Two view
+  badge, its Japanese name and that name's hiragana reading, its riders a
+  day, its route length and its stop count. Two view
   modes: the card wall, and the network map (`map.svg`, the CC0 Greater-Tokyo
   diagram by Naoki Hashimoto — one finger pans, two fingers pinch, the wheel
   zooms, a tap opens a line, and the current filters dim everything else).
@@ -44,12 +45,19 @@ The bar convention: the TOP bar navigates between the three sections; the
 BOTTOM bar belongs to whichever section is open and controls its state (on
 Explore: one pill per control, laid along the bottom edge).
 
-The material: every pane on the page wears the same embossed frosted glass
-the library gives its tab bar — the recipe is lifted into `--glass-*`
-tokens and a `.glass` class in the page, so the cards, the control pills
-and the library's own bars are one material. Letters on glass are embossed
-with the `--emboss-up` / `--emboss-down` pair, which swaps weight in the
-dark. Glass needs something to blur, so the page's first child is the ground:
+The material: the CHROME wears the embossed frosted glass the library gives
+its tab bar — the recipe is lifted into `--glass-*` tokens and a `.glass`
+class in the page, so the control pills and the library's own bars are one
+material. Letters on glass are embossed with the `--emboss-up` /
+`--emboss-down` pair, which swaps weight in the dark. The CARDS deliberately
+do NOT: a wall of ninety-eight blurred panes cost more than it said, and a
+card should read as printed, not pressed. A card is a plain 4:3 rectangle on
+`--surface` — the badge, then the line's reading over its Japanese name
+(four units to six, from one `--u` the card works out from the name's
+length), the English name underneath at the size the extra width bought,
+the figures at the foot and the company mark below them. Below 34rem the
+card drops the 4:3 and takes only the height it needs, or one card would
+fill a third of a phone. Glass needs something to blur, so the page's first child is the ground:
 a DIAMOND LATTICE of the station-number badges themselves — the same
 roundels and rounded squares the cards wear, in each line's own colour,
 as outlines with no fill so they never punch bright holes through a dark
@@ -60,11 +68,17 @@ would tip the icons over with it. Which glyph lands where is a hash of
 the lattice position, so the field looks random but is identical on every
 draw and a resize re-lays it rather than reshuffling it; the seed changes
 per page load. It keeps the library's `.bg-fixed` and its print and
-contrast behaviour. A new pane takes `.glass`; never hand-roll
-a second recipe. Line data is baked into the file as constants, verified Aug
+contrast behaviour. A new CHROME pane takes `.glass`; never hand-roll
+a second recipe, and never put glass on a card. Line data is baked into the file as constants, verified Aug
 2026 against the line articles on English/Japanese Wikipedia and the Japanese
 railway line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out
 of scope.
+
+The `k` field is each line's reading, taken from the line article's own
+lead: hiragana for the kanji, katakana kept as written, because furigana is
+not set over katakana. Four lines have no `k` at all — つくばエクスプレス,
+ゆりかもめ, ブルーライン, グリーンライン — since their names are already kana
+and have nothing to gloss; the card simply shows the name alone.
 
 `stations.json` is the second data file and the only one fetched at runtime:
 the running order of all 98 lines, 1,631 stations, keyed by line index. A row
