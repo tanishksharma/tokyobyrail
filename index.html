@@ -21,7 +21,7 @@
   <!-- app-specific faces: Jost stands in for Futura (the Metro/Toei badge
        face), Hind for Frutiger (JR East's), and a plain Japanese sans for
        the card's kanji watermark -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Hind:wght@700&family=Noto+Sans+JP:wght@400&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@600&family=Hind:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap">
   <script src="https://facet.tanishksharma.com/lib/facet.js" defer data-service-worker="/sw.js"></script>
 
   <style>
@@ -113,8 +113,8 @@
       width: 60%; height: 60%;
       display: flex; align-items: flex-end; justify-content: flex-end;
       font-family: "Noto Sans JP", var(--font-body), sans-serif;
-      font-weight: 400; font-size: var(--jp, 1.8rem); line-height: 1.05;
-      color: var(--text); opacity: 0.11;
+      font-weight: 700; font-size: var(--jp, 1.8rem); line-height: 1.05;
+      color: var(--text); opacity: 0.07;
       text-align: right; overflow: hidden;
       pointer-events: none; user-select: none;
     }
@@ -262,20 +262,22 @@
       .glass { background: var(--surface); }
     }
 
-    /* THE GROUND — a diamond lattice: a square grid turned 45 degrees,
-       built as a centred lattice (every second point offset by half a
-       cell) so the ROWS run on the diagonal while every glyph stays
-       upright — rotating the layer itself would tip the icons over with
-       it. Bespoke because the library's grid backgrounds are square
-       lattices of ONE repeating symbol; the ink, the strength and the
-       fixed positioning are still its tokens and its .bg-fixed. */
-    #bg-lattice {
-      --bg-tint: var(--text-muted);
-      --bg-strength: 20%;
-      width: 100%; height: 100%;
-      color: color-mix(in srgb, var(--bg-tint) var(--bg-strength), transparent);
-      fill: none; stroke: currentColor;
-      stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+    /* THE GROUND — a diamond lattice of the station-number badges
+       themselves: the same roundels and rounded squares the cards wear,
+       in each line's own colour, scattered across the whole screen. The
+       lattice is a square grid turned 45 degrees, built as a centred
+       lattice (every second point offset by half a cell) so the ROWS run
+       on the diagonal while every badge stays upright — rotating the layer
+       itself would tip them all over with it. Bespoke because the
+       library's grid backgrounds are square lattices of ONE repeating
+       symbol; the fixed positioning is still its .bg-fixed. */
+    #bg-lattice { overflow: hidden; opacity: 0.17; }
+    /* on the ground a badge is a coloured outline, never a white blob:
+       the fill would punch bright holes through a dark page */
+    #bg-lattice .rail-badge {
+      position: absolute;
+      background: none; color: var(--c);
+      transform: translate(-50%, -50%) scale(0.78);
     }
     /* asked for plain contrast: the ground goes away, as the library's own
        grids do */
@@ -418,7 +420,7 @@
        lattice of the library's own glyphs, drawn by drawGround() below and
        pinned to the screen, so every pane has a pattern to blur and the
        wall has something to float over. Never prints. -->
-  <svg class="bg-fixed" id="bg-lattice" aria-hidden="true"></svg>
+  <div class="bg-fixed" id="bg-lattice" aria-hidden="true"></div>
 
   <!-- ==============================
        Section navigation
@@ -817,49 +819,45 @@
        washes across the bottom-right corner, the company mark sits lower
        left, and the chime button top right. */
     /* ---- The ground ----------------------------------------------------
-       A diamond lattice of icons behind everything. Two interleaved square
-       grids — one at the cell corners, one at the cell centres — put the
-       points on a 45-degree lattice while each glyph stays upright, and
-       the pitch leaves the neighbours about 74px apart.
+       The station-number badges, scattered behind everything. Two
+       interleaved square grids — one on the cell corners, one on the cell
+       centres — put the positions on a 45-degree lattice while each badge
+       stays upright, and the pitch leaves neighbours about 106px apart.
 
-       Which glyph lands where is a hash of the POSITION, not of the draw
+       Which line lands where is a hash of the POSITION, not of the draw
        order, so the field is random to look at but identical every time it
        is drawn: a resize re-lays exactly the same ground instead of
        reshuffling it. The seed changes per page load, so a later visit
        gets a different field. Fixed to the screen, so it draws once and
        never on scroll. */
-    const BG_ICONS = ["map-pin", "map", "clock", "globe", "flag", "star",
-                      "tag", "bookmark", "send", "bell", "calendar", "zap"];
-    const BG_CELL = 104;                   /* lattice pitch in px */
-    const BG_GLYPH = 20;                   /* each glyph's own box */
+    const BG_CELL = 150;                   /* lattice pitch in px */
     const BG_SEED = (Math.random() * 1e9) | 0;
     const drawGround = () => {
-      const svg = $("bg-lattice");
-      if (!svg || !window.facet || !facet.icons) return;
+      const host = $("bg-lattice");
+      if (!host) return;
       const w = innerWidth, h = innerHeight;
       /* one stable pick per lattice position */
       const pick = (i, j, k) => {
         let x = Math.imul(i, 73856093) ^ Math.imul(j, 19349663) ^ Math.imul(k, 83492791) ^ BG_SEED;
         x = Math.imul(x ^ (x >>> 15), 2246822519);
         x = Math.imul(x ^ (x >>> 13), 3266489917);
-        return BG_ICONS[((x ^ (x >>> 16)) >>> 0) % BG_ICONS.length];
+        return LINES[((x ^ (x >>> 16)) >>> 0) % LINES.length];
       };
-      const defs = BG_ICONS.map(n =>
-        `<symbol id="bgi-${n}" viewBox="0 0 24 24">${facet.icons[n]}</symbol>`).join("");
       const out = [];
       const cols = Math.ceil(w / BG_CELL) + 1, rows = Math.ceil(h / BG_CELL) + 1;
       for (let j = -1; j <= rows; j++) {
         for (let i = -1; i <= cols; i++) {
           /* the half-cell twin is what turns the square grid on its side */
           for (const [k, dx, dy] of [[0, 0, 0], [1, 0.5, 0.5]]) {
-            const x = (i + dx) * BG_CELL - BG_GLYPH / 2;
-            const y = (j + dy) * BG_CELL - BG_GLYPH / 2;
-            out.push(`<use href="#bgi-${pick(i, j, k)}" x="${x}" y="${y}" width="${BG_GLYPH}" height="${BG_GLYPH}"/>`);
+            const x = (i + dx) * BG_CELL, y = (j + dy) * BG_CELL;
+            /* the position joins the badge's own style rather than adding
+               a second style attribute, which the parser would drop */
+            out.push(badge(pick(i, j, k)).replace(
+              'style="--c:', `style="left:${x}px;top:${y}px;--c:`));
           }
         }
       }
-      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-      svg.innerHTML = `<defs>${defs}</defs>${out.join("")}`;
+      host.innerHTML = out.join("");
     };
 
     /* ---- Hearts --------------------------------------------------------
