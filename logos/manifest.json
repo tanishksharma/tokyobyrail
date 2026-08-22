@@ -130,5 +130,60 @@
     "file": "yokohama-city.svg",
     "source": "https://commons.wikimedia.org/wiki/File:Yokohama_City_Transportation_Emblem.svg",
     "license": "Public domain"
+  },
+  {
+    "slug": "odakyu-mark",
+    "file": "odakyu-mark.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:OdakyuGroup_logo2.svg",
+    "license": "Public domain"
+  },
+  {
+    "slug": "seibu-mark",
+    "file": "seibu-mark.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:SeibuRailway_mark.svg",
+    "license": "Public domain"
+  },
+  {
+    "slug": "tobu-mark",
+    "file": "tobu-mark.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Tobu_logomark.svg",
+    "license": "Public domain"
+  },
+  {
+    "slug": "keisei-mark",
+    "file": "keisei-mark.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Keisei_Logo.svg",
+    "license": "Public domain"
+  },
+  {
+    "slug": "sotetsu-mark",
+    "file": "sotetsu-mark.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:SOTETSU_logomark.svg",
+    "license": "Public domain"
+  },
+  {
+    "slug": "tokyu-mark",
+    "file": "tokyu-mark.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Tokyu_Railways.svg",
+    "license": "Public domain"
+  },
+  {
+    "slug": "toei-mark-crest",
+    "file": "toei-mark-crest.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:BTTMG_logomark.svg",
+    "license": "Public domain"
+  },
+  {
+    "slug": "toei-mark",
+    "file": "toei-mark.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Symbol_of_Tokyo_Metropolis.svg",
+    "license": "Public domain",
+    "note": "Toei's own symbol mark IS the Tokyo Metropolitan ginkgo in green (#199332) — the mark on its station signs; the older bureau wheel crest is kept as toei-mark-crest.svg"
+  },
+  {
+    "slug": "jr-east-word",
+    "file": "jr-east-word.svg",
+    "source": "https://commons.wikimedia.org/wiki/File:Logo_JR_East.svg",
+    "license": "Public domain"
   }
 ]

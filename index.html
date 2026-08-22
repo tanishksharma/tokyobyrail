@@ -567,8 +567,12 @@
     /* two marks only exist as PNG renders (their Commons SVGs stay throttled) */
     const LOGO_EXT = { "tokyo-metro": "png", "hokuso": "png" };
     /* companies whose wide wordmark has a compact <slug>-mark.svg twin, used
-       on the cards while the heading keeps the wordmark */
-    const LOGO_MARK = new Set([]);
+       on the cards while the heading keeps the wordmark. Keio is absent on
+       purpose: it has no symbol, only the KEIO logotype. */
+    const LOGO_MARK = new Set(["odakyu", "seibu", "tobu", "keisei", "sotetsu", "tokyu", "toei"]);
+    /* the reverse: companies whose card mark is the compact one, so the
+       heading takes a fuller <slug>-word.svg lockup */
+    const LOGO_WORD = new Set(["jr-east"]);
 
     /* The area classes and the human words the dialog prints for them. */
     const AREAS = { tokyo: "Entirely inside Tokyo", link: "Tokyo ↔ the outskirts", out: "Outside Tokyo" };
@@ -595,7 +599,11 @@
     /* Logo files: the compact MARK on a card, the fuller wordmark in a
        section heading — the two live side by side in /logos, and a company
        with only one file uses it for both. */
-    const logoSrc = (slug, kind) => `/logos/${slug}${kind === "mark" && LOGO_MARK.has(slug) ? "-mark" : ""}.${LOGO_EXT[slug] || "svg"}`;
+    const logoSrc = (slug, kind) => {
+      const suffix = kind === "mark" ? (LOGO_MARK.has(slug) ? "-mark" : "")
+                                     : (LOGO_WORD.has(slug) ? "-word" : "");
+      return `/logos/${slug}${suffix}.${suffix ? "svg" : LOGO_EXT[slug] || "svg"}`;
+    };
 
     const heading = h => {
       if (!h) return "";
