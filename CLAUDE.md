@@ -22,9 +22,11 @@ sections, switched by the top tab bar and each with its own URL
   Every line wears a HEART anyone can leave without an account (see The
   backend below) — red once this browser has left one, with the count
   rolling up beside it.
-  The two bottom-bar buttons report their own state: the sort button wears a
-  dot once the order leaves its default, the filter button a count of applied
-  filters.
+  The bottom bar is a row of frosted-glass pills, one per control (view,
+  arrange, area, company): each carries an icon for what it controls and
+  the WORD it is currently set to, and wears the accent while that is not
+  the default — which is why there is no longer a dot or a count badge.
+  The view pill toggles; the other three open a sheet each.
 - **Learn** (`/learn`) — placeholder. Planned: a grid of topics on the
   network's history, each opening as an Instagram-style story.
 - **Quiz** (`/quiz`) — placeholder. Planned: scored rounds with a live
@@ -32,8 +34,16 @@ sections, switched by the top tab bar and each with its own URL
 
 The bar convention: the TOP bar navigates between the three sections; the
 BOTTOM bar belongs to whichever section is open and controls its state (on
-Explore: view mode in the pill, sort behind the left button, filters behind
-the right one). Line data is baked into the file as constants, verified Aug
+Explore: one pill per control, laid along the bottom edge).
+
+The material: every pane on the page wears the same embossed frosted glass
+the library gives its tab bar — the recipe is lifted into `--glass-*`
+tokens and a `.glass` class in the page, so the cards, the control pills
+and the library's own bars are one material. Letters on glass are embossed
+with the `--emboss-up` / `--emboss-down` pair, which swaps weight in the
+dark. Glass needs something to blur, so the page's first child is the
+library's `.bg-grid .bg-fixed` plus-mark grid. A new pane takes `.glass`;
+never hand-roll a second recipe. Line data is baked into the file as constants, verified Aug
 2026 against the line articles on English/Japanese Wikipedia and the Japanese
 railway line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out
 of scope.
