@@ -11,12 +11,16 @@ sections, switched by the top tab bar and each with its own URL
 
 - **Explore** (`/`) — all 98 Greater-Tokyo passenger lines across 22
   companies, each with its official color, line symbol and station-number
-  badge. Two view modes: the card wall, and the network map (`map.svg`, the
-  CC0 Greater-Tokyo diagram by Naoki Hashimoto — pan, zoom, tap a line, and
-  the current filters dim everything else). Sorted by ridership, company or
-  colour; filtered by area (inside Tokyo / to the suburbs / outside), company
-  and bilingual search; a per-line detail dialog carries the map with that
-  line highlighted. Every control mirrors into the URL.
+  badge, its riders a day, its route length and its stop count. Two view
+  modes: the card wall, and the network map (`map.svg`, the CC0 Greater-Tokyo
+  diagram by Naoki Hashimoto — one finger pans, two fingers pinch, the wheel
+  zooms, a tap opens a line, and the current filters dim everything else).
+  Sorted by ridership, company or colour; filtered by area (inside Tokyo / to
+  the suburbs / outside) and company; a per-line detail dialog carries the map
+  with that line highlighted. Every control mirrors into the URL.
+  The two bottom-bar buttons report their own state: the sort button wears a
+  dot once the order leaves its default, the filter button a count of applied
+  filters.
 - **Learn** (`/learn`) — placeholder. Planned: a grid of topics on the
   network's history, each opening as an Instagram-style story.
 - **Quiz** (`/quiz`) — placeholder. Planned: scored rounds with a live
