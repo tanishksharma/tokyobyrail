@@ -72,6 +72,11 @@
       grid-template-columns: repeat(auto-fill, var(--card-w));
       gap: var(--space-stack);
       --card-w: 10.5rem;
+      /* Fixed tracks rarely divide the width evenly, and the remainder
+         piles up on ONE side unless it is told otherwise — which read as
+         a left-aligned wall. Centred, the leftover splits in two and only
+         the last, short row sits to one side, as a short row should. */
+      justify-content: center;
     }
     /* Cards view: a fixed square. The Japanese name is the headline beside
        the badge; the English name floats as a quiet watermark lower right;
