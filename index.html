@@ -1564,9 +1564,11 @@
       loadStops().then(all => {
         const stops = all[String(l.i)];
         if (!stops || !stops.length) {
-          host.innerHTML = `<div class="empty"><p>The stop list for this line is not confirmed yet.</p>
-            <p class="text-caption">Every stop here is checked against its station number before it ships,
-            and this line's numbering is shared with its branches, so it is still being sorted out.</p></div>`;
+          host.innerHTML = `<div class="empty"><p>No confirmed stop list for this line yet.</p>
+            <p class="text-caption">A stop list only ships once it starts and ends at this line's known
+            termini, has no gap in its numbering, and matches the stop count on the card. This line's
+            station numbers run across its operator's whole network rather than this line alone, so the
+            run cannot be cut cleanly yet.</p></div>`;
           return;
         }
         host.innerHTML = stops.map(([n, en, ja]) => `
@@ -1598,6 +1600,7 @@
       const say = (label, text) => bits.push(`<div class="fun-fact"><b>${esc(label)}</b>${text}</div>`);
       const r = rankOf(l, "r"), km = rankOf(l, "km"), st = rankOf(l, "st");
       if (r) say("How busy", `The ${ordinal(r[0])} busiest of the ${r[1]} lines with a published figure — about ${fmtRiders(l.r)} riders a day in ${l.ry}.`);
+      else say("How busy", "No per-line ridership is published for this line. The figure shown on other cards is riders a day; the passenger-density figure some sources give instead measures something else and is not mixed in here.");
       if (km) say("How long", `${l.km} km end to end, the ${ordinal(km[0])} longest of ${km[1]}.`);
       if (st) say("How many stops", `${l.st} stations, the ${ordinal(st[0])} most of ${st[1]}.`);
       if (l.y) {
