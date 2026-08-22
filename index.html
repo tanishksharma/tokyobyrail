@@ -216,16 +216,47 @@
     }
     .heart-row .line-heart svg { width: 1.05rem; height: 1.05rem; }
 
-    /* the chime button: hover plays on fine pointers, tap plays on touch */
-    .line-jingle {
-      position: absolute; top: 0.55rem; right: 0.55rem; z-index: 2;
-      width: 1.9rem; height: 1.9rem;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: none; border: none; border-radius: 50%;
-      color: var(--text-muted); cursor: pointer;
+    /* THE POPUP'S TABS — the line, its stops, and the fun of it. */
+    .d-tabs { align-self: flex-start; }
+    /* the library's sliding indicator belongs to the page bars; inside the
+       popup the selected tab says so itself */
+    .d-tabs .tab-seg[aria-selected="true"] {
+      color: var(--text); font-weight: var(--weight-strong);
+      background: var(--fill, var(--surface-hover)); border-radius: var(--radius-pill);
     }
-    .line-jingle:hover { color: var(--text); }
-    .line-jingle svg { width: 1rem; height: 1rem; }
+    .d-pane { display: block; }
+
+    /* The stop list: the running order, each row wearing the station's own
+       number in the line's colour, and each row a way to go and hear that
+       station's melody. */
+    .stop-row {
+      display: flex; align-items: center; gap: var(--space-inline);
+      padding: 0.4rem 0.1rem;
+      border-bottom: var(--border-hairline, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
+      color: inherit; text-decoration: none;
+    }
+    .stop-row:last-child { border-bottom: none; }
+    .stop-row:hover { background: var(--fill, var(--surface-hover)); }
+    .stop-no {
+      flex: none; min-width: 2.6rem; padding: 0.1rem 0.3rem;
+      border-radius: 0.3rem; text-align: center;
+      background: color-mix(in srgb, var(--c) 16%, transparent);
+      color: var(--c); font-size: 0.7rem; font-weight: var(--weight-strong);
+      font-variant-numeric: tabular-nums;
+    }
+    .stop-name { flex: 1 1 auto; min-width: 0; }
+    .stop-ja { color: var(--text-muted); font-size: 0.8rem; margin-left: 0.4rem; }
+    .stop-row svg { flex: none; width: 1rem; height: 1rem; color: var(--text-muted); }
+
+    /* the fun pane: a stack of small facts, each a line of plain words */
+    .fun-fact {
+      padding: 0.5rem 0;
+      border-bottom: var(--border-hairline, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
+    }
+    .fun-fact:last-child { border-bottom: none; }
+    .fun-fact b { display: block; font-size: 0.75rem; color: var(--text-muted);
+      font-weight: var(--weight-eyebrow); text-transform: uppercase;
+      letter-spacing: var(--tracking-caps); margin-bottom: 0.15rem; }
 
     /* THE GLASS — the exact skin the library gives the tab bar, lifted out
        as tokens so the cards and the control pills wear the same material:
@@ -284,7 +315,7 @@
     #bg-lattice .rail-badge {
       position: absolute;
       background: none; color: var(--c);
-      transform: translate(-50%, -50%) scale(0.78);
+      transform: translate(-50%, -50%) scale(0.42);
     }
     /* asked for plain contrast: the ground goes away, as the library's own
        grids do */
@@ -506,6 +537,14 @@
         </span>
       </div>
       <div class="row heart-row" id="d-heart-row"></div>
+
+      <div class="tab-set d-tabs" role="tablist" aria-label="About this line">
+        <button type="button" class="tab-seg" role="tab" data-pane="facts" aria-selected="true">The line</button>
+        <button type="button" class="tab-seg" role="tab" data-pane="stops" aria-selected="false">Stops</button>
+        <button type="button" class="tab-seg" role="tab" data-pane="fun" aria-selected="false">Fun</button>
+      </div>
+
+      <div class="d-pane" data-pane="facts">
       <ul class="list list-boxed">
         <li class="list-item">
           <span class="list-content"><span class="list-title">Symbol</span></span>
@@ -537,6 +576,15 @@
           </span>
         </li>
       </ul>
+      </div>
+
+      <div class="d-pane" data-pane="stops" hidden>
+        <div id="d-stops"></div>
+      </div>
+
+      <div class="d-pane" data-pane="fun" hidden>
+        <div id="d-fun"></div>
+      </div>
     </div>
   </dialog>
 
@@ -881,7 +929,8 @@
        The station-number badges, scattered behind everything. Two
        interleaved square grids — one on the cell corners, one on the cell
        centres — put the positions on a 45-degree lattice while each badge
-       stays upright, and the pitch leaves neighbours about 106px apart.
+       stays upright, and the pitch leaves neighbours about 52px apart —
+       a dense field of small marks rather than a sparse one of big ones.
 
        Which line lands where is a hash of the POSITION, not of the draw
        order, so the field is random to look at but identical every time it
@@ -889,7 +938,7 @@
        reshuffling it. The seed changes per page load, so a later visit
        gets a different field. Fixed to the screen, so it draws once and
        never on scroll. */
-    const BG_CELL = 150;                   /* lattice pitch in px */
+    const BG_CELL = 74;                    /* lattice pitch in px */
     const BG_SEED = (Math.random() * 1e9) | 0;
     const drawGround = () => {
       const host = $("bg-lattice");
@@ -1015,11 +1064,6 @@
              onerror="this.hidden=true;this.nextElementSibling.hidden=false">
         <span class="line-logo-mono" data-tip="${esc(l.op)} · ${esc(l.oj)}" hidden>${esc(monogram(l.op))}</span>
         ${heartBtn(l)}
-        <button type="button" class="line-jingle" data-jingle="${l.i}" data-event="lines-jingle"
-                aria-label="Play an original chime for the ${esc(l.n)}"
-                data-tip="${finePointer ? "Hover to hear" : "Tap to hear"} an original chime for this line (not the official station melody)">
-          <svg data-icon="volume" aria-hidden="true"></svg>
-        </button>
       </article>`;
     }).join("") + `</div>`;
 
@@ -1398,6 +1442,88 @@
       return ctl;
     };
 
+    /* ---- Stops, melodies and facts -------------------------------------
+       stations.json is the running order of each line, keyed by line, each
+       station carrying its number and both names. It is fetched once, on
+       the first popup that needs it, so the wall stays light.
+
+       The melodies are NOT ours to play. Tokyo's departure melodies are
+       commissioned compositions — Hiroaki Ide's Switch wrote many of them,
+       Minoru Mukaiya most of the rest, and Teichiku sells them — and they
+       belong to a STATION, often to one platform, never to a line. So each
+       stop links out to that station's own melody instead of pretending to
+       be it. The link is a search, not a fixed video: a search always
+       resolves and cannot rot, and there is no video id anywhere that we
+       could have checked for 1,600 stations. */
+    let stopsData = null;
+    const loadStops = () => stopsData ||= fetch("/stations.json")
+      .then(r => r.ok ? r.json() : {}).catch(() => ({}));
+
+    const melodyUrl = (stationJa, stationEn) =>
+      "https://www.youtube.com/results?search_query=" +
+      encodeURIComponent((stationJa ? stationJa + "駅" : stationEn) + " 発車メロディ");
+
+    const renderStops = l => {
+      const host = $("d-stops");
+      host.innerHTML = `<p class="text-caption" style="color:var(--text-muted)">Loading the stops…</p>`;
+      loadStops().then(all => {
+        const stops = all[String(l.i)];
+        if (!stops || !stops.length) {
+          host.innerHTML = `<div class="empty"><p>The stop list for this line is not confirmed yet.</p>
+            <p class="text-caption">Every stop here is checked against its station number before it ships,
+            and this line's numbering is shared with its branches, so it is still being sorted out.</p></div>`;
+          return;
+        }
+        host.innerHTML = stops.map(([n, en, ja]) => `
+          <a class="stop-row" href="${melodyUrl(ja, en)}" target="_blank" rel="noopener"
+             data-tip="Hear ${esc(en)}'s own departure melody on YouTube" data-event="stop-melody">
+            <span class="stop-no">${esc(l.c || "")}${String(n).padStart(2, "0")}</span>
+            <span class="stop-name">${esc(en)}${ja ? `<span class="stop-ja" lang="ja">${esc(ja)}</span>` : ""}</span>
+            <svg data-icon="play" aria-hidden="true"></svg>
+          </a>`).join("");
+        facet.icon?.();
+      });
+    };
+
+    /* The fun pane: where this line stands among the 98, in figures we
+       already hold, plus the two sounds — ours to play, theirs to go and
+       hear. Every rank is counted here rather than written down, so none
+       of it can drift away from the data. */
+    const rankOf = (l, key) => {
+      const have = LINES.filter(x => x[key]).sort((a, b) => b[key] - a[key]);
+      const i = have.findIndex(x => x.i === l.i);
+      return i < 0 ? null : [i + 1, have.length];
+    };
+    const ordinal = n => {
+      const tail = ["th", "st", "nd", "rd"], v = n % 100;
+      return n + (tail[(v - 20) % 10] || tail[v] || tail[0]);
+    };
+    const renderFun = l => {
+      const bits = [];
+      const say = (label, text) => bits.push(`<div class="fun-fact"><b>${esc(label)}</b>${text}</div>`);
+      const r = rankOf(l, "r"), km = rankOf(l, "km"), st = rankOf(l, "st");
+      if (r) say("How busy", `The ${ordinal(r[0])} busiest of the ${r[1]} lines with a published figure — about ${fmtRiders(l.r)} riders a day in ${l.ry}.`);
+      if (km) say("How long", `${l.km} km end to end, the ${ordinal(km[0])} longest of ${km[1]}.`);
+      if (st) say("How many stops", `${l.st} stations, the ${ordinal(st[0])} most of ${st[1]}.`);
+      say("Where it runs", `${AREAS[l.a] || "—"}. ${esc(l.t || "")}`);
+      if (l.x2) say("Two colours", "One of only two lines that officially carry a second colour, which is why its card is striped in both.");
+      if (l.note) say("Worth knowing", esc(l.note));
+      say("Its chime, ours",
+        `<p>An original bell melody, generated from this line's own colour. It is not the official melody, and deliberately so.</p>
+         <button type="button" class="btn btn-secondary" id="d-chime" data-event="lines-jingle"
+                 data-tip="Play an original chime written for this line">
+           <svg data-icon="volume" aria-hidden="true"></svg>Play the chime</button>`);
+      say("Its melodies, theirs",
+        `<p>Tokyo's real departure melodies belong to stations, not lines, and are copyrighted compositions —
+         so this line has as many melodies as it has platforms, and none of them can be played here.
+         Every stop in the Stops tab links to its own.</p>
+         <a class="btn btn-secondary" href="${melodyUrl(l.j, l.n)}" target="_blank" rel="noopener" data-event="line-melody">
+           <svg data-icon="external" aria-hidden="true"></svg>Hear this line's stations</a>`);
+      $("d-fun").innerHTML = bits.join("");
+      facet.icon?.();
+      $("d-chime")?.addEventListener("click", () => { unlockAudio(); setTimeout(() => playJingle(l), 40); });
+    };
+
     /* Opening a line's card — from a tile, or from a line on the map. */
     let current = null;
     const openLine = l => {
@@ -1416,8 +1542,18 @@
       facet.icon?.();          // fill the heart glyph just injected
       $("d-note-row").hidden = !l.note;
       $("d-note").textContent = l.note || "";
+      renderStops(l);
+      renderFun(l);
+      showPane("facts");
       $("line-dialog").showModal();
       showMap(l);
+    };
+
+    /* One pane at a time inside the popup. */
+    const showPane = name => {
+      document.querySelectorAll(".d-tabs .tab-seg").forEach(t =>
+        t.setAttribute("aria-selected", String(t.dataset.pane === name)));
+      document.querySelectorAll(".d-pane").forEach(p => { p.hidden = p.dataset.pane !== name; });
     };
 
     /* The three sections. Each has its own URL; the tabs swap views in
@@ -1507,25 +1643,6 @@
       /* Chime wiring: hover plays on fine pointers (once a click has
          unlocked audio — until then the hover shows a hint); on touch the
          tap itself is the unlocking gesture and plays directly. */
-      let hintShown = false;
-      $("line-wall").addEventListener("pointerover", e => {
-        const b = e.target.closest(".line-jingle");
-        if (!b || (e.relatedTarget && b.contains(e.relatedTarget))) return;
-        if (!finePointer) return;
-        const l = LINES.find(x => x.i === +b.dataset.jingle);
-        if (l && !playJingle(l) && !hintShown) {
-          hintShown = true;
-          facet.toast("Click anywhere once to enable sound");
-        }
-      });
-      $("line-wall").addEventListener("click", e => {
-        const b = e.target.closest(".line-jingle");
-        if (!b) return;
-        unlockAudio();
-        const l = LINES.find(x => x.i === +b.dataset.jingle);
-        if (l) setTimeout(() => playJingle(l), 40);   // resume() settles async
-      });
-
       /* One delegated heart for the wall and the popup alike. The tap is
          answered at once — red, and the number rolls — and the server's
          reply settles both, since somebody else may have moved the count
@@ -1572,6 +1689,11 @@
       $("d-zoom-in").addEventListener("click", () => dMap && dMap.zoomBy(1 / 1.5));
       $("d-zoom-out").addEventListener("click", () => dMap && dMap.zoomBy(1.5));
       $("d-zoom-fit").addEventListener("click", () => dMap && dFit && dMap.setVb(dFit));
+
+      document.querySelector(".d-tabs").addEventListener("click", e => {
+        const t = e.target.closest(".tab-seg");
+        if (t) showPane(t.dataset.pane);
+      });
 
       $("d-copy").addEventListener("click", async () => {
         if (!current) return;
