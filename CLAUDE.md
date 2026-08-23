@@ -240,12 +240,31 @@ rather than showing a gap.
 
 This project GREW OUT OF the tanishksharmacom mini app (`/apps/tokyo-lines`,
 never shipped to its live grid) but is NOT bound by that repo's mini-app
-conventions: no `/apps` plumbing, no shared About page, no Supabase
+conventions: no `/apps` plumbing, no shared `/apps/about` page, no Supabase
 `app_meta`/`app_views` rows, no single-file requirement — the site can grow
 real pages and its own structure. Its own PWA files live at the root:
 `sw.js` (network-first, registered by facet.js via `data-service-worker`),
 `manifest.webmanifest`, `icon.png` (the roundel of subway line colors
 around 東).
+
+## The three tabs, and the fourth view that is not one
+
+Trains, Stations and Quiz are the whole navigation, in a bar that floats at
+the bottom and leaves through the bottom edge as you read down. Everything
+that decides the list — the count line, the three controls, the applied
+filters — sits IN THE PAGE above the cards and scrolls away with them, so
+the middle of the screen is lines and nothing else.
+
+`/about` is a fourth view with no tab: what the app is, what it counts,
+what has changed in it, and the two ways out (share it, report something
+wrong). It is reached from the foot of the wall and by its own URL. Three
+tabs is the whole navigation and a colophon is not a fourth, so the moving
+highlight in the tab bar fades out while About is showing rather than
+parking on Trains and claiming a section the reader is not in.
+
+A release line in `RELEASES` says what changed ON THE PAGE, in words a
+reader who has never seen the file would understand. Add one whenever
+something visible ships.
 
 ## Branching — NO staging, ever
 
@@ -283,7 +302,8 @@ actually sounding.
 
 ## The backend
 
-The site is static except for one thing: the heart on a line. It runs in
+The site is static except for two things: the heart on a line, and a count
+of how many times the app has been opened. Both run in
 the `tanishksharmacom` Supabase project (`ndgzwmyqnldlkmjwlmwr`), sharing
 that database and its `VIEW_IP_SALT` secret, with every object prefixed
 `rail_` so the two sites never touch each other's rows. `supabase/` in this
@@ -317,6 +337,11 @@ deployments still do not — a branch must never move production numbers.
 And the browser reconciles on load: a heart it remembers on a line the
 server counts as zero is impossible, so the claim is dropped. That is what
 left a red heart sitting beside a zero, and it now heals itself.
+
+The count of openings stores nothing about the visitor at all — one row
+per day, one number on it — so it needs no salt and no hashed address. It
+is counted once per browsing session, not per page load, or a refresh
+would inflate it.
 
 The rules it establishes for anything added later:
 

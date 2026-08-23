@@ -661,6 +661,12 @@
       transition-duration: 260ms;
     }
     @media (prefers-reduced-motion: reduce) { .nav-tabs { transition: none; } }
+    /* About is a view without a tab, so no tab is the current one. The
+       moving highlight would otherwise stay parked on Trains and claim a
+       section the reader is not in: it fades out instead. */
+    .nav-tabs .tab-set:not(:has(.tab-seg[aria-current="page"])) .tab-indicator {
+      opacity: 0;
+    }
     .app-main {
       padding-top: var(--space-stack);
       padding-bottom: var(--bar-clearance-bottom);
@@ -709,6 +715,57 @@
 
     /* the picked row in a sheet menu wears a check in its value slot */
     .menu-item[aria-pressed="true"] .menu-value::after { content: "✓"; }
+
+    /* THE ABOUT PAGE — what the app is, what it counts, what has changed
+       in it, and the two ways out. One reading column on a placard, for
+       the same reason the coming-soon panels have one: the ground carries
+       the network's colours and words need a surface under them. */
+    .about {
+      max-width: 40rem; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 2rem;
+      padding: clamp(1.25rem, 4vw, 2.5rem);
+      background: var(--card-face);
+      border: var(--border-element) solid var(--border);
+      border-radius: var(--card-round);
+      box-shadow: var(--card-emboss);
+    }
+    .about-head h2 { margin: 0 0 var(--space-tight); }
+    .about-head p { margin: 0; color: var(--text-muted); }
+    /* the figures, four to a row and wrapping to two on a phone */
+    .about-figures {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+      gap: var(--space-tight);
+    }
+    /* wells cut into the placard, not cards on top of it: the same face
+       twice over would read as one flat area */
+    .about-figures > div {
+      display: flex; flex-direction: column; gap: 0.1rem;
+      padding: var(--space-control);
+      background: var(--background);
+      border: var(--border-element) solid var(--border);
+      border-radius: var(--card-round);
+    }
+    .about-figures b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+    .about-figures span { font-size: 0.78rem; color: var(--text-muted); }
+    .about-actions { display: flex; flex-wrap: wrap; gap: var(--space-tight); }
+    .about-log h3 { margin: 0 0 var(--space-inline); font-size: 1rem; }
+    .about-log ol { margin: 0; padding: 0; list-style: none;
+      display: flex; flex-direction: column; gap: var(--space-inline); }
+    .about-log li { display: flex; gap: var(--space-inline); align-items: baseline; }
+    .about-log time {
+      flex: none; width: 5.5rem; font-size: 0.78rem; color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .about-log p { margin: 0; }
+    /* on a phone the date column eats a third of the line, so the date
+       goes above its line instead of beside it */
+    @media (max-width: 30rem) {
+      .about-log li { flex-direction: column; gap: 0.1rem; }
+      .about-log time { width: auto; }
+    }
+    .about-foot { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+    /* the way in, at the foot of the wall */
+    .wall-foot { display: flex; justify-content: center; padding: 3rem 0 1rem; }
 
     /* Coming-soon panels: one centred column on a placard of its own. It
        used to sit straight on the ground, which worked while the ground
@@ -844,6 +901,11 @@
       <div class="empty" id="no-match" hidden>
         <strong>No lines match these filters</strong>
       </div>
+
+      <div class="wall-foot">
+        <a class="btn btn-secondary" href="/about" data-view-link="about"
+           data-event="open-about">About this app</a>
+      </div>
     </section>
 
     <!-- ==============================
@@ -859,6 +921,52 @@
         the levels between them, where the stairs, escalators and lifts run,
         and which platform on each floor takes which line in which
         direction.</p>
+    </section>
+
+    <!-- ==============================
+         About
+         What this app is, what has changed in it, how many times it has
+         been opened, and the two ways out: share it, or report something
+         wrong. Reached from the foot of the Trains list, not the tab bar
+         — three tabs is the whole navigation and About is not a fourth.
+         ============================== -->
+    <section id="view-about" class="app-view" hidden>
+      <div class="about">
+        <header class="about-head">
+          <h2>Tokyo by rail</h2>
+          <p>Every passenger railway line in Greater Tokyo, with the colour,
+             the symbol and the station numbers each one actually uses.
+             98 lines, 22 companies, 1,631 stations.</p>
+        </header>
+
+        <div class="about-figures">
+          <div><b id="about-opens">—</b><span>times opened</span></div>
+          <div><b id="about-hearts">—</b><span>hearts left</span></div>
+          <div><b>98</b><span>lines</span></div>
+          <div><b>1,631</b><span>stations</span></div>
+        </div>
+
+        <div class="about-actions">
+          <button type="button" class="btn btn-primary" id="about-share"
+                  data-event="about-share">Share this app</button>
+          <a class="btn btn-secondary" id="about-bug"
+             href="mailto:tanishk.sharma@live.com?subject=Tokyo%20by%20rail"
+             data-event="about-bug">Report something wrong</a>
+        </div>
+
+        <section class="about-log">
+          <h3>What has changed</h3>
+          <ol id="about-releases"></ol>
+        </section>
+
+        <p class="about-foot">
+          Line data checked against each line's own article and the Japanese
+          railway line-colour compendium. Network map by Naoki Hashimoto,
+          CC0. No account, no cookie, no tracking: the hearts and the count
+          of openings are the only things this app records, and neither
+          knows who you are.
+        </p>
+      </div>
     </section>
 
     <section id="view-quiz" class="app-view soon" hidden>
@@ -2305,9 +2413,52 @@
       document.querySelectorAll(".d-pane").forEach(p => { p.hidden = p.dataset.pane !== name; });
     };
 
+    /* ---- About -----------------------------------------------------
+       The figures are read live, so the page cannot claim a number the
+       database does not hold. One opening is counted per browsing
+       session, not per page load, or a refresh would inflate it. */
+    let aboutDone = false;
+    const renderAbout = () => {
+      if (aboutDone) return;
+      aboutDone = true;
+      $("about-releases").innerHTML = RELEASES.map(([when, what]) =>
+        `<li><time>${esc(when)}</time><p>${esc(what)}</p></li>`).join("");
+      fetch(`${DB}/rest/v1/rail_app_opens?select=opens`, { headers: { apikey: DB_KEY } })
+        .then(r => r.ok ? r.json() : [])
+        .then(rows => { $("about-opens").textContent =
+          rows.reduce((n, r) => n + (r.opens || 0), 0).toLocaleString(); })
+        .catch(() => { $("about-opens").textContent = "—"; });
+      $("about-hearts").textContent =
+        [...hearts.values()].reduce((n, v) => n + v, 0).toLocaleString();
+    };
+    /* Counted once a session: a refresh is the same visit. */
+    const countOpen = () => {
+      try {
+        if (sessionStorage.getItem("opened")) return;
+        sessionStorage.setItem("opened", "1");
+      } catch { /* storage off: count it, once is better than never */ }
+      fetch(`${DB}/functions/v1/rail-open`, { method: "POST" }).catch(() => {});
+    };
+
     /* The three sections. Each has its own URL; the tabs swap views in
        place and push history, so Back walks the sections. */
-    const VIEWS = ["trains", "stations", "quiz"];
+    /* About is a view like the others but NOT a tab: three tabs is the
+       whole navigation, and a fourth for the colophon would crowd it. It
+       is reached from the foot of the wall and by its own URL. */
+    const VIEWS = ["trains", "stations", "quiz", "about"];
+
+    /* Every release, newest first. One line each, in words about what
+       changed on the page rather than what changed in the file. */
+    const RELEASES = [
+      ["23 Aug 2026", "The tabs moved to the bottom and the sort and filter controls above the list. This page arrived."],
+      ["23 Aug 2026", "Hearts started saving again: they had been refused for a week because of the address the site was opened from."],
+      ["23 Aug 2026", "Company and area can both take several picks at once, each removable on its own."],
+      ["23 Aug 2026", "Every company heading took its own brand colour, read out of that company's own mark."],
+      ["23 Aug 2026", "A line over the wall now says how many lines are showing and in what order."],
+      ["22 Aug 2026", "The cards became placards: square-ish, lit from inside, with the line's colour along the foot."],
+      ["22 Aug 2026", "Every line got its stop list and its opening year. 1,631 stations."],
+      ["22 Aug 2026", "The Shonan lines got their second colour back."],
+    ];
     const viewFromPath = () => {
       const seg = location.pathname.replace(/^\/|\/$/g, "");
       /* /learn was this section's name until the Stations build was
@@ -2320,7 +2471,7 @@
       for (const v of VIEWS) $("view-" + v).hidden = v !== view;
       document.querySelectorAll(".nav-tabs .tab-seg").forEach(t =>
         t.setAttribute("aria-current", t.dataset.view === view ? "page" : "false"));
-      $("trains-bar").hidden = view !== "trains";   // the bar belongs to Trains
+      if (view === "about") renderAbout();
       if (push) history.pushState(null, "", view === "trains" ? "/" : "/" + view);
       if (view === "trains") render();
     };
@@ -2398,6 +2549,7 @@
       document.addEventListener("visibilitychange", checkFresh);
       addEventListener("pageshow", e => { if (e.persisted) checkFresh(); });
 
+      countOpen();
       drawGround();
       driftGround();
       addEventListener("scroll", queueDrift, { passive: true });
@@ -2411,6 +2563,13 @@
       });
 
       /* Section tabs: swap in place, keep the real URLs. */
+      document.addEventListener("click", e => {
+        const a = e.target.closest("[data-view-link]");
+        if (!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        scrollTo(0, 0);
+        showView(a.dataset.viewLink, true);
+      });
       document.querySelector(".nav-tabs").addEventListener("click", e => {
         const tab = e.target.closest(".tab-seg");
         if (!tab || e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -2493,6 +2652,15 @@
             undo();
             fx()?.toast?.(`That heart did not save (${err.message})`, "error");
           });
+      });
+
+      $("about-share")?.addEventListener("click", async () => {
+        const url = location.origin + "/";
+        const share = { title: "Tokyo by rail", text: "Every railway line in Greater Tokyo.", url };
+        try {
+          if (navigator.share) await navigator.share(share);
+          else { await navigator.clipboard.writeText(url); fx()?.toast?.("Link copied", "success"); }
+        } catch { /* the sheet was dismissed: nothing to say */ }
       });
 
       /* Taking a filter off from its own pill, the way the feed page's
