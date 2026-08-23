@@ -101,12 +101,13 @@
        carries two colors. */
     .line-card {
       position: relative; text-align: left;
-      /* square corners, and a shadow that is soft but TIGHT — it hugs the
-         card rather than spreading under it, so the placard reads as
-         pressed against the wall, not floating over it. It was a hard
-         unblurred offset for a day; a square of grey beside a square card
-         read as a mistake. */
-      border-radius: 0; box-shadow: var(--placard);
+      /* barely-rounded corners, and no outer shadow: the depth is INSIDE
+         the card (see --card-face / --card-emboss above), which is what
+         makes it read as a moulded panel rather than a sheet lying on the
+         page. It cast an outer shadow until 23 Aug 2026 — first hard, then
+         soft — and neither did as much as the light on its own face. */
+      border-radius: var(--card-round); background: var(--card-face);
+      box-shadow: var(--card-emboss);
       aspect-ratio: 4 / 3; overflow: hidden;
       padding: 0.875rem; gap: 0.45rem;
       /* the band runs along the foot OUT of flow, so the flowing content
@@ -230,9 +231,9 @@
       margin-bottom: 0.55rem;
       display: flex; align-items: center; gap: var(--space-inline);
       padding: 0.9rem 1.1rem;
-      background: var(--surface);
+      background: var(--card-face);
       border: var(--border-element) solid var(--border);
-      border-radius: 0; box-shadow: var(--placard);
+      border-radius: var(--card-round); box-shadow: var(--card-emboss);
     }
     .op-word { width: auto; height: auto; max-width: 8rem; max-height: 2.1rem; flex: none;
       background: var(--mark-plate, none); padding: var(--mark-plate-pad, 0);
@@ -464,19 +465,46 @@
         0 1px 0 color-mix(in srgb, var(--surface) 55%, transparent);
       --emboss-up: rgb(255 255 255 / 0.55);
       --emboss-down: rgb(0 0 0 / 0.16);
-      --placard: 0 1px 2px rgb(16 24 40 / 0.10), 0 2px 6px rgb(16 24 40 / 0.09);
+      /* THE CARD FACE. No outer shadow at all: the depth is inside the
+         card. A face that is lightest at the top and settles a shade
+         darker at the foot reads as a surface catching light from above,
+         and one inset line down each of the lower edges turns that into a
+         moulded panel rather than a flat rectangle. */
+      --card-face: linear-gradient(180deg,
+        var(--surface) 0%,
+        color-mix(in srgb, var(--surface) 93%, var(--text)) 100%);
+      --card-emboss:
+        inset 0 1px 0 rgb(255 255 255 / 0.9),
+        inset 0 -1px 0 rgb(16 24 40 / 0.07),
+        inset 0 -6px 8px -8px rgb(16 24 40 / 0.35);
+      --card-round: 3px;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-mode="light"]) {
         --emboss-up: rgb(255 255 255 / 0.10);
         --emboss-down: rgb(0 0 0 / 0.55);
-        --placard: 0 1px 2px rgb(0 0 0 / 0.55), 0 2px 7px rgb(0 0 0 / 0.40);
+        /* in the dark the light comes off the TOP EDGE, the way the
+           library's own dark surfaces are lit: a white hairline where a
+           shadow would say nothing */
+        --card-face: linear-gradient(180deg,
+          color-mix(in srgb, var(--surface) 92%, #fff) 0%,
+          var(--surface) 100%);
+        --card-emboss:
+          inset 0 1px 0 rgb(255 255 255 / 0.10),
+          inset 0 -1px 0 rgb(0 0 0 / 0.45),
+          inset 0 -8px 10px -10px rgb(0 0 0 / 0.8);
       }
     }
     :root[data-mode="dark"] {
       --emboss-up: rgb(255 255 255 / 0.10);
       --emboss-down: rgb(0 0 0 / 0.55);
-      --placard: 0 1px 2px rgb(0 0 0 / 0.55), 0 2px 7px rgb(0 0 0 / 0.40);
+      --card-face: linear-gradient(180deg,
+        color-mix(in srgb, var(--surface) 92%, #fff) 0%,
+        var(--surface) 100%);
+      --card-emboss:
+        inset 0 1px 0 rgb(255 255 255 / 0.10),
+        inset 0 -1px 0 rgb(0 0 0 / 0.45),
+        inset 0 -8px 10px -10px rgb(0 0 0 / 0.8);
     }
     .glass {
       background: var(--glass-bg);
@@ -626,9 +654,10 @@
       content: ""; position: absolute; left: 50%; top: 50%;
       transform: translate(-50%, -50%);
       width: min(30rem, 100%); height: min(20rem, 100%);
-      background: var(--surface);
+      background: var(--card-face);
       border: var(--border-element) solid var(--border);
-      box-shadow: var(--placard);
+      border-radius: var(--card-round);
+      box-shadow: var(--card-emboss);
     }
     .soon { position: relative; }
     .soon p { max-width: 32ch; color: var(--text-muted); margin: 0; }

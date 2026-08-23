@@ -73,12 +73,17 @@ class in the page, so the control pills and the library's own bars are one
 material. Letters on glass are embossed with the `--emboss-up` /
 `--emboss-down` pair, which swaps weight in the dark. The CARDS deliberately
 do NOT: a wall of ninety-eight blurred panes cost more than it said, and a
-card should read as printed, not pressed. A card is a plain 4:3 PLACARD on
-`--surface`: square corners and a shadow that is soft but TIGHT
-(`--placard`) — it hugs the card rather than spreading under it, so the
-placard reads as pressed against the wall, not floating over it. It was a
-hard unblurred offset for a day; a square of grey beside a square card
-read as a mistake. The wall is spaced to match — cards
+card should read as printed, not pressed. A card is a plain 4:3 PANEL, barely
+rounded (`--card-round`, 3px) and casting NO outer shadow at all: the
+depth is inside it. `--card-face` is a vertical gradient, lightest at the
+top and a shade darker at the foot, so the face reads as catching light
+from above; `--card-emboss` is the inset pair that turns that into a
+moulding — a highlight along the top edge, a dark hairline and a short
+gradient at the bottom. In the dark the light comes off the TOP EDGE as a
+white hairline, the way the library lights its own dark surfaces, since a
+shadow there would say nothing. It cast an outer shadow until 23 Aug 2026,
+first hard and then soft, and neither did as much as the light on its own
+face. The wall is spaced to match — cards
 1.35rem apart, a heading a little further from its own cards than they are
 from each other, and 4.5rem between one company and the next. Its content:
 the badge, then the line's reading over its Japanese name
