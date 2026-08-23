@@ -499,12 +499,11 @@
        itself would tip them all over with it. Bespoke because the
        library's grid backgrounds are square lattices of ONE repeating
        symbol; the fixed positioning is still its .bg-fixed. */
-    #bg-lattice { overflow: hidden; opacity: 0.17; }
-    /* on the ground a badge is a coloured outline, never a white blob:
-       the fill would punch bright holes through a dark page */
+    #bg-lattice { overflow: hidden; }
+    /* the ground badges are the real thing at full strength — white face,
+       coloured ring, dark letters, nothing faded */
     #bg-lattice .rail-badge {
       position: absolute;
-      background: none; color: var(--c);
       transform: translate(-50%, -50%) scale(0.42);
     }
     /* asked for plain contrast: the ground goes away, as the library's own

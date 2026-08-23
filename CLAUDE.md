@@ -109,8 +109,9 @@ a short card leaves no clear ground and the watermark climbs behind the
 names. Glass needs something to blur, so the page's first child is the ground:
 a DIAMOND LATTICE of the station-number badges themselves — the same
 roundels and rounded squares the cards wear, in each line's own colour,
-as outlines with no fill so they never punch bright holes through a dark
-page. It is drawn by `drawGround()` as
+at FULL strength: white face, coloured ring, dark letters, no fade. They
+were a faint outline until 22 Aug 2026, when the maintainer asked to see
+them vibrant. It is drawn by `drawGround()` as
 two interleaved square grids (corners and cell centres) so the rows run
 on the diagonal while every glyph stays upright — rotating the layer
 would tip the icons over with it. Which glyph lands where is a hash of
