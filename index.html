@@ -499,9 +499,24 @@
        itself would tip them all over with it. Bespoke because the
        library's grid backgrounds are square lattices of ONE repeating
        symbol; the fixed positioning is still its .bg-fixed. */
-    #bg-lattice { overflow: hidden; }
-    /* the ground badges are the real thing at full strength — white face,
-       coloured ring, dark letters, nothing faded */
+    /* The ground badges keep their real colours — white face, coloured
+       ring, dark letters — and are then thrown out of focus. Sharp and at
+       full strength they competed with the wall for the eye; blurred they
+       read as what the field always meant to be, a haze of the network's
+       own colours behind the cards. The blur is on the LAYER, not each
+       badge, so it costs one pass; the lattice is already drawn a cell
+       past every edge, so nothing thins at the rim. */
+    #bg-lattice {
+      overflow: hidden;
+      filter: blur(var(--ground-blur, 3.5px)) saturate(1.15);
+      opacity: var(--ground-fade, 0.62);
+    }
+    /* white faces punch far harder against a dark page than against a
+       light one, so the dark ground sits back further */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-mode="light"]) { --ground-blur: 4.5px; --ground-fade: 0.40; }
+    }
+    :root[data-mode="dark"] { --ground-blur: 4.5px; --ground-fade: 0.40; }
     #bg-lattice .rail-badge {
       position: absolute;
       transform: translate(-50%, -50%) scale(0.42);

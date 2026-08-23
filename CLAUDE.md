@@ -109,9 +109,14 @@ a short card leaves no clear ground and the watermark climbs behind the
 names. Glass needs something to blur, so the page's first child is the ground:
 a DIAMOND LATTICE of the station-number badges themselves — the same
 roundels and rounded squares the cards wear, in each line's own colour,
-at FULL strength: white face, coloured ring, dark letters, no fade. They
-were a faint outline until 22 Aug 2026, when the maintainer asked to see
-them vibrant. It is drawn by `drawGround()` as
+in their real colours — white face, coloured ring, dark letters — and then
+thrown out of focus: `filter: blur()` on the LAYER, not each badge, so it
+costs one pass, with a fade over it. They were a faint outline until
+22 Aug 2026; shown vibrant and sharp they competed with the wall for the
+eye, so the vibrance stayed and the focus went. The dark ground sits back
+further (more blur, less opacity) because white faces punch harder against
+a dark page. The lattice is already drawn a cell past every edge, so the
+blur finds no thin rim. It is drawn by `drawGround()` as
 two interleaved square grids (corners and cell centres) so the rows run
 on the diagonal while every glyph stays upright — rotating the layer
 would tip the icons over with it. Which glyph lands where is a hash of
