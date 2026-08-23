@@ -91,6 +91,10 @@
          the last, short row sits to one side, as a short row should. */
       justify-content: center;
     }
+    /* every card starts at the left of its track, so a short row reads as
+       a row that ran out rather than as a centred group */
+    .line-grid > .line-card { justify-self: start; }
+
     /* Cards view: a plain 4:3 card, wider than it is tall — printed, not
        pressed. It carries no glass and no emboss: the wall is ninety-eight
        of these at once, and a blurred pane behind every one of them cost
@@ -1694,10 +1698,12 @@
       const card = parseFloat(cs.getPropertyValue("--card-w")) * rem;
       const gap = parseFloat(cs.columnGap) || 0;
       const fit = Math.max(1, Math.floor((grids[0].clientWidth + gap) / (card + gap)));
-      for (const g of grids) {
-        const n = Math.min(g.querySelectorAll(".line-card").length, fit);
-        g.style.gridTemplateColumns = `repeat(${n}, var(--card-w))`;
-      }
+      /* EVERY section takes the full width, however few cards it holds. A
+         two-line company narrowing to two tracks and centring itself read
+         as a different layout dropped into the middle of the wall; held to
+         the full width its two cards simply start at the left, the way the
+         short last row of any other section does. */
+      for (const g of grids) g.style.gridTemplateColumns = `repeat(${fit}, var(--card-w))`;
       /* The wall is centred on fixed tracks, so its left edge sits some
          way in from the page's. The headline belongs ON that edge, not on
          the page's, or it floats off to the side of everything it

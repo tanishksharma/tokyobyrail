@@ -55,9 +55,12 @@ sections, switched by the top tab bar and each with its own URL
   ridership. The ten companies that run a single line share one section at
   the end, "One line each", whose heading carries their ten marks in a row
   instead of one. A section heading is a CARD inside its own grid,
-  spanning every track, and `fitColumns()` gives each grid only as many
-  tracks as it has cards, so a heading ends exactly where its last card
-  does.
+  spanning every track. `fitColumns()` gives EVERY grid the full track
+  count, however few cards it holds, and each card starts at the left of
+  its track: a two-line company narrowing to two tracks and centring
+  itself read as a different layout dropped into the middle of the wall,
+  where held to the full width its two cards simply start at the left, the
+  way the short last row of any other section does.
   Over the wall sits the HEADLINE, on the WALL'S left edge and not the
   page's — `fitColumns()` hands it the grid's own width, since the wall is
   centred on fixed tracks and floats some way in. One line naming the
