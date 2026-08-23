@@ -80,13 +80,15 @@ appears at size. Everything on it is WHITE and bold — figures, icons
 and the company mark alike — vertically centred, with a decent inset from
 both ends. It was contrast-picked black-or-white per line for a day; the
 maintainer chose one white throughout, which is how a real line band is
-set, and the bold weight carries it on the pale colours. The band is
-SOLID, in the primary colour
-only: no single ink reads on both halves of a split, the Rinkai Line's
-teal and navy wanting opposite ones. A line that officially carries a
-second colour says so with a second stripe under the band, full width —
-two stacked colours read as a pair, where a half-and-half strip under a
-solid band read as a mistake.
+set, and the bold weight carries it on the pale colours. The band is SOLID,
+in the primary colour only: no single ink reads on both halves of a split,
+the Rinkai Line's teal and navy wanting opposite ones. The four lines that
+officially carry a second colour say so with a band of it sitting directly
+on top of the first — the Shonan orange over green on the Tokaido and the
+Utsunomiya/Takasaki, the Nippori-Toneri's pink and green, the Rinkai's
+teal and navy. A line with no second colour draws nothing there, so its
+band keeps its own height and its figures stay centred in it. Those
+figures are set at 700, not the 600 the strong-weight token carries.
 
 Below 34rem the card drops the 4:3 and takes only the height it needs (on
 a floor of 9.5rem, or it collapses into a thin bar around its text), or
