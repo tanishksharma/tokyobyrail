@@ -302,6 +302,21 @@
     .list-line b { font-weight: var(--weight-strong); }
     .list-line .list-order { color: var(--text-muted); font-weight: var(--weight-body); }
     .applied { display: flex; flex-wrap: wrap; gap: var(--space-tight); align-items: center; }
+    /* the way out of every filter at once, set apart from the picks it
+       clears: no fill, no cross, just the words */
+    .applied .chip-clear {
+      background: none; border-color: transparent;
+      color: var(--text-muted); text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .applied .chip-clear:hover { background: none; color: var(--text); }
+    /* the area headings inside the company sheet */
+    .menu-label-sub {
+      margin: var(--space-stack) 0 var(--space-tight);
+      font-size: 0.7rem; letter-spacing: var(--tracking-caps);
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .menu-label-sub:first-child { margin-top: 0; }
     /* a pill states its filter and takes it off again; the cross is the
        whole point, so it is part of the control, not a separate button */
     .applied .chip {
@@ -1111,7 +1126,11 @@
     const badge = (l, extra) => `<span class="rail-badge${extra ? " " + extra : ""}" data-shape="${l.s}"${(l.c || "").length > 1 ? " data-long" : ""} style="--c:${l.x}" aria-hidden="true">${esc(l.c || "·")}</span>`;
 
     /* One state object; every control writes it, the URL mirrors it. */
-    const state = { view: "trains", arrange: "riders", area: "", op: "" };
+    /* Both filters hold a SET, not one value: a company or an area is
+       something you can pick several of, and picking a second should widen
+       the wall rather than replace what you had. Sort stays single — an
+       order is one thing by definition. */
+    const state = { view: "trains", arrange: "riders", areas: [], ops: [] };
 
     /* company → logo file slug + monogram fallback */
     const OPSLUG = {
@@ -1151,11 +1170,14 @@
       n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
 
     const filtered = () => LINES.filter(l =>
-      (!state.area || l.a === state.area) && (!state.op || l.op === state.op));
+      (!state.areas.length || state.areas.includes(l.a)) &&
+      (!state.ops.length || state.ops.includes(l.op)));
     /* [heading|null, lines[]] groups per the arrangement mode. */
     const grouped = list => {
-      /* one company is showing: it heads its own grid whatever the order */
-      const only = state.op && list.length
+      /* ONE company is showing: it heads its own grid whatever the order.
+         Two or more and there is no single heading to write, so the
+         headline above carries it instead. */
+      const only = state.ops.length === 1 && list.length
         ? { op: list[0].op, oj: list[0].oj } : null;
       if (state.arrange === "color") return [[only, [...list].sort((a, b) => hue(a.x) - hue(b.x))]];
       if (state.arrange === "riders") return [[only, [...list].sort((a, b) => (b.r || 0) - (a.r || 0))]];
@@ -1626,27 +1648,50 @@
       link: "crossing the Tokyo boundary",
       out: "outside Tokyo",
     };
+    /* the shorter cut, for when two of them have to share the line */
+    const AREA_SHORT = { tokyo: "in Tokyo", link: "to the suburbs", out: "outside Tokyo" };
     const ORDER_PHRASE = {
       riders: "busiest first", company: "by company",
       color: "by colour", age: "oldest first",
     };
+    /* "a", "a and b", "a, b and c" — a list of picks reads as a sentence,
+       and past three it counts them instead, or the headline stops being
+       one line */
+    const listWords = (words, many) =>
+      words.length > 3 ? `${words.length} ${many}`
+      : words.length === 1 ? words[0]
+      : words.slice(0, -1).join(", ") + " and " + words[words.length - 1];
     const headline = list => {
       const n = list.length;
       const noun = n === 1 ? "line" : "lines";
-      let subject = state.op ? `<b>${esc(state.op)}</b> ${noun}` : `${noun}`;
-      if (state.area) subject += ` ${AREA_PHRASE[state.area]}`;
+      let subject = state.ops.length
+        ? `<b>${esc(listWords(state.ops, "companies"))}</b> ${noun}` : noun;
+      if (state.areas.length) {
+        /* one area gets the full phrase; two get the short labels, or the
+           line runs past a breath */
+        subject += " " + (state.areas.length === 3 ? "across the whole network"
+          : state.areas.length === 1 ? AREA_PHRASE[state.areas[0]]
+          : state.areas.map(a => AREA_SHORT[a]).join(" or "));
+      }
       const order = `<span class="list-order">, ${ORDER_PHRASE[state.arrange]}</span>`;
       return `<b>${n}</b> ${subject}${n ? order : ""}`;
     };
-    /* One pill per applied filter. Sort is deliberately absent: it is not
-       a filter, it removes nothing, and the headline already names it. */
+    /* One pill per PICK, not per filter: two companies are two chips, each
+       coming off on its own. Sort is deliberately absent — it is not a
+       filter, it removes nothing, and the headline already names it. Once
+       more than one is on, a Clear all closes the row. */
     const appliedPills = () => {
-      const out = [];
-      if (state.op) out.push(["op", state.op, `Show every company again`]);
-      if (state.area) out.push(["area", AREA_WORD[state.area], "Show every area again"]);
-      return out.map(([key, word, label]) =>
-        `<button type="button" class="chip" data-clear="${key}" aria-label="${esc(label)}"
-                 data-tip="${esc(label)}" data-event="lines-clear-filter">${esc(word)}<span class="x" aria-hidden="true">×</span></button>`).join("");
+      const chip = (kind, val, word, label) =>
+        `<button type="button" class="chip" data-drop="${kind}" data-val="${esc(val)}"
+                 aria-label="${esc(label)}" data-tip="${esc(label)}"
+                 data-event="lines-clear-filter">${esc(word)}<span class="x" aria-hidden="true">×</span></button>`;
+      const out = state.ops.map(op => chip("ops", op, op, `Stop showing only ${op}`))
+        .concat(state.areas.map(a => chip("areas", a, AREA_WORD[a], `Stop showing only ${AREA_WORD[a]}`)));
+      if (out.length > 1) out.push(
+        `<button type="button" class="chip chip-clear" data-clear-all
+                 aria-label="Clear every filter" data-tip="Clear every filter"
+                 data-event="lines-clear-all">Clear all</button>`);
+      return out.join("");
     };
 
     const render = () => {
@@ -1660,8 +1705,8 @@
       $("no-match").hidden = list.length > 0;
       const p = new URLSearchParams();
       if (state.arrange !== "riders") p.set("arrange", state.arrange);
-      if (state.area) p.set("area", state.area);
-      if (state.op) p.set("op", state.op);
+      if (state.areas.length) p.set("area", state.areas.join(","));
+      if (state.ops.length) p.set("op", state.ops.join(","));
       const qs = p.toString();
       history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
       /* the wall was rewritten, so every <svg data-icon> in it is an empty
@@ -1673,11 +1718,16 @@
 
     /* Mirror the state onto the sheets' menu rows and the mode pill. */
     const syncControls = () => {
-      const mark = (sel, key, val) => document.querySelectorAll(sel).forEach(b =>
-        b.setAttribute("aria-pressed", String((b.dataset[key] || "") === val)));
-      mark("#area-menu .menu-item", "area", state.area);
-      mark("#op-menu .menu-item", "op", state.op);
-      mark("#arrange-menu .menu-item", "arrange", state.arrange);
+      /* a multi-select row is ticked when its value is IN the set; the
+         "all" row is ticked when the set is empty */
+      const markSet = (sel, key, set) => document.querySelectorAll(sel).forEach(b => {
+        const v = b.dataset[key] || "";
+        b.setAttribute("aria-pressed", String(v ? set.includes(v) : !set.length));
+      });
+      markSet("#area-menu .menu-item", "area", state.areas);
+      markSet("#op-menu .menu-item", "op", state.ops);
+      document.querySelectorAll("#arrange-menu .menu-item").forEach(b =>
+        b.setAttribute("aria-pressed", String(b.dataset.arrange === state.arrange)));
       /* Each pill prints what it is set to, marks itself when that is not
          the default, and says the same thing in its accessible name — the
          colour is never the only signal. */
@@ -1689,10 +1739,16 @@
       };
       pill("arrange-pill", ARRANGE_WORD[state.arrange], state.arrange !== "riders",
         `Arranged by ${ARRANGE_WORD[state.arrange].toLowerCase()}. Change the order`);
-      pill("area-pill", AREA_WORD[state.area], !!state.area,
-        `Area: ${AREA_WORD[state.area]}. Change it`);
-      pill("op-pill", state.op || "All companies", !!state.op,
-        state.op ? `Company: ${state.op}. Change it` : "Every company. Pick one");
+      /* a pill names its one pick, or counts them once there are several */
+      const picked = (set, all, many) => !set.length ? all
+        : set.length === 1 ? (many === "companies" ? set[0] : AREA_WORD[set[0]])
+        : `${set.length} ${many}`;
+      pill("area-pill", picked(state.areas, "All lines", "areas"), !!state.areas.length,
+        state.areas.length ? `Area: ${picked(state.areas, "", "areas")}. Change it`
+                           : "Every area. Pick one or more");
+      pill("op-pill", picked(state.ops, "All companies", "companies"), !!state.ops.length,
+        state.ops.length ? `Company: ${picked(state.ops, "", "companies")}. Change it`
+                         : "Every company. Pick one or more");
       fx()?.icon?.();          // the view pill just swapped its glyph
     };
     const ARRANGE_WORD = { riders: "Ridership", company: "Company", color: "Colour", age: "Age" };
@@ -2195,19 +2251,40 @@
     };
 
     document.addEventListener("DOMContentLoaded", () => {
-      /* Company menu: All + one row per company with its line count. */
+      /* Company menu: All, then the companies GROUPED BY AREA — where a
+         company's own lines run, taken as the area most of them are in.
+         Twenty-two names in one column is a wall to read; three short
+         lists under headings is a place to look. Inside each, the biggest
+         networks first, as everywhere else here. */
       const counts = new Map();
       for (const l of LINES) counts.set(l.op, (counts.get(l.op) || 0) + 1);
+      const opArea = new Map();
+      for (const op of counts.keys()) {
+        const tally = {};
+        for (const l of LINES) if (l.op === op) tally[l.a] = (tally[l.a] || 0) + 1;
+        opArea.set(op, Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0]);
+      }
+      const opRow = op =>
+        `<button type="button" class="menu-item" data-op="${esc(op)}">${esc(op)}<span class="menu-value">${counts.get(op)}</span></button>`;
       $("op-menu").insertAdjacentHTML("beforeend",
-        `<button type="button" class="menu-item" data-op="">All companies (${LINES.length})<span class="menu-value"></span></button>` +
-        [...counts.entries()].map(([op, n]) =>
-          `<button type="button" class="menu-item" data-op="${esc(op)}">${esc(op)} (${n})<span class="menu-value"></span></button>`).join(""));
+        `<button type="button" class="menu-item" data-op="">All companies<span class="menu-value">${LINES.length}</span></button>` +
+        ["tokyo", "link", "out"].map(area => {
+          const ops = [...counts.keys()].filter(op => opArea.get(op) === area)
+            .sort((a, b) => counts.get(b) - counts.get(a));
+          return ops.length
+            ? `<p class="menu-label menu-label-sub">${esc(AREAS[area])}</p>` + ops.map(opRow).join("")
+            : "";
+        }).join(""));
 
       /* Restore a shared URL. */
       const p = new URLSearchParams(location.search);
-      if (["color", "company"].includes(p.get("arrange"))) state.arrange = p.get("arrange");
-      if (AREAS[p.get("area")]) state.area = p.get("area");
-      if (counts.has(p.get("op"))) state.op = p.get("op");
+      if (ORDER_PHRASE[p.get("arrange")]) state.arrange = p.get("arrange");
+      /* a shared link can carry several of each, and anything the app does
+         not recognise is dropped rather than filtered on */
+      const fromURL = (key, ok) => (p.get(key) || "").split(",")
+        .map(v => v.trim()).filter(v => v && ok(v));
+      state.areas = fromURL("area", v => !!AREAS[v]);
+      state.ops = fromURL("op", v => counts.has(v));
       syncControls();
       showView(viewFromPath(), false);
       /* the wall renders with zeros and fills in when the counts land */
@@ -2266,16 +2343,26 @@
       addEventListener("popstate", () => showView(viewFromPath(), false));
 
       /* Sheet menus: one delegated pick each; picking closes the sheet. */
-      const pickFrom = (menuId, apply) => $(menuId).addEventListener("click", e => {
-        const b = e.target.closest(".menu-item");
-        if (!b) return;
-        apply(b);
-        syncControls();
-        render();
-        b.closest(".sheet")?.facetSheet?.close();
-      });
-      pickFrom("area-menu", b => { state.area = b.dataset.area; });
-      pickFrom("op-menu", b => { state.op = b.dataset.op || ""; });
+      const pickFrom = (menuId, apply, { close = true } = {}) =>
+        $(menuId).addEventListener("click", e => {
+          const b = e.target.closest(".menu-item");
+          if (!b) return;
+          apply(b);
+          syncControls();
+          render();
+          /* a multi-select sheet STAYS OPEN: picking a second company is
+             the whole point, and closing after the first would make that
+             three taps instead of one */
+          if (close) b.closest(".sheet")?.facetSheet?.close();
+        });
+      /* toggle a value in a set; the empty "all" row clears it */
+      const toggleIn = (set, v) => {
+        if (!v) return set.length = 0;
+        const i = set.indexOf(v);
+        i < 0 ? set.push(v) : set.splice(i, 1);
+      };
+      pickFrom("area-menu", b => toggleIn(state.areas, b.dataset.area), { close: false });
+      pickFrom("op-menu", b => toggleIn(state.ops, b.dataset.op), { close: false });
       pickFrom("arrange-menu", b => { state.arrange = b.dataset.arrange; });
 
       /* Chime wiring: hover plays on fine pointers (once a click has
@@ -2334,9 +2421,11 @@
       /* Taking a filter off from its own pill, the way the feed page's
          applied filters work. */
       $("applied-filters").addEventListener("click", e => {
-        const b = e.target.closest("[data-clear]");
-        if (!b) return;
-        state[b.dataset.clear] = "";
+        const all = e.target.closest("[data-clear-all]");
+        const one = e.target.closest("[data-drop]");
+        if (all) { state.ops = []; state.areas = []; }
+        else if (one) toggleIn(state[one.dataset.drop], one.dataset.val);
+        else return;
         syncControls();
         render();
       });
