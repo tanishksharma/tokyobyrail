@@ -647,6 +647,25 @@
        belongs to the section's own controls here), and the page clears
        both bars. */
     .nav-top { top: calc(var(--space-pin) + var(--safe-top)); bottom: auto; }
+    /* THE CHROME GETS OUT OF THE WAY. Reading down the wall, both bars
+       leave — the tabs up past the top edge, the controls down past the
+       bottom — so the middle of the screen is lines and nothing else. A
+       touch of upward scroll brings both back at once. They travel on
+       transform, so nothing reflows and the wall never moves under the
+       finger. The top bar keeps its own translateX(-50%): the library
+       centres it with a transform, and replacing that would throw it to
+       the left. */
+    .nav-top, .ctl-bar { transition: transform var(--duration-normal, 280ms) cubic-bezier(0.22, 1, 0.36, 1); }
+    :root[data-chrome="away"] .nav-top {
+      transform: translate(-50%, calc(-100% - var(--space-pin) - var(--safe-top) - 1rem));
+    }
+    :root[data-chrome="away"] .ctl-bar {
+      transform: translateY(calc(100% + var(--space-inline) + var(--safe-bottom) + 1rem));
+    }
+    /* reduced motion keeps the behaviour and drops the travel */
+    @media (prefers-reduced-motion: reduce) {
+      .nav-top, .ctl-bar { transition: none; }
+    }
     /* three tabs only — the pill hugs them instead of spanning a
        reading column the way a full site bar does */
     .nav-top .tab-set { flex: 0 0 auto; }
@@ -1486,10 +1505,46 @@
       groundY = y;
       host.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
     };
+
+    /* ---- The chrome gets out of the way --------------------------------
+       Reading down the wall, both bars leave; a touch of upward scroll
+       brings both back. The trigger is TRAVEL IN ONE DIRECTION, not the
+       raw delta: a finger never scrolls perfectly straight, and a
+       per-event test would flicker the bars on every wobble. Coming back
+       is cheaper than going away, because wanting the controls back is the
+       impatient move and wanting them gone is the settled one.
+
+       They stay put whenever a panel is open — a panel hangs off its own
+       pill, so taking the pill away would leave it pointing at nothing —
+       and at the top of the page, where there is nothing to get out of
+       the way of. */
+    const CHROME_GO = 26, CHROME_COME = 10, CHROME_TOP = 40;
+    let chromeLast = 0, chromeTravel = 0, chromeAway = false;
+    const showChrome = () => {
+      chromeTravel = 0;
+      if (!chromeAway) return;
+      chromeAway = false;
+      document.documentElement.removeAttribute("data-chrome");
+    };
+    const watchChrome = () => {
+      const y = Math.max(0, scrollY);
+      const d = y - chromeLast;
+      chromeLast = y;
+      if (!d) return;
+      if (y < CHROME_TOP || document.querySelector('.sheet[data-open="true"]')) return showChrome();
+      chromeTravel = d > 0 ? Math.max(0, chromeTravel) + d : Math.min(0, chromeTravel) + d;
+      if (chromeTravel > CHROME_GO && !chromeAway) {
+        chromeAway = true; chromeTravel = 0;
+        document.documentElement.setAttribute("data-chrome", "away");
+      } else if (chromeTravel < -CHROME_COME) {
+        showChrome();
+      }
+    };
+
     const queueDrift = () => {
       if (groundPending) return;
       groundPending = true;
-      requestAnimationFrame(driftGround);
+      requestAnimationFrame(() => { driftGround(); watchChrome(); });
     };
 
     /* ---- Hearts --------------------------------------------------------
@@ -2326,6 +2381,7 @@
         new MutationObserver(() => {
           const open = sheet.dataset.open === "true";
           if (open) sheet.style.visibility = "visible";
+          if (open) showChrome();      // a panel hangs off a pill that must be there
           placePanel(sheet, pill, open);
         }).observe(sheet, { attributes: true, attributeFilter: ["data-open"] });
       }
@@ -2353,6 +2409,7 @@
       drawGround();
       driftGround();
       addEventListener("scroll", queueDrift, { passive: true });
+      chromeLast = Math.max(0, scrollY);
       calm.addEventListener?.("change", driftGround);
       let groundTimer = 0;
       addEventListener("resize", () => {

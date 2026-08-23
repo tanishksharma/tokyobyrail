@@ -101,6 +101,19 @@ The bar convention: the TOP bar navigates between the three sections; the
 BOTTOM bar belongs to whichever section is open and controls its state (on
 Trains: one pill per control, laid along the bottom edge).
 
+BOTH BARS GET OUT OF THE WAY. Reading down the wall they leave — the tabs
+up past the top edge, the controls down past the bottom — so the middle of
+the screen is lines and nothing else; a touch of upward scroll brings both
+back at once. The trigger is TRAVEL IN ONE DIRECTION, not the raw delta: a
+finger never scrolls straight, and a per-event test flickers the bars on
+every wobble. Coming back is cheaper than going away (10px against 26),
+because wanting the controls back is the impatient move. They stay put
+while a panel is open — a panel hangs off its own pill, so taking the pill
+away would leave it pointing at nothing — and near the top of the page,
+where there is nothing to get out of the way of. All of it rides on
+transform, so nothing reflows and the wall never moves under the finger.
+This is the behaviour headed for Facet as the app-navigation component.
+
 The material: the CHROME wears the embossed frosted glass the library gives
 its tab bar — the recipe is lifted into `--glass-*` tokens and a `.glass`
 class in the page, so the control pills and the library's own bars are one
