@@ -100,22 +100,26 @@ sections, switched by the top tab bar and each with its own URL
 The three sections are Trains · Stations · Quiz, in the tab bar and in the
 code (`VIEWS`, `#view-trains`, `#trains-bar`).
 
-The bar convention: the TOP bar navigates between the three sections; the
-BOTTOM bar belongs to whichever section is open and controls its state (on
-Trains: one pill per control, laid along the bottom edge).
+The bar convention, reworked 23 Aug 2026: the SECTION TABS float at the
+BOTTOM and are the only fixed thing on the page. A section's own controls
+live IN THE PAGE above its content — on Trains the count, the three
+sort/filter buttons and the applied filters sit over the wall and scroll
+away with it, so the middle of the screen is lines and nothing else. A
+control's panel drops from under its own button and is clamped to the
+screen. The tabs were at the top and the controls floated at the bottom
+until this rework.
 
-BOTH BARS GET OUT OF THE WAY. Reading down the wall they leave — the tabs
-up past the top edge, the controls down past the bottom — so the middle of
-the screen is lines and nothing else; a touch of upward scroll brings both
-back at once. The trigger is TRAVEL IN ONE DIRECTION, not the raw delta: a
-finger never scrolls straight, and a per-event test flickers the bars on
-every wobble. Coming back is cheaper than going away (10px against 26),
-because wanting the controls back is the impatient move. They stay put
-while a panel is open — a panel hangs off its own pill, so taking the pill
-away would leave it pointing at nothing — and near the top of the page,
-where there is nothing to get out of the way of. All of it rides on
-transform, so nothing reflows and the wall never moves under the finger.
-This is the behaviour headed for Facet as the app-navigation component.
+THE TAB BAR GETS OUT OF THE WAY. Reading down, it leaves through the
+bottom edge and a touch of upward scroll brings it back. It travels far
+enough to clear its own height, its inset and the home indicator with room
+to spare, so no sliver is ever left showing. The trigger is TRAVEL IN ONE
+DIRECTION, not the raw delta: a finger never scrolls straight, and a
+per-event test flickers the bar on every wobble. Coming back is cheaper
+than going away (10px against 26), because wanting the tabs back is the
+impatient move. It stays put while a panel is open and near the top of the
+page. It rides on transform, so nothing reflows and the wall never moves
+under the finger. This is the behaviour headed for Facet as the
+app-navigation component.
 
 The material: the CHROME wears the embossed frosted glass the library gives
 its tab bar — the recipe is lifted into `--glass-*` tokens and a `.glass`

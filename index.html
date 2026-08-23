@@ -91,10 +91,6 @@
          the last, short row sits to one side, as a short row should. */
       justify-content: center;
     }
-    /* every card starts at the left of its track, so a short row reads as
-       a row that ran out rather than as a centred group */
-    .line-grid > .line-card { justify-self: start; }
-
     /* Cards view: a plain 4:3 card, wider than it is tall — printed, not
        pressed. It carries no glass and no emboss: the wall is ninety-eight
        of these at once, and a blurred pane behind every one of them cost
@@ -646,78 +642,63 @@
        grids do */
     @media (prefers-contrast: more) { #bg-lattice, #bg-soften { display: none; } }
 
-    /* App shell: the section bar stays pinned to the TOP at every width
-       (the library folds it to the bottom on phones, but the bottom edge
-       belongs to the section's own controls here), and the page clears
-       both bars. */
-    .nav-top { top: calc(var(--space-pin) + var(--safe-top)); bottom: auto; }
-    /* THE CHROME GETS OUT OF THE WAY. Reading down the wall, both bars
-       leave — the tabs up past the top edge, the controls down past the
-       bottom — so the middle of the screen is lines and nothing else. A
-       touch of upward scroll brings both back at once. They travel on
-       transform, so nothing reflows and the wall never moves under the
-       finger. The top bar keeps its own translateX(-50%): the library
-       centres it with a transform, and replacing that would throw it to
-       the left. */
-    .nav-top, .ctl-bar { transition: transform var(--duration-normal, 280ms) cubic-bezier(0.22, 1, 0.36, 1); }
-    :root[data-chrome="away"] .nav-top {
-      transform: translate(-50%, calc(-100% - var(--space-pin) - var(--safe-top) - 1rem));
+    /* THE SECTION TABS live at the BOTTOM, floating, and are the only
+       fixed thing on the page. Everything else — the count, the three
+       controls, the applied filters — sits in the page above the cards
+       and scrolls away with them, so the middle of the screen is lines
+       and nothing else. */
+    .nav-tabs .tab-set { flex: 0 0 auto; }   /* three tabs hug, they do not span */
+    /* Reading DOWN, the tab bar leaves through the bottom edge. It travels
+       far enough to clear its own height, its inset and the home
+       indicator with room to spare, so no sliver is ever left showing,
+       and it is slower going than coming back. */
+    .nav-tabs {
+      transition: transform 340ms cubic-bezier(0.32, 0.72, 0, 1);
+      will-change: transform;
     }
-    :root[data-chrome="away"] .ctl-bar {
-      transform: translateY(calc(100% + var(--space-inline) + var(--safe-bottom) + 1rem));
+    :root[data-chrome="away"] .nav-tabs {
+      transform: translate(-50%, calc(100% + var(--space-inline) + var(--safe-bottom) + 3rem));
+      transition-duration: 260ms;
     }
-    /* reduced motion keeps the behaviour and drops the travel */
-    @media (prefers-reduced-motion: reduce) {
-      .nav-top, .ctl-bar { transition: none; }
-    }
-    /* three tabs only — the pill hugs them instead of spanning a
-       reading column the way a full site bar does */
-    .nav-top .tab-set { flex: 0 0 auto; }
+    @media (prefers-reduced-motion: reduce) { .nav-tabs { transition: none; } }
     .app-main {
-      padding-top: var(--bar-clearance-top);
+      padding-top: var(--space-stack);
       padding-bottom: var(--bar-clearance-bottom);
     }
-    /* The library hangs a risen panel off a bar CORNER — one on the left,
-       one on the right. Ours belong to four pills strung along the bottom,
-       so placePanel() below puts each one over its own pill at open time.
-       These rules are the JS-off floor: above the bar, never at the top. */
+    /* A panel opens DOWNWARD from its own control now that the controls
+       sit at the top of the list; placePanel() below puts each one under
+       its own button. These rules are the JS-off floor. */
     #sort-sheet.sheet.sheet-rise,
     #area-sheet.sheet.sheet-rise,
-    #op-sheet.sheet.sheet-rise {
-      top: auto;
-      bottom: calc(var(--space-inline) + var(--safe-bottom) + var(--bar-height) + var(--space-inline));
-    }
-    /* THE CONTROL ROW — one glass pill per control, laid along the bottom
-       edge. A pill says what it controls with its icon and what it is set
-       to with its word, so the bar reads as a sentence about the wall and
-       nothing needs opening to be read. A pill away from its default wears
-       the accent, which is why there is no dot and no count any more. */
-    .ctl-bar {
-      position: fixed; z-index: 30;
-      left: 0; right: 0;
-      bottom: calc(var(--space-inline) + var(--safe-bottom));
-      display: flex; justify-content: center;
-      pointer-events: none;                /* the gaps let the wall through */
-    }
+    #op-sheet.sheet.sheet-rise { bottom: auto; }
+    /* THE CONTROL ROW — three buttons above the wall. Each says what it
+       controls with its icon and what it is set to with its word, so the
+       row reads as a sentence about the list below and nothing needs
+       opening to be read. */
     .ctl-row {
       display: flex; align-items: center; gap: var(--space-tight);
-      max-width: calc(100vw - 2 * var(--space-inline));
-      /* the row scrolls sideways when four pills outgrow a phone, and
-         overflow clips both axes — the vertical padding keeps each pill's
-         outer highlight inside the box */
-      padding: 0.25rem var(--space-inline);
+      max-width: 100%;
       overflow-x: auto; scrollbar-width: none;
-      pointer-events: auto;
     }
     .ctl-row::-webkit-scrollbar { display: none; }
+    /* In the page rather than floating over it, so it takes the same
+       face as the cards below and a chevron to say it opens. */
     .ctl-pill {
-      display: inline-flex; align-items: center; gap: 0.4rem; flex: none;
-      height: var(--bar-height, 48px); padding: 0 0.9rem;
-      border-radius: var(--radius-pill);
+      display: inline-flex; align-items: center; gap: 0.45rem; flex: none;
+      height: 2.5rem; padding: 0 0.85rem;
+      background: var(--card-face); border: var(--border-element) solid var(--border);
+      border-radius: var(--card-round); box-shadow: var(--card-emboss);
       color: var(--text); font-size: 0.85rem; font-weight: var(--weight-medium);
       white-space: nowrap; cursor: pointer;
-      text-shadow: 0 -1px 0 var(--emboss-up), 0 1px 1px var(--emboss-down);
     }
+    /* the chevron is drawn, not an icon, so it can turn when the panel opens */
+    .ctl-pill::after {
+      content: ""; width: 0.4rem; height: 0.4rem; margin-left: 0.15rem;
+      border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+      transform: translateY(-2px) rotate(45deg); opacity: 0.5;
+      transition: transform var(--duration-fast, 160ms);
+    }
+    .ctl-pill[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }
     .ctl-pill svg { width: 1.05rem; height: 1.05rem; flex: none; opacity: 0.75; }
     .ctl-pill:hover { border-color: color-mix(in srgb, var(--border-strong) 70%, transparent); }
     /* set away from its default: the pill carries the accent */
@@ -815,7 +796,7 @@
        views in place. Pinned to the TOP at every width, since the bottom
        edge belongs to each section's own controls.
        ============================== -->
-  <nav class="tab-bar tab-bar-top nav-top" aria-label="Sections" data-print="off">
+  <nav class="tab-bar nav-tabs" aria-label="Sections" data-print="off">
     <div class="tab-set">
       <a class="tab-seg" href="/" data-view="trains" aria-current="page">Trains</a>
       <a class="tab-seg" href="/stations" data-view="stations" aria-current="false">Stations</a>
@@ -835,8 +816,26 @@
       <!-- What is on screen, and what is filtering it. The line names the
            count, the subject and the order; the pills below it are the
            filters currently applied, each one removable. -->
+      <!-- The head of the list: what is on screen, the three controls
+           that decide it, and the filters currently applied. It sits IN
+           THE PAGE above the cards, so reading down the wall carries it
+           away like anything else. -->
       <header class="list-head" id="list-head">
         <p class="list-line" id="list-line"></p>
+        <div class="ctl-row" id="trains-bar" role="group" aria-label="Sort and filter">
+      <button type="button" class="ctl-pill glass" id="arrange-pill" aria-controls="sort-sheet" aria-expanded="false"
+              data-tip="The order the lines come in" data-event="open-sort">
+        <svg data-icon="sliders" aria-hidden="true"></svg><span id="arrange-word">Ridership</span>
+      </button>
+      <button type="button" class="ctl-pill glass" id="area-pill" aria-controls="area-sheet" aria-expanded="false"
+              data-tip="Which part of the network to show" data-event="open-area">
+        <svg data-icon="globe" aria-hidden="true"></svg><span id="area-word">Area</span>
+      </button>
+      <button type="button" class="ctl-pill glass" id="op-pill" aria-controls="op-sheet" aria-expanded="false"
+              data-tip="Which company to show" data-event="open-company">
+        <svg data-icon="tag" aria-hidden="true"></svg><span id="op-word">Rail companies</span>
+      </button>
+    </div>
         <div class="row applied" id="applied-filters" hidden></div>
       </header>
 
@@ -952,23 +951,6 @@
        The bottom bar owns this section's state: the order behind the first
        pill, the two filters behind the others.
        ============================== -->
-  <nav class="ctl-bar" id="trains-bar" aria-label="Trains controls" data-print="off">
-    <div class="ctl-row">
-      <button type="button" class="ctl-pill glass" id="arrange-pill" aria-controls="sort-sheet" aria-expanded="false"
-              data-tip="The order the lines come in" data-event="open-sort">
-        <svg data-icon="sliders" aria-hidden="true"></svg><span id="arrange-word">Ridership</span>
-      </button>
-      <button type="button" class="ctl-pill glass" id="area-pill" aria-controls="area-sheet" aria-expanded="false"
-              data-tip="Which part of the network to show" data-event="open-area">
-        <svg data-icon="globe" aria-hidden="true"></svg><span id="area-word">Area</span>
-      </button>
-      <button type="button" class="ctl-pill glass" id="op-pill" aria-controls="op-sheet" aria-expanded="false"
-              data-tip="Which company to show" data-event="open-company">
-        <svg data-icon="tag" aria-hidden="true"></svg><span id="op-word">Rail companies</span>
-      </button>
-    </div>
-  </nav>
-
   <div class="sheet-scrim" data-open="false"></div>
   <aside class="sheet sheet-left sheet-rise" id="sort-sheet" data-open="false"
          aria-hidden="true" aria-label="Sort by">
@@ -1406,14 +1388,19 @@
       sheet.style.width = width + "px";
       sheet.style.left = left + "px";
       sheet.style.right = "auto";
-      sheet.style.top = "auto";
-      sheet.style.bottom = (innerHeight - row.top + PANEL_GAP) + "px";
+      /* the controls sit ABOVE the list now, so a panel drops from under
+         its own button; it is clamped so a long one never runs off the
+         bottom of the screen */
+      sheet.style.bottom = "auto";
+      sheet.style.top = Math.min(p.bottom + PANEL_GAP, innerHeight - 120) + "px";
+      sheet.style.maxHeight = (innerHeight - p.bottom - PANEL_GAP - inset) + "px";
 
       /* where the pill sits along the panel's own width */
       const x = Math.max(0, Math.min(p.left + p.width / 2 - left, width));
       const r = getComputedStyle(sheet).borderRadius || "16px";
       const half = 14;                 /* the shut sliver's half-width */
-      const shut = `inset(100% ${Math.max(0, width - x - half)}px 0 ${Math.max(0, x - half)}px round ${r})`;
+      /* shut is a sliver at the TOP now, under the button it came from */
+      const shut = `inset(0 ${Math.max(0, width - x - half)}px 100% ${Math.max(0, x - half)}px round ${r})`;
       const wide = `inset(0px 0px 0px 0px round ${r})`;
       for (const a of sheet.getAnimations()) a.cancel();   /* the library's corner wipe */
       if (!sheet.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -1510,18 +1497,17 @@
       host.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
     };
 
-    /* ---- The chrome gets out of the way --------------------------------
-       Reading down the wall, both bars leave; a touch of upward scroll
-       brings both back. The trigger is TRAVEL IN ONE DIRECTION, not the
-       raw delta: a finger never scrolls perfectly straight, and a
-       per-event test would flicker the bars on every wobble. Coming back
-       is cheaper than going away, because wanting the controls back is the
-       impatient move and wanting them gone is the settled one.
+    /* ---- The tab bar gets out of the way -------------------------------
+       Reading down the wall it leaves through the bottom edge; a touch of
+       upward scroll brings it back. The trigger is TRAVEL IN ONE
+       DIRECTION, not the raw delta: a finger never scrolls perfectly
+       straight, and a per-event test would flicker the bar on every
+       wobble. Coming back is cheaper than going away, because wanting the
+       tabs back is the impatient move and wanting them gone is settled.
 
-       They stay put whenever a panel is open — a panel hangs off its own
-       pill, so taking the pill away would leave it pointing at nothing —
-       and at the top of the page, where there is nothing to get out of
-       the way of. */
+       The tab bar is the only fixed thing left: the controls live in the
+       page now and scroll away by themselves. It stays put while a panel
+       is open and near the top of the page. */
     const CHROME_GO = 26, CHROME_COME = 10, CHROME_TOP = 40;
     let chromeLast = 0, chromeTravel = 0, chromeAway = false;
     const showChrome = () => {
@@ -2332,7 +2318,7 @@
     const showView = (view, push) => {
       state.view = view;
       for (const v of VIEWS) $("view-" + v).hidden = v !== view;
-      document.querySelectorAll(".nav-top .tab-seg").forEach(t =>
+      document.querySelectorAll(".nav-tabs .tab-seg").forEach(t =>
         t.setAttribute("aria-current", t.dataset.view === view ? "page" : "false"));
       $("trains-bar").hidden = view !== "trains";   // the bar belongs to Trains
       if (push) history.pushState(null, "", view === "trains" ? "/" : "/" + view);
@@ -2425,7 +2411,7 @@
       });
 
       /* Section tabs: swap in place, keep the real URLs. */
-      document.querySelector(".nav-top").addEventListener("click", e => {
+      document.querySelector(".nav-tabs").addEventListener("click", e => {
         const tab = e.target.closest(".tab-seg");
         if (!tab || e.metaKey || e.ctrlKey || e.shiftKey) return;
         e.preventDefault();
