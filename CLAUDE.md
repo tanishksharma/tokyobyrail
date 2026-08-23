@@ -138,9 +138,12 @@ a still pattern. That is what the field's vertical REPEAT is for — the
 lattice is drawn one screen plus one period tall and the offset is taken
 modulo the period, so the layer slides the whole length of the wall and
 never leaves its edge on screen. The period is sixteen rows, 1184px,
-longer than a phone screen so the repeat never shows itself on one. One
-transform per frame on a layer nothing else touches; reduced motion holds
-it still. A new CHROME pane takes `.glass`; never hand-roll
+longer than a phone screen so the repeat never shows itself on one. The
+layer is also ONE PERIOD TALLER than the screen and anchored at the top:
+`.bg-fixed` is `inset: 0`, so at viewport height its own clipped bottom
+edge climbs into view as it slides and the ground runs out below it — it
+did, and it looked like the background blinking out. One transform per
+frame on a layer nothing else touches; reduced motion holds it still. A new CHROME pane takes `.glass`; never hand-roll
 a second recipe, and never put glass on a card. Line data is baked into the file as constants, verified Aug
 2026 against the line articles on English/Japanese Wikipedia and the Japanese
 railway line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out

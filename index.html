@@ -508,7 +508,12 @@
        badge, so it costs one pass; the lattice is already drawn a cell
        past every edge, so nothing thins at the rim. */
     #bg-lattice {
-      overflow: hidden;
+      /* The layer is ONE PERIOD TALLER than the screen and anchored at the
+         top, because the parallax slides it upward by up to that much: at
+         viewport height its own clipped bottom edge would climb into view
+         and the ground would simply run out below it. drawGround() sets
+         the height, so it tracks a resize. */
+      bottom: auto; overflow: hidden;
       filter: saturate(1.15);
       opacity: var(--ground-fade, 0.62);
     }
@@ -1286,6 +1291,9 @@
       /* a screen, plus the one period the parallax can slide it upward */
       const cols = Math.ceil(w / BG_CELL) + 1;
       const rows = Math.ceil((h + BG_SPAN) / BG_CELL) + 1;
+      /* one cell of slack past the period, so the bottom edge is never
+         flush with the viewport's at the moment before the offset wraps */
+      host.style.height = (h + BG_SPAN + BG_CELL) + "px";
       for (let j = -1; j <= rows; j++) {
         for (let i = -1; i <= cols; i++) {
           /* the half-cell twin is what turns the square grid on its side */
