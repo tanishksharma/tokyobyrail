@@ -114,8 +114,8 @@
       position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
       height: 2.5rem; background: var(--c);
       display: flex; align-items: center; justify-content: space-between;
-      gap: 0.5rem; padding: 0 0.875rem 0.375rem;
-      color: var(--ink); pointer-events: none;
+      gap: 0.5rem; padding: 0 1.15rem;
+      color: #fff; font-weight: var(--weight-strong); pointer-events: none;
     }
     /* The name block: the badge, then the reading over the name. The two
        Japanese lines are set from ONE unit so their relation holds at any
@@ -126,21 +126,15 @@
       padding-right: 2.2rem;
     }
     .line-ja { min-width: 0; flex: 1 1 auto; }
-    /* The name holds to one line and is never cut — it is sized to fit
-       (--u, from JS). The reading may run to two, which still leaves the
-       pair shorter than the badge beside it, so the row's height does not
-       move and the English name below it stays clear of the company mark. */
+    /* Both hold to ONE line and cut with an ellipsis where they must. The
+       name is sized to fit first (--u, from JS) so cutting is rare; the
+       reading takes whatever size that leaves and is cut more often, which
+       is the right way round — it is a gloss, and the name it glosses is
+       right underneath it. */
     .line-kana, .line-kanji {
-      font-family: "Noto Sans JP", var(--font-body), sans-serif;
-      line-height: 1.25; overflow: hidden;
-    }
-    .line-kanji { display: block; white-space: nowrap; }
-    .line-kana {
-      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-      word-break: break-all; line-break: anywhere;
-      /* a reading too long for one line breaks near its middle rather than
-         dropping a single character onto a line of its own */
-      text-wrap: balance;
+      display: block; font-family: "Noto Sans JP", var(--font-body), sans-serif;
+      line-height: 1.25; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
     }
     .line-kana { font-size: calc(var(--u) * 4); font-weight: 400; color: var(--text-muted); }
 
@@ -203,12 +197,17 @@
        ride the band now, so they are set on the line's colour rather than
        against the page, and they are big enough to read at a glance. */
     .line-stats {
-      display: flex; flex-wrap: nowrap; gap: 0.5rem; align-items: center;
-      font-size: 0.78rem; color: inherit;
+      display: flex; flex-wrap: nowrap; gap: 0.55rem; align-items: center;
+      font-size: 0.8rem; color: inherit;
       font-variant-numeric: tabular-nums; white-space: nowrap;
     }
-    .line-stats span { display: inline-flex; align-items: center; gap: 0.2rem; }
-    .line-stats svg { width: 0.85rem; height: 0.85rem; flex: none; opacity: 0.8; }
+    .line-stats span { display: inline-flex; align-items: center; gap: 0.22rem; }
+    /* the library draws its icons as strokes; on the band they are set as
+       heavy as the figures beside them */
+    .line-stats svg {
+      width: 0.9rem; height: 0.9rem; flex: none;
+      stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+    }
 
     /* THE SECTION HEADING — a card, not a caption. It sits INSIDE the grid
        and spans every track, so it is exactly as wide as the row of cards
@@ -270,10 +269,9 @@
       /* the size comes from the mark's own proportions, set inline: see
          logoBox() — a cap alone made a five-to-one wordmark and a square
          mark cover wildly different amounts of the card */
-      /* on the band it takes the band's ink, not the page's: --mark-band
-         is set per card from whichever of black or white reads on that
-         line's colour */
-      filter: var(--mark-band); opacity: 0.85;
+      /* the band is set in white throughout, figures, icons and mark
+         alike, so the one-shape artwork is simply turned white */
+      filter: brightness(0) invert(1); opacity: 0.95;
     }
     /* The flat art is already one black shape, so the wall only has to say
        how dark, and turn it over in the dark where black would vanish. */
@@ -289,7 +287,7 @@
       border: var(--border-element) solid currentColor;
       border-radius: 0.4rem;
       font-size: 0.65rem; font-weight: var(--weight-heading);
-      letter-spacing: var(--tracking-caps); color: inherit; opacity: 0.85;
+      letter-spacing: var(--tracking-caps); color: inherit; opacity: 0.95;
       user-select: none;
     }
     /* On a phone only one fixed track fits, and the leftover splits into
@@ -298,9 +296,10 @@
     @media (max-width: 34rem) {
       .line-grid { grid-template-columns: 1fr; }
       /* and a full-width card held to 4:3 would be a third of the screen
-         tall, so on a phone the card takes only the height it needs and
-         the wall stays a wall */
-      .line-card { aspect-ratio: auto; }
+         tall, so on a phone the card gives up the ratio — but not its
+         shape: a floor keeps it a card rather than letting it shrink to a
+         thin bar around whatever text it happens to hold */
+      .line-card { aspect-ratio: auto; min-height: 9.5rem; }
       /* which leaves no clear ground under the names, and a watermark with
          nowhere to go climbs behind them */
       .line-jpbg { display: none; }
@@ -1148,23 +1147,6 @@
       return Math.min(12.4 / per, n <= 5 ? 4.4 : 3.1).toFixed(2);
     };
 
-    /* THE BAND'S INK. The band is a line's own colour, and those run from
-       Keiyo's near-black navy to the Chuo-Sobu's yellow, so the ink cannot
-       be fixed: each card is told whether black or white reads on it. This
-       is the WCAG relative-luminance formula, and picking the better of
-       the two puts every one of the 98 above 4.5:1 — the worst is the
-       Shonan-Shinjuku red at 4.68. The mark is one black shape, so the
-       same answer becomes a filter: leave it black, or turn it white. */
-    const bandInk = hex => {
-      const chan = i => {
-        const v = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255;
-        return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-      };
-      const L = 0.2126 * chan(0) + 0.7152 * chan(1) + 0.0722 * chan(2);
-      return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05)
-        ? { ink: "#111", mark: "brightness(0)" }
-        : { ink: "#fff", mark: "brightness(0) invert(1)" };
-    };
 
     /* The card grid. Each card: an invisible stretched button opens the
        dialog (with the full names as its hover tooltip), the badge leads
@@ -1346,9 +1328,9 @@
     const stat = (icon, text, tip) => text
       ? `<span data-tip="${esc(tip)}"><svg data-icon="${icon}" aria-hidden="true"></svg>${esc(text)}</span>` : "";
     const renderCards = (lines, head) => `<div class="line-grid" data-arrange="${state.arrange}">` + head + lines.map(l => {
-      const slug = OPSLUG[l.op], band = bandInk(l.x);
+      const slug = OPSLUG[l.op];
       return `<article class="card line-card stack-tight"
-        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(cardJa(l.j))}rem;--name:${nameSize(cardEn(l.n))}rem;--ink:${band.ink};--mark-band:${band.mark};--jp:${jpSize(cardJa(l.j))}rem">
+        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(cardJa(l.j))}rem;--name:${nameSize(cardEn(l.n))}rem;--jp:${jpSize(cardJa(l.j))}rem">
         <button type="button" class="line-open" data-line="${l.i}" data-event="lines-open"
                 data-tip="${esc(l.n)} · ${esc(l.j)} · ${esc(l.op)}" aria-label="${esc(l.n)} details"></button>
         <span class="line-head">
