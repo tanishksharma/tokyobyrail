@@ -10,8 +10,14 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// The custom domain AND the production Vercel alias. Both serve the same
+// deploy and both are the real site, so a heart left on either has to
+// count: the alias was missing for a week and every tap from it was
+// silently refused with a 403. PREVIEW deployments are still absent on
+// purpose — a branch must never move production numbers.
 const ALLOWED_ORIGINS = new Set([
   "https://tokyorail.tanishk.ai",
+  "https://tokyobyrail.vercel.app",
 ]);
 
 function corsHeaders(origin: string): HeadersInit {

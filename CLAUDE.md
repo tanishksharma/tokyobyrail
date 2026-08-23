@@ -15,7 +15,10 @@ sections, switched by the top tab bar and each with its own URL
   day, its route length and its stop count. The card wall is the ONLY view:
   the whole-network map mode and its toggle were retired 22 Aug 2026, and
   `map.svg` (the CC0 Greater-Tokyo diagram by Naoki Hashimoto) now serves
-  the popup alone. Sorted by ridership, company, colour or age; filtered by
+  the popup alone. Sorted seven ways — ridership, length, stops, age, name,
+  company, colour — each one comparator in `ORDER_BY`, with the lines
+  missing that figure sorted LAST rather than as a zero pretending to be
+  the shortest or the quietest. Filtered by
   area (inside Tokyo / to the suburbs / outside) and company, BOTH
   multi-select: each holds a set, picking a second widens the wall rather
   than replacing what you had, and the sheet stays open while you pick.
@@ -284,6 +287,16 @@ One design note, found while testing: the toggle is keyed on the caller's
 hashed IP, so a visitor whose address changes between taps cannot untoggle
 and each tap adds another heart. Fine for a phone on one network, wrong
 for anything behind a rotating egress. Revisit if it ever matters.
+
+The origin check has one more lesson in it. `ALLOWED_ORIGINS` held only
+the custom domain, and the site also serves on its production Vercel
+alias; every heart left from `tokyobyrail.vercel.app` was refused with a
+403 for a week. BOTH production hostnames belong in the set. Preview
+deployments still do not — a branch must never move production numbers.
+
+And the browser reconciles on load: a heart it remembers on a line the
+server counts as zero is impossible, so the claim is dropped. That is what
+left a red heart sitting beside a zero, and it now heals itself.
 
 The rules it establishes for anything added later:
 

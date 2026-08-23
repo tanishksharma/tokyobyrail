@@ -937,35 +937,41 @@
       </button>
       <button type="button" class="ctl-pill glass" id="area-pill" aria-controls="area-sheet" aria-expanded="false"
               data-tip="Which part of the network to show" data-event="open-area">
-        <svg data-icon="globe" aria-hidden="true"></svg><span id="area-word">All lines</span>
+        <svg data-icon="globe" aria-hidden="true"></svg><span id="area-word">Area</span>
       </button>
       <button type="button" class="ctl-pill glass" id="op-pill" aria-controls="op-sheet" aria-expanded="false"
               data-tip="Which company to show" data-event="open-company">
-        <svg data-icon="tag" aria-hidden="true"></svg><span id="op-word">All companies</span>
+        <svg data-icon="tag" aria-hidden="true"></svg><span id="op-word">Rail companies</span>
       </button>
     </div>
   </nav>
 
   <div class="sheet-scrim" data-open="false"></div>
   <aside class="sheet sheet-left sheet-rise" id="sort-sheet" data-open="false"
-         aria-hidden="true" aria-label="Sort">
+         aria-hidden="true" aria-label="Sort by">
     <div class="sheet-scroll">
+      <!-- Every order the data can carry. Each row says which end it
+           starts from, since "length" alone does not tell you whether the
+           longest or the shortest comes first. -->
       <div class="sheet-group" id="arrange-menu">
-        <p class="menu-label">Arrange by</p>
-        <button type="button" class="menu-item" data-arrange="riders">Ridership<span class="menu-value"></span></button>
-        <button type="button" class="menu-item" data-arrange="company">Company<span class="menu-value"></span></button>
-        <button type="button" class="menu-item" data-arrange="color">Colour<span class="menu-value"></span></button>
-        <button type="button" class="menu-item" data-arrange="age">Age<span class="menu-value"></span></button>
+        <p class="menu-label">Sort by</p>
+        <button type="button" class="menu-item" data-arrange="riders">Ridership<span class="menu-value">busiest</span></button>
+        <button type="button" class="menu-item" data-arrange="km">Length<span class="menu-value">longest</span></button>
+        <button type="button" class="menu-item" data-arrange="st">Stops<span class="menu-value">most</span></button>
+        <button type="button" class="menu-item" data-arrange="age">Age<span class="menu-value">oldest</span></button>
+        <button type="button" class="menu-item" data-arrange="name">Name<span class="menu-value">A to Z</span></button>
+        <button type="button" class="menu-item" data-arrange="company">Company<span class="menu-value">biggest</span></button>
+        <button type="button" class="menu-item" data-arrange="color">Colour<span class="menu-value">by hue</span></button>
       </div>
     </div>
   </aside>
 
   <div class="sheet-scrim" data-open="false"></div>
   <aside class="sheet sheet-rise" id="area-sheet" data-open="false"
-         aria-hidden="true" aria-label="Area">
+         aria-hidden="true" aria-label="Filter by area">
     <div class="sheet-scroll">
       <div class="sheet-group" id="area-menu">
-        <p class="menu-label">Area</p>
+        <p class="menu-label">Filter by area</p>
         <button type="button" class="menu-item" data-area="">All lines<span class="menu-value"></span></button>
         <button type="button" class="menu-item" data-area="tokyo">In Tokyo<span class="menu-value"></span></button>
         <button type="button" class="menu-item" data-area="link">To the suburbs<span class="menu-value"></span></button>
@@ -976,10 +982,10 @@
 
   <div class="sheet-scrim" data-open="false"></div>
   <aside class="sheet sheet-rise" id="op-sheet" data-open="false"
-         aria-hidden="true" aria-label="Company">
+         aria-hidden="true" aria-label="Filter by company">
     <div class="sheet-scroll">
       <div class="sheet-group" id="op-menu">
-        <p class="menu-label">Company</p>
+        <p class="menu-label">Filter by company</p>
       </div>
     </div>
   </aside>
@@ -1179,12 +1185,8 @@
          headline above carries it instead. */
       const only = state.ops.length === 1 && list.length
         ? { op: list[0].op, oj: list[0].oj } : null;
-      if (state.arrange === "color") return [[only, [...list].sort((a, b) => hue(a.x) - hue(b.x))]];
-      if (state.arrange === "riders") return [[only, [...list].sort((a, b) => (b.r || 0) - (a.r || 0))]];
-      /* oldest first, and the lines whose opening year is not confirmed go
-         last rather than pretending to a date — the same rule ridership
-         already follows for the lines with no published figure */
-      if (state.arrange === "age") return [[only, [...list].sort((a, b) => (a.y || 9999) - (b.y || 9999))]];
+      const by = ORDER_BY[state.arrange];
+      if (by) return [[only, [...list].sort(by)]];
       /* By company: the biggest networks first, because that is the order
          a reader already holds the city in — JR East and its seventeen,
          then Seibu, and so on down. Ten companies run exactly one line
@@ -1570,8 +1572,21 @@
        hearts still work, since the first tap returns the true number. */
     const loadHearts = () =>
       fetch(`${DB}/rest/v1/rail_line_likes?select=line_key,likes`, { headers: { apikey: DB_KEY } })
-        .then(r => r.ok ? r.json() : [])
-        .then(rows => { for (const r of rows) hearts.set(r.line_key, r.likes); paintHearts(false); })
+        .then(r => r.ok ? r.json() : null)
+        .then(rows => {
+          if (!rows) return;                       // a bad answer proves nothing
+          for (const r of rows) hearts.set(r.line_key, r.likes);
+          /* Reconcile. This browser's own list is a memory of taps, and a
+             tap that never reached the server left a heart red on a line
+             the server has never heard of — which is how a red heart came
+             to sit beside a zero for a week. You cannot hold a heart on a
+             line with none, so a claim the count cannot support is
+             dropped. Self-healing, and it needs no extra request. */
+          let dropped = 0;
+          for (const k of [...mine]) if (!hearts.get(k)) { mine.delete(k); dropped++; }
+          if (dropped) saveMine();
+          paintHearts(false);
+        })
         .catch(() => { /* offline: the zeros stand */ });
 
     const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
@@ -1651,8 +1666,20 @@
     /* the shorter cut, for when two of them have to share the line */
     const AREA_SHORT = { tokyo: "in Tokyo", link: "to the suburbs", out: "outside Tokyo" };
     const ORDER_PHRASE = {
-      riders: "busiest first", company: "by company",
-      color: "by colour", age: "oldest first",
+      riders: "busiest first", km: "longest first", st: "most stops first",
+      age: "oldest first", name: "A to Z", company: "by company",
+      color: "by colour",
+    };
+    /* Every order is one comparator. A line with no figure for the field
+       goes LAST rather than sorting as a zero and pretending to be the
+       shortest or the quietest — the same rule ridership has always had. */
+    const ORDER_BY = {
+      riders: (a, b) => (b.r || 0) - (a.r || 0),
+      km:     (a, b) => (b.km || 0) - (a.km || 0),
+      st:     (a, b) => (b.st || 0) - (a.st || 0),
+      age:    (a, b) => (a.y || 9999) - (b.y || 9999),
+      name:   (a, b) => a.n.localeCompare(b.n),
+      color:  (a, b) => hue(a.x) - hue(b.x),
     };
     /* "a", "a and b", "a, b and c" — a list of picks reads as a sentence,
        and past three it counts them instead, or the headline stops being
@@ -1743,15 +1770,16 @@
       const picked = (set, all, many) => !set.length ? all
         : set.length === 1 ? (many === "companies" ? set[0] : AREA_WORD[set[0]])
         : `${set.length} ${many}`;
-      pill("area-pill", picked(state.areas, "All lines", "areas"), !!state.areas.length,
+      pill("area-pill", picked(state.areas, "Area", "areas"), !!state.areas.length,
         state.areas.length ? `Area: ${picked(state.areas, "", "areas")}. Change it`
                            : "Every area. Pick one or more");
-      pill("op-pill", picked(state.ops, "All companies", "companies"), !!state.ops.length,
+      pill("op-pill", picked(state.ops, "Rail companies", "companies"), !!state.ops.length,
         state.ops.length ? `Company: ${picked(state.ops, "", "companies")}. Change it`
                          : "Every company. Pick one or more");
       fx()?.icon?.();          // the view pill just swapped its glyph
     };
-    const ARRANGE_WORD = { riders: "Ridership", company: "Company", color: "Colour", age: "Age" };
+    const ARRANGE_WORD = { riders: "Ridership", km: "Length", st: "Stops", age: "Age",
+                           name: "Name", company: "Company", color: "Colour" };
     const AREA_WORD = { "": "All lines", tokyo: "In Tokyo", link: "To the suburbs", out: "Outside Tokyo" };
 
     /* ---- Original line chimes ------------------------------------------
