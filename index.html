@@ -508,9 +508,26 @@
        past every edge, so nothing thins at the rim. */
     #bg-lattice {
       overflow: hidden;
-      filter: blur(var(--ground-blur, 3.5px)) saturate(1.15);
+      filter: saturate(1.15);
       opacity: var(--ground-fade, 0.62);
     }
+    /* The blur is NOT on the lattice: it is a pane laid over it that
+       blurs what it covers, masked so it covers the middle and lets go
+       toward the left and right edges. Behind the cards the ground should
+       stay out of the way; out past them there is nothing to compete with,
+       so the badges are allowed to come back into focus. One empty div
+       does it — the alternative was a second copy of six hundred badges. */
+    #bg-soften {
+      -webkit-backdrop-filter: blur(var(--ground-blur, 3.5px));
+      backdrop-filter: blur(var(--ground-blur, 3.5px));
+      -webkit-mask-image: var(--soften-mask);
+      mask-image: var(--soften-mask);
+      --soften-mask: linear-gradient(90deg,
+        transparent 0, #000 15%, #000 85%, transparent 100%);
+    }
+    /* on a phone the cards run the full width, so there is no bare edge to
+       sharpen and the blur simply covers everything */
+    @media (max-width: 34rem) { #bg-soften { --soften-mask: none; } }
     /* white faces punch far harder against a dark page than against a
        light one, so the dark ground sits back further */
     @media (prefers-color-scheme: dark) {
@@ -523,7 +540,7 @@
     }
     /* asked for plain contrast: the ground goes away, as the library's own
        grids do */
-    @media (prefers-contrast: more) { #bg-lattice { display: none; } }
+    @media (prefers-contrast: more) { #bg-lattice, #bg-soften { display: none; } }
 
     /* App shell: the section bar stays pinned to the TOP at every width
        (the library folds it to the bottom on phones, but the bottom edge
@@ -598,24 +615,11 @@
     .soon p { max-width: 32ch; color: var(--text-muted); margin: 0; }
     .soon h2 { margin: 0; }
 
-    /* Map mode: the whole network on one plate, panned and zoomed by hand.
-       The map is artwork with its own light ground, so it keeps a white
-       plate in dark mode too. */
-    .map-stage { display: flex; flex-direction: column; gap: var(--space-tight); }
-    #map-host {
-      height: min(70vh, 46rem); overflow: hidden; touch-action: none;
-      border: 1px solid var(--border); border-radius: var(--radius-card, 0.75rem);
-      background: #fff; cursor: grab;
-    }
-    #map-host[data-panning] { cursor: grabbing; }
-    #map-host svg { width: 100%; height: 100%; display: block; }
-    .map-stage figcaption { color: var(--text-muted); margin: 0; }
-
     /* The dialog's network map: the CC0 hashcc diagram, one line boosted,
        the rest dimmed. It FILLS THE WHOLE TOP of the dialog, edge to edge —
-       the dialog clips its children, so the map takes the rounded top
-       corners for free — and it pans, pinches and wheel-zooms exactly like
-       map mode. The map is an artwork with its own light ground, so it
+       the dialog clips its children, so the map takes the top corners for
+       free — and it pans, pinches and wheel-zooms. The map is an artwork
+       with its own light ground, so it
        keeps a white plate in dark mode too. */
     .line-map { position: relative; flex: 0 0 auto; margin: 0; }
     #d-map-host {
@@ -665,6 +669,7 @@
        pinned to the screen, so every pane has a pattern to blur and the
        wall has something to float over. Never prints. -->
   <div class="bg-fixed" id="bg-lattice" aria-hidden="true"></div>
+  <div class="bg-fixed" id="bg-soften" aria-hidden="true"></div>
 
   <!-- ==============================
        Section navigation
@@ -687,15 +692,10 @@
 
     <!-- ==============================
          Explore
-         The whole network as a wall of cards, or as the network map.
+         The whole network as a wall of cards.
          ============================== -->
     <section id="view-explore" class="app-view">
       <section id="line-wall" class="stack"></section>
-
-      <figure id="map-view" class="map-stage" hidden style="margin: 0;">
-        <div id="map-host" aria-label="Greater Tokyo network map"></div>
-        <figcaption class="text-caption">Drag to pan, scroll to zoom, tap a line for its details. Filters dim the rest. Map: Naoki Hashimoto (CC0).</figcaption>
-      </figure>
 
       <div class="empty" id="no-match" hidden>
         <strong>No lines match these filters</strong>
@@ -800,15 +800,11 @@
 
   <!-- ==============================
        Explore controls
-       The bottom bar owns this section's state: view mode in the pill,
-       sort behind the left button, filters behind the right one.
+       The bottom bar owns this section's state: the order behind the first
+       pill, the two filters behind the others.
        ============================== -->
   <nav class="ctl-bar" id="explore-bar" aria-label="Explore controls" data-print="off">
     <div class="ctl-row">
-      <button type="button" class="ctl-pill glass" id="view-pill"
-              data-tip="Switch between the card wall and the network map" data-event="lines-view">
-        <svg data-icon="grid" aria-hidden="true"></svg><span id="view-word">List</span>
-      </button>
       <button type="button" class="ctl-pill glass" id="arrange-pill" aria-controls="sort-sheet" aria-expanded="false"
               data-tip="The order the lines come in" data-event="open-sort">
         <svg data-icon="sliders" aria-hidden="true"></svg><span id="arrange-word">Ridership</span>
@@ -1004,7 +1000,7 @@
     const badge = (l, extra) => `<span class="rail-badge${extra ? " " + extra : ""}" data-shape="${l.s}"${(l.c || "").length > 1 ? " data-long" : ""} style="--c:${l.x}" aria-hidden="true">${esc(l.c || "·")}</span>`;
 
     /* One state object; every control writes it, the URL mirrors it. */
-    const state = { view: "explore", mode: "list", arrange: "riders", area: "", op: "" };
+    const state = { view: "explore", arrange: "riders", area: "", op: "" };
 
     /* company → logo file slug + monogram fallback */
     const OPSLUG = {
@@ -1429,10 +1425,8 @@
       const list = filtered();
       $("line-wall").innerHTML = grouped(list).map(([h, lines]) =>
         `<section>${renderCards(lines, heading(h, h && h.solo ? h.solo.length : lines.length))}</section>`).join("");
-      $("no-match").hidden = list.length > 0 || state.mode === "map";
-      if (state.mode === "map") paintMap(list);
+      $("no-match").hidden = list.length > 0;
       const p = new URLSearchParams();
-      if (state.mode !== "list") p.set("mode", state.mode);
       if (state.arrange !== "riders") p.set("arrange", state.arrange);
       if (state.area) p.set("area", state.area);
       if (state.op) p.set("op", state.op);
@@ -1452,9 +1446,6 @@
       mark("#area-menu .menu-item", "area", state.area);
       mark("#op-menu .menu-item", "op", state.op);
       mark("#arrange-menu .menu-item", "arrange", state.arrange);
-      $("line-wall").hidden = state.mode === "map";
-      $("map-view").hidden = state.mode !== "map";
-
       /* Each pill prints what it is set to, marks itself when that is not
          the default, and says the same thing in its accessible name — the
          colour is never the only signal. */
@@ -1464,9 +1455,6 @@
         if (isSet) el.dataset.set = ""; else delete el.dataset.set;
         el.setAttribute("aria-label", label);
       };
-      pill("view-pill", state.mode === "map" ? "Map" : "List", false,
-        state.mode === "map" ? "Showing the map. Switch to the card wall" : "Showing the cards. Switch to the map");
-      $("view-pill").querySelector("svg").dataset.icon = state.mode === "map" ? "map" : "grid";
       pill("arrange-pill", ARRANGE_WORD[state.arrange], state.arrange !== "riders",
         `Arranged by ${ARRANGE_WORD[state.arrange].toLowerCase()}. Change the order`);
       pill("area-pill", AREA_WORD[state.area], !!state.area,
@@ -1633,8 +1621,9 @@
       "Yokohama City Transportation Bureau|Blue Line": ["yokohama-blue"],
       "Yokohama City Transportation Bureau|Green Line": ["yokohama-green"],
     };
-    /* One fetch of the 2MB diagram, shared by the dialog and map mode;
-       each host parses its own copy so their views pan independently. */
+    /* One fetch of the 2MB diagram, for the dialog that shows one line
+       lit inside it. The whole-network map view was retired 22 Aug 2026:
+       the wall is the only way through the 98. */
     let mapText = null;
     const fetchMap = () => mapText ||= fetch("/map.svg")
       .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
@@ -1695,17 +1684,6 @@
         dMap = initMapGestures(svg, $("d-map-host"));
       });
     };
-
-    /* Map mode: the whole network, with the filtered-out lines dimmed. */
-    const paintMap = list => mountMap("map-host").then(svg => {
-      if (!svg) return;
-      const shown = new Set(list.map(l => l.i));
-      for (const [base, el] of mapEls(svg)) {
-        const line = ID_LINE.get(base);
-        el.style.opacity = !line ? "0.25" : shown.has(line.i) ? "1" : "0.08";
-      }
-      initMapGestures(svg, $("map-host"));
-    });
 
     /* Map gestures: one finger pans, TWO FINGERS PINCH to zoom, a wheel
        zooms on a desktop, and a tap that does not travel opens the line
@@ -1973,7 +1951,6 @@
 
       /* Restore a shared URL. */
       const p = new URLSearchParams(location.search);
-      if (p.get("mode") === "map") state.mode = "map";
       if (["color", "company"].includes(p.get("arrange"))) state.arrange = p.get("arrange");
       if (AREAS[p.get("area")]) state.area = p.get("area");
       if (counts.has(p.get("op"))) state.op = p.get("op");
@@ -2011,12 +1988,6 @@
       });
       addEventListener("popstate", () => showView(viewFromPath(), false));
 
-      /* Mode pill: list or map. */
-      $("view-pill").addEventListener("click", () => {
-        state.mode = state.mode === "map" ? "list" : "map";
-        syncControls();
-        render();
-      });
       /* Sheet menus: one delegated pick each; picking closes the sheet. */
       const pickFrom = (menuId, apply) => $(menuId).addEventListener("click", e => {
         const b = e.target.closest(".menu-item");

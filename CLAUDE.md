@@ -12,14 +12,14 @@ sections, switched by the top tab bar and each with its own URL
 - **Explore** (`/`) — all 98 Greater-Tokyo passenger lines across 22
   companies, each with its official color, line symbol and station-number
   badge, its Japanese name and that name's hiragana reading, its riders a
-  day, its route length and its stop count. Two view
-  modes: the card wall, and the network map (`map.svg`, the CC0 Greater-Tokyo
-  diagram by Naoki Hashimoto — one finger pans, two fingers pinch, the wheel
-  zooms, a tap opens a line, and the current filters dim everything else).
-  Sorted by ridership, company or colour; filtered by area (inside Tokyo / to
-  the suburbs / outside) and company; a per-line detail dialog carries the map
-  with that line highlighted, filling the whole top of the popup and taking
-  the same gestures plus a zoom pill. Every control mirrors into the URL.
+  day, its route length and its stop count. The card wall is the ONLY view:
+  the whole-network map mode and its toggle were retired 22 Aug 2026, and
+  `map.svg` (the CC0 Greater-Tokyo diagram by Naoki Hashimoto) now serves
+  the popup alone. Sorted by ridership, company, colour or age; filtered by
+  area (inside Tokyo / to the suburbs / outside) and company; a per-line
+  detail dialog carries the map with that line highlighted, filling the
+  whole top of the popup — one finger pans, two fingers pinch, the wheel
+  zooms — plus a zoom pill. Every control mirrors into the URL.
   Company marks are GREY on the CARDS: twenty-two corporate palettes
   across one screen fought the line colours, which are the only colours
   there that mean anything. A SECTION HEADING is the exception, amended
@@ -40,11 +40,11 @@ sections, switched by the top tab bar and each with its own URL
   Every line wears a HEART anyone can leave without an account (see The
   backend below) — red once this browser has left one, with the count
   rolling up beside it.
-  The bottom bar is a row of frosted-glass pills, one per control (view,
-  arrange, area, company): each carries an icon for what it controls and
+  The bottom bar is a row of frosted-glass pills, one per control (arrange,
+  area, company): each carries an icon for what it controls and
   the WORD it is currently set to, and wears the accent while that is not
   the default — which is why there is no longer a dot or a count badge.
-  The view pill toggles; the other three open a panel each, and a panel
+  Each opens a panel, and a panel
   opens OUT OF ITS OWN PILL: `placePanel()` centres it on the pill,
   clamps it inside the screen, and runs its own clip wipe out of a sliver
   at the pill's x — the library's own riser hangs off a bar corner, which
@@ -110,8 +110,13 @@ names. Glass needs something to blur, so the page's first child is the ground:
 a DIAMOND LATTICE of the station-number badges themselves — the same
 roundels and rounded squares the cards wear, in each line's own colour,
 in their real colours — white face, coloured ring, dark letters — and then
-thrown out of focus: `filter: blur()` on the LAYER, not each badge, so it
-costs one pass, with a fade over it. They were a faint outline until
+thrown out of focus, with a fade over them. The blur is NOT on the lattice:
+`#bg-soften` is an empty pane laid over it that blurs what it covers, masked
+so it covers the middle and lets go toward the left and right edges — behind
+the cards the ground keeps out of the way, and out past them, where there is
+nothing to compete with, the badges come back into focus. One div does it;
+the alternative was a second copy of six hundred badges. A phone has no bare
+edge, so there the mask is dropped and the blur simply covers everything. They were a faint outline until
 22 Aug 2026; shown vibrant and sharp they competed with the wall for the
 eye, so the vibrance stayed and the focus went. The dark ground sits back
 further (more blur, less opacity) because white faces punch harder against
