@@ -115,7 +115,7 @@
       height: 2.5rem; background: var(--c);
       display: flex; align-items: center; justify-content: space-between;
       gap: 0.5rem; padding: 0 1.15rem;
-      color: #fff; font-weight: var(--weight-strong); pointer-events: none;
+      color: #fff; font-weight: 700; pointer-events: none;
     }
     /* The name block: the badge, then the reading over the name. The two
        Japanese lines are set from ONE unit so their relation holds at any
@@ -139,18 +139,18 @@
     .line-kana { font-size: calc(var(--u) * 4); font-weight: 400; color: var(--text-muted); }
 
     .line-kanji { font-size: calc(var(--u) * 6); font-weight: 700; color: var(--text); }
-    /* The band is solid, in the line's ONE colour, because no single ink
-       reads on both halves of a split — the Rinkai Line's teal and navy
-       want opposite inks. A line that officially carries a SECOND colour
-       says so with a second stripe under the band, full width, rather than
-       by halving it: two stacked colours read as a line's pair, where a
-       half-and-half strip under a solid band read as a mistake. On a
-       single-colour line the stripe is the band's own colour and so is not
-       there at all. */
+    /* The band is solid, in the line's ONE colour. Four lines officially
+       carry a SECOND — the Shonan orange over green on the Tokaido and the
+       Utsunomiya/Takasaki, the Nippori-Toneri's pink and green, the
+       Rinkai's teal and navy — and each says so with a band of that second
+       colour sitting directly on top of the first. The pair reads as a
+       line's two colours stacked, which is how the signage sets them. A
+       line with no second colour draws nothing here, so its band keeps its
+       own height and its figures stay centred in it. */
     .line-card::after {
-      content: ""; position: absolute; left: 0; right: 0; bottom: 0;
-      height: 0.375rem; z-index: 3;
-      background: var(--c2, var(--c));
+      content: ""; position: absolute; left: 0; right: 0; bottom: 2.5rem;
+      height: 0.5rem; z-index: 3;
+      background: var(--c2, transparent);
     }
     /* the whole card opens the dialog through one invisible stretched
        button — a real control, keyboard operable, and deliberately with
@@ -198,7 +198,7 @@
        against the page, and they are big enough to read at a glance. */
     .line-stats {
       display: flex; flex-wrap: nowrap; gap: 0.55rem; align-items: center;
-      font-size: 0.8rem; color: inherit;
+      font-size: 0.8rem; font-weight: 700; color: inherit;
       font-variant-numeric: tabular-nums; white-space: nowrap;
     }
     .line-stats span { display: inline-flex; align-items: center; gap: 0.22rem; }
