@@ -16,7 +16,16 @@ sections, switched by the top tab bar and each with its own URL
   the whole-network map mode and its toggle were retired 22 Aug 2026, and
   `map.svg` (the CC0 Greater-Tokyo diagram by Naoki Hashimoto) now serves
   the popup alone. Sorted by ridership, company, colour or age; filtered by
-  area (inside Tokyo / to the suburbs / outside) and company; a per-line
+  area (inside Tokyo / to the suburbs / outside) and company, BOTH
+  multi-select: each holds a set, picking a second widens the wall rather
+  than replacing what you had, and the sheet stays open while you pick.
+  Sort stays single, an order being one thing by definition. The company
+  sheet groups its twenty-two names BY AREA — where most of that company's
+  own lines run — because one column of twenty-two is a wall to read and
+  three short lists are a place to look. Every pick is its own chip under
+  the headline with its own cross, and a Clear all appears once more than
+  one is on. The URL carries them comma-separated (`?op=a,b&area=x,y`) and
+  drops anything it does not recognise. A per-line
   detail dialog carries the map with that line highlighted, filling the
   whole top of the popup — one finger pans, two fingers pinch, the wheel
   zooms — plus a zoom pill. Every control mirrors into the URL.
