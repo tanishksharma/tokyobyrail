@@ -650,15 +650,21 @@
     .nav-tabs .tab-set { flex: 0 0 auto; }   /* three tabs hug, they do not span */
     /* Reading DOWN, the tab bar leaves through the bottom edge. It travels
        far enough to clear its own height, its inset and the home
-       indicator with room to spare, so no sliver is ever left showing,
-       and it is slower going than coming back. */
+       indicator with room to spare, so no sliver is ever left showing.
+       The two directions take OPPOSITE curves, and that is the whole
+       trick: leaving it starts gently and accelerates out, so the eye
+       follows it down; arriving it comes in fast and settles, so it is
+       there the moment you want it. A decelerating curve on the way out
+       covers most of the distance in the first few frames, which does not
+       read as sliding down at all — it reads as vanishing. */
     .nav-tabs {
-      transition: transform 340ms cubic-bezier(0.32, 0.72, 0, 1);
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
       will-change: transform;
     }
     :root[data-chrome="away"] .nav-tabs {
       transform: translate(-50%, calc(100% + var(--space-inline) + var(--safe-bottom) + 3rem));
-      transition-duration: 260ms;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.9, 0.4);
+      transition-duration: 300ms;
     }
     @media (prefers-reduced-motion: reduce) { .nav-tabs { transition: none; } }
     /* About is a view without a tab, so no tab is the current one. The
@@ -2451,6 +2457,8 @@
     /* Every release, newest first. One line each, in words about what
        changed on the page rather than what changed in the file. */
     const RELEASES = [
+      ["23 Aug 2026", "The tab bar slides down out of the screen as you read, instead of vanishing on the spot."],
+      ["23 Aug 2026", "The section addresses open again on a direct visit. Typing one gave a not-found page."],
       ["23 Aug 2026", "The tabs moved to the bottom and the sort and filter controls above the list. This page arrived."],
       ["23 Aug 2026", "Hearts started saving again: they had been refused for a week because of the address the site was opened from."],
       ["23 Aug 2026", "Company and area can both take several picks at once, each removable on its own."],
