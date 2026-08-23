@@ -64,11 +64,23 @@ class in the page, so the control pills and the library's own bars are one
 material. Letters on glass are embossed with the `--emboss-up` /
 `--emboss-down` pair, which swaps weight in the dark. The CARDS deliberately
 do NOT: a wall of ninety-eight blurred panes cost more than it said, and a
-card should read as printed, not pressed. A card is a plain 4:3 rectangle on
-`--surface` — the badge, then the line's reading over its Japanese name
+card should read as printed, not pressed. A card is a plain 4:3 PLACARD on
+`--surface`: square corners and one hard, unblurred shadow (`--placard`,
+3px down and across), so it reads as a board hung against a wall rather
+than a rounded pane floating over one. The wall is spaced to match — cards
+1.35rem apart, a heading a little further from its own cards than they are
+from each other, and 4.5rem between one company and the next. Its content:
+the badge, then the line's reading over its Japanese name
 (four units to six, from one `--u` the card works out from the name's
 length; both hold to one line and cut with an ellipsis, the name sized to
-fit first so the reading is the one that cuts), the English name underneath at the size the extra width bought,
+fit first so the reading is the one that cuts). The trailing 線 is dropped
+from the displayed name, and its せん from the reading with it: 85 of the
+98 names end in it, so on a wall of nothing but lines it is the one
+character that never says anything, and dropping it lets the part that
+differs stand a size larger. It goes wherever it ENDS a name, which on
+宇都宮線・高崎線 is twice. Names that end another way keep every character.
+The data keeps the true name — the popup, the tooltip and the search all
+read `j`, the English name underneath at the size the extra width bought,
 and the same Japanese name again behind all of it as a very large, very
 bold, almost-gone watermark in the lower right.
 

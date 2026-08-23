@@ -80,7 +80,10 @@
          spare ones and the heading would run on past the cards. This is
          the fallback for the moment before that runs. */
       grid-template-columns: repeat(auto-fill, var(--card-w));
-      gap: var(--space-stack);
+      /* the wall breathes: cards apart, the heading a little further from
+         its own cards than they are from each other, and a whole section
+         further still from the next */
+      column-gap: 1.35rem; row-gap: 1.35rem;
       --card-w: 16rem;
       /* Fixed tracks rarely divide the width evenly, and the remainder
          piles up on ONE side unless it is told otherwise — which read as
@@ -98,6 +101,11 @@
        carries two colors. */
     .line-card {
       position: relative; text-align: left;
+      /* square corners and one hard, short shadow: a board hung against a
+         wall, not a rounded pane floating over it. The shadow has no blur
+         on purpose — a soft one reads as depth, a sharp one as a real
+         object a few millimetres off the surface. */
+      border-radius: 0; box-shadow: var(--placard);
       aspect-ratio: 4 / 3; overflow: hidden;
       padding: 0.875rem; gap: 0.45rem;
       /* the band runs along the foot OUT of flow, so the flowing content
@@ -216,11 +224,14 @@
        lines closes the row. */
     .op-card {
       grid-column: 1 / -1;
+      /* a little more than the gap between cards, so its section reads as
+         one thing under it rather than as a first row */
+      margin-bottom: 0.55rem;
       display: flex; align-items: center; gap: var(--space-inline);
       padding: 0.9rem 1.1rem;
       background: var(--surface);
       border: var(--border-element) solid var(--border);
-      border-radius: var(--radius-card, 0.75rem);
+      border-radius: 0; box-shadow: var(--placard);
     }
     .op-word { width: auto; height: auto; max-width: 8rem; max-height: 2.1rem; flex: none;
       background: var(--mark-plate, none); padding: var(--mark-plate-pad, 0);
@@ -253,7 +264,7 @@
     .op-card-solo .op-title { margin-left: auto; text-align: right; }
 
     /* the wall's own rhythm: a section is a block, and blocks need air */
-    #line-wall > section + section { margin-top: var(--space-section, 2.5rem); }
+    #line-wall > section + section { margin-top: 4.5rem; }
 
     /* company mark, lower left; a monogram stands in when no logo file */
     /* Logo viewBoxes are trimmed to their content, so caps mean the same
@@ -452,16 +463,19 @@
         0 1px 0 color-mix(in srgb, var(--surface) 55%, transparent);
       --emboss-up: rgb(255 255 255 / 0.55);
       --emboss-down: rgb(0 0 0 / 0.16);
+      --placard: 3px 3px 0 rgb(16 24 40 / 0.10);
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-mode="light"]) {
         --emboss-up: rgb(255 255 255 / 0.10);
         --emboss-down: rgb(0 0 0 / 0.55);
+        --placard: 3px 3px 0 rgb(0 0 0 / 0.45);
       }
     }
     :root[data-mode="dark"] {
       --emboss-up: rgb(255 255 255 / 0.10);
       --emboss-down: rgb(0 0 0 / 0.55);
+      --placard: 3px 3px 0 rgb(0 0 0 / 0.45);
     }
     .glass {
       background: var(--glass-bg);
@@ -882,7 +896,7 @@
       {"i": 27, "op": "Toei", "oj": "東京都交通局", "n": "Mita Line", "j": "三田線", "k": "みたせん", "c": "I", "x": "#006AB8", "s": "circle", "t": "Meguro – Nishi-Takashimadaira", "note": "Older blue #0079C2 also in use", "a": "tokyo", "r": 646000, "ry": 2024, "km": 26.5, "st": 27, "y": 1968},
       {"i": 28, "op": "Toei", "oj": "東京都交通局", "n": "Shinjuku Line", "j": "新宿線", "k": "しんじゅくせん", "c": "S", "x": "#B0BF1E", "s": "circle", "t": "Shinjuku – Motoyawata", "a": "link", "r": 740000, "ry": 2024, "km": 23.5, "st": 21, "y": 1978},
       {"i": 29, "op": "Toei", "oj": "東京都交通局", "n": "Oedo Line", "j": "大江戸線", "k": "おおえどせん", "c": "E", "x": "#CE045B", "s": "circle", "t": "Tochomae – Hikarigaoka (via loop through Daimon and Iidabashi)", "note": "Older magenta #B6007A also in use", "a": "tokyo", "r": 889000, "ry": 2024, "km": 40.7, "st": 38, "y": 1991},
-      {"i": 30, "op": "Toei", "oj": "東京都交通局", "n": "Toden Arakawa Line (Tokyo Sakura Tram)", "j": "都電荒川線（東京さくらトラム）", "k": "あらかわせん", "c": "SA", "x": "#EE86A7", "s": "circle", "t": "Minowabashi – Waseda", "note": "Tramway", "a": "tokyo", "r": 49100, "ry": 2011, "km": 12.2, "st": 30, "y": 1911},
+      {"i": 30, "op": "Toei", "oj": "東京都交通局", "n": "Toden Arakawa Line (Tokyo Sakura Tram)", "j": "都電荒川線（東京さくらトラム）", "k": "とでんあらかわせん", "c": "SA", "x": "#EE86A7", "s": "circle", "t": "Minowabashi – Waseda", "note": "Tramway", "a": "tokyo", "r": 49100, "ry": 2011, "km": 12.2, "st": 30, "y": 1911},
       {"i": 31, "op": "Toei", "oj": "東京都交通局", "n": "Nippori-Toneri Liner", "j": "日暮里・舎人ライナー", "k": "にっぽり・とねりライナー", "c": "NT", "x": "#D53A77", "s": "square", "t": "Nippori – Minumadai-Shinsuikoen", "note": "Automated guideway transit; secondary color green #69B444", "a": "tokyo", "r": 95200, "ry": 2024, "x2": "#69B444", "km": 9.7, "st": 13, "y": 2008},
       {"i": 32, "op": "Tokyu", "oj": "東急電鉄", "n": "Toyoko Line", "j": "東横線", "k": "とうよこせん", "c": "TY", "x": "#DA0442", "s": "square", "t": "Shibuya – Yokohama", "a": "link", "r": 1100000, "ry": 2024, "km": 24.2, "st": 21, "y": 1926},
       {"i": 33, "op": "Tokyu", "oj": "東急電鉄", "n": "Meguro Line", "j": "目黒線", "k": "めぐろせん", "c": "MG", "x": "#009CD2", "s": "square", "t": "Meguro – Hiyoshi", "a": "link", "r": 382000, "ry": 2024, "km": 11.9, "st": 13, "y": 1923},
@@ -924,14 +938,14 @@
       {"i": 69, "op": "Tobu", "oj": "東武鉄道", "n": "Urban Park Line (Noda Line)", "j": "東武アーバンパークライン（野田線）", "k": "とうぶアーバンパークライン", "c": "TD", "x": "#00BFFF", "s": "square", "t": "Omiya – Kashiwa – Funabashi", "a": "out", "r": 439000, "ry": 2024, "km": 62.7, "st": 35, "y": 1911},
       {"i": 70, "op": "Tobu", "oj": "東武鉄道", "n": "Tojo Line", "j": "東上本線", "k": "とうじょうほんせん", "c": "TJ", "x": "#004098", "s": "square", "t": "Ikebukuro – Yorii", "a": "link", "r": 865000, "ry": 2024, "km": 75.0, "st": 39, "y": 1914},
       {"i": 71, "op": "Tobu", "oj": "東武鉄道", "n": "Ogose Line", "j": "越生線", "k": "おごせせん", "c": "TJ", "x": "#004098", "s": "square", "t": "Sakado – Ogose", "note": "Branch line", "a": "out", "r": 17500, "ry": 2024, "km": 10.9, "st": 8, "y": 1932},
-      {"i": 72, "op": "Keisei", "oj": "京成電鉄", "n": "Keisei Main Line", "j": "京成本線", "k": "ほんせん", "c": "KS", "x": "#0060B0", "s": "circle", "t": "Keisei-Ueno – Narita Airport", "note": "Higashi-Narita Line branch: Keisei-Narita – Higashi-Narita", "a": "link", "r": 521000, "ry": 2024, "km": 69.3, "st": 42, "y": 1912},
+      {"i": 72, "op": "Keisei", "oj": "京成電鉄", "n": "Keisei Main Line", "j": "京成本線", "k": "けいせいほんせん", "c": "KS", "x": "#0060B0", "s": "circle", "t": "Keisei-Ueno – Narita Airport", "note": "Higashi-Narita Line branch: Keisei-Narita – Higashi-Narita", "a": "link", "r": 521000, "ry": 2024, "km": 69.3, "st": 42, "y": 1912},
       {"i": 73, "op": "Keisei", "oj": "京成電鉄", "n": "Oshiage Line", "j": "押上線", "k": "おしあげせん", "c": "KS", "x": "#CD66FF", "s": "circle", "t": "Oshiage – Aoto", "note": "Through service with Toei Asakusa Line", "a": "tokyo", "r": 154000, "ry": 2024, "km": 5.7, "st": 6, "y": 1912},
       {"i": 74, "op": "Keisei", "oj": "京成電鉄", "n": "Kanamachi Line", "j": "金町線", "k": "かなまちせん", "c": "KS", "x": "#FF0000", "s": "circle", "t": "Keisei-Takasago – Keisei-Kanamachi", "note": "Branch line", "a": "tokyo", "r": 16100, "ry": 2024, "km": 2.5, "st": 3, "y": 1899},
       {"i": 75, "op": "Keisei", "oj": "京成電鉄", "n": "Chiba Line", "j": "千葉線", "k": "ちばせん", "c": "KS", "x": "#FF1E56", "s": "circle", "t": "Keisei-Tsudanuma – Chibachuo", "a": "out", "r": 50200, "ry": 2024, "km": 12.9, "st": 10, "y": 1921},
       {"i": 76, "op": "Keisei", "oj": "京成電鉄", "n": "Chihara Line", "j": "千原線", "k": "ちはらせん", "c": "KS", "x": "#FF1E56", "s": "circle", "t": "Chibachuo – Chiharadai", "a": "out", "r": 13100, "ry": 2024, "km": 10.9, "st": 6, "y": 1992},
       {"i": 77, "op": "Keisei", "oj": "京成電鉄", "n": "Narita Sky Access Line", "j": "成田空港線（成田スカイアクセス）", "k": "なりたくうこうせん", "c": "KS", "x": "#FF8620", "s": "circle", "t": "Keisei-Takasago – Narita Airport", "note": "Skyliner route via Hokuso Line tracks", "a": "link", "r": 32000, "ry": 2024, "km": 51.4, "st": 8, "y": 2010},
       {"i": 78, "op": "Keisei", "oj": "京成電鉄", "n": "Matsudo Line", "j": "松戸線", "k": "まつどせん", "c": "SL", "x": "#A97344", "s": "circle", "t": "Matsudo – Keisei-Tsudanuma", "note": "Former Shin-Keisei Line (merged into Keisei 2025); keeps SL station numbers; Shin-Keisei-era color was gentle pink #EF59A1", "a": "out", "r": 233000, "ry": 2021, "km": 26.5, "st": 24, "y": 1947},
-      {"i": 79, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Keikyu Main Line", "j": "京急本線", "k": "ほんせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Sengakuji – Uraga", "note": "Through service with Toei Asakusa Line", "a": "link", "r": 1140000, "ry": 2024, "km": 56.7, "st": 50, "y": 1895},
+      {"i": 79, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Keikyu Main Line", "j": "京急本線", "k": "けいきゅうほんせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Sengakuji – Uraga", "note": "Through service with Toei Asakusa Line", "a": "link", "r": 1140000, "ry": 2024, "km": 56.7, "st": 50, "y": 1895},
       {"i": 80, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Airport Line", "j": "空港線", "k": "くうこうせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Keikyu Kamata – Haneda Airport Terminal 1·2", "a": "tokyo", "r": 229000, "ry": 2024, "km": 6.5, "st": 7, "y": 1902},
       {"i": 81, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Daishi Line", "j": "大師線", "k": "だいしせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Keikyu Kawasaki – Kojimashinden", "a": "out", "r": 79100, "ry": 2024, "km": 4.5, "st": 7, "y": 1899},
       {"i": 82, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Zushi Line", "j": "逗子線", "k": "ずしせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Kanazawa-Hakkei – Zushi·Hayama", "a": "out", "r": 39000, "ry": 2024, "km": 5.9, "st": 4, "y": 1930},
@@ -1126,6 +1140,19 @@
        sibling. Above that length it is always an alternate name. */
     const cardJa = j => j.split("（")[0];
     const cardEn = n => n.length > 34 ? n.split(" (")[0] : n;
+    /* 85 of the 98 names end in 線, "line". On a wall of nothing but lines
+       that character is the one thing every name has in common and so the
+       one thing it never needs to say, and dropping it lets the part that
+       differs stand a size larger. The reading loses its せん with it, or
+       it would gloss a syllable the name no longer shows. Names that end
+       another way — 中央線快速, the ライン and ライナー brands, the four
+       already in kana — keep every character they have. */
+    const dropSen = (j, k) => j.endsWith("線")
+      /* the 線 goes wherever it ENDS a name, which on 宇都宮線・高崎線 is
+         twice — strip only the last and the first half keeps a suffix the
+         second one lost */
+      ? [j.replace(/線(?=・|$)/g, ""), k ? k.replace(/せん(?=・|$)/g, "") : k]
+      : [j, k];
     const jaUnit = j => {
       const runs = [...j].reduce((w, ch) => w + (/[\x20-\x7e]/.test(ch) ? 0.5 : 1), 0);
       /* the cap is the size a short name gets; the floor is the smallest
@@ -1328,20 +1355,20 @@
     const stat = (icon, text, tip) => text
       ? `<span data-tip="${esc(tip)}"><svg data-icon="${icon}" aria-hidden="true"></svg>${esc(text)}</span>` : "";
     const renderCards = (lines, head) => `<div class="line-grid" data-arrange="${state.arrange}">` + head + lines.map(l => {
-      const slug = OPSLUG[l.op];
+      const slug = OPSLUG[l.op], ja = dropSen(cardJa(l.j), l.k);
       return `<article class="card line-card stack-tight"
-        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(cardJa(l.j))}rem;--name:${nameSize(cardEn(l.n))}rem;--jp:${jpSize(cardJa(l.j))}rem">
+        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(ja[0])}rem;--name:${nameSize(cardEn(l.n))}rem;--jp:${jpSize(ja[0])}rem">
         <button type="button" class="line-open" data-line="${l.i}" data-event="lines-open"
                 data-tip="${esc(l.n)} · ${esc(l.j)} · ${esc(l.op)}" aria-label="${esc(l.n)} details"></button>
         <span class="line-head">
           ${badge(l)}
           <span class="line-ja" lang="ja">
-            ${l.k ? `<span class="line-kana">${esc(l.k)}</span>` : ""}
-            <span class="line-kanji">${esc(cardJa(l.j))}</span>
+            ${ja[1] ? `<span class="line-kana">${esc(ja[1])}</span>` : ""}
+            <span class="line-kanji">${esc(ja[0])}</span>
           </span>
         </span>
         <strong class="line-name">${esc(cardEn(l.n))}</strong>
-        <span class="line-jpbg" lang="ja" aria-hidden="true"><span>${esc(cardJa(l.j))}</span></span>
+        <span class="line-jpbg" lang="ja" aria-hidden="true"><span>${esc(ja[0])}</span></span>
         <span class="line-band">
           <span class="line-stats">
             ${stat("users", l.r && fmtRiders(l.r), `About ${l.r ? fmtRiders(l.r) : "?"} riders a day`)}
