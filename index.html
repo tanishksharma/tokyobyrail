@@ -648,25 +648,24 @@
        and scrolls away with them, so the middle of the screen is lines
        and nothing else. */
     .nav-tabs .tab-set { flex: 0 0 auto; }   /* three tabs hug, they do not span */
-    /* Reading DOWN, the tab bar leaves through the bottom edge. It travels
-       far enough to clear its own height, its inset and the home
-       indicator with room to spare, so no sliver is ever left showing.
-       The two directions take OPPOSITE curves, and that is the whole
-       trick: leaving it starts gently and accelerates out, so the eye
-       follows it down; arriving it comes in fast and settles, so it is
-       there the moment you want it. A decelerating curve on the way out
-       covers most of the distance in the first few frames, which does not
-       read as sliding down at all — it reads as vanishing. */
+    /* Reading DOWN, the tab bar leaves through the bottom edge, and it
+       leaves WITH THE FINGER rather than on a clock of its own. --bar-away
+       is how far out it is, 0 showing and 1 gone, and the JS below sets it
+       from how far you have scrolled. That is the whole point: a timed
+       animation runs at its own speed, so a fast flick outruns it and the
+       bar is simply not there by the time the eye arrives.
+
+       It travels far enough to clear its own height, its inset and the
+       home indicator with room to spare, so no sliver is ever left
+       showing. */
     .nav-tabs {
-      transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+      --bar-away: 0;
+      transform: translate(-50%, calc(
+        var(--bar-away) * (100% + var(--space-inline) + var(--safe-bottom) + 3rem)));
       will-change: transform;
     }
-    :root[data-chrome="away"] .nav-tabs {
-      transform: translate(-50%, calc(100% + var(--space-inline) + var(--safe-bottom) + 3rem));
-      transition-timing-function: cubic-bezier(0.4, 0, 0.9, 0.4);
-      transition-duration: 440ms;
-    }
-    @media (prefers-reduced-motion: reduce) { .nav-tabs { transition: none; } }
+    /* no transition here on purpose: the JS below owns the whole move, so
+       a timed one would be a second animator fighting it */
     /* About is a view without a tab, so no tab is the current one. The
        moving highlight would otherwise stay parked on Trains and claim a
        section the reader is not in: it fades out instead. */
@@ -1614,36 +1613,64 @@
 
     /* ---- The tab bar gets out of the way -------------------------------
        Reading down the wall it leaves through the bottom edge; a touch of
-       upward scroll brings it back. The trigger is TRAVEL IN ONE
-       DIRECTION, not the raw delta: a finger never scrolls perfectly
-       straight, and a per-event test would flicker the bar on every
-       wobble. Coming back is cheaper than going away, because wanting the
-       tabs back is the impatient move and wanting them gone is settled.
+       upward scroll brings it back.
+
+       It moves WITH THE SCROLL, not on a clock. Ninety pixels of downward
+       scroll take it all the way out and sixty upward bring it all the way
+       back, in proportion the whole time, so at any speed it travels the
+       distance the finger travelled. A timed animation cannot do that: it
+       runs at its own pace, and a fast flick outruns it, which is why it
+       read as vanishing rather than sliding.
+
+       Coming back is cheaper than going away, because wanting the tabs
+       back is the impatient move and wanting them gone is the settled one.
+
+       When the scroll stops part way, the bar settles to whichever end it
+       is nearer, and that one move IS timed — nothing is racing it. Any
+       new scroll takes the timing straight back off, so the finger always
+       wins.
 
        The tab bar is the only fixed thing left: the controls live in the
        page now and scroll away by themselves. It stays put while a panel
        is open and near the top of the page. */
-    const CHROME_GO = 26, CHROME_COME = 10, CHROME_TOP = 40;
-    let chromeLast = 0, chromeTravel = 0, chromeAway = false;
-    const showChrome = () => {
-      chromeTravel = 0;
-      if (!chromeAway) return;
-      chromeAway = false;
-      document.documentElement.removeAttribute("data-chrome");
+    const BAR_OUT = 90, BAR_BACK = 60, BAR_TOP = 40, BAR_SETTLE = 140, BAR_EASE = 0.18;
+    /* barWant is where the scroll says the bar belongs; barAt is where it
+       actually is, and each frame it closes a sixth of the distance. Two
+       values rather than one, because a flick can put barWant a whole
+       screen away in a single frame and the bar must still be SEEN to go:
+       chasing it takes about a third of a second however fast the flick
+       was. Scroll slowly and the gap never opens, so the bar tracks the
+       finger exactly. */
+    let barWant = 0, barAt = 0, barLast = 0, barLoop = 0, barRest = 0, barEl = null;
+    const calmly = matchMedia("(prefers-reduced-motion: reduce)");
+    const stepBar = () => {
+      barLoop = 0;
+      const gap = barWant - barAt;
+      /* a sixth of what is left each frame, but never less than a pixel or
+         so, or the last stretch of an exponential crawls; and under that
+         much left, land it */
+      const step = Math.max(Math.abs(gap) * BAR_EASE, 0.012);
+      barAt = Math.abs(gap) <= step || calmly.matches
+        ? barWant : barAt + Math.sign(gap) * step;
+      barEl ||= document.querySelector(".nav-tabs");
+      barEl?.style.setProperty("--bar-away", barAt.toFixed(3));
+      if (barAt !== barWant) barLoop = requestAnimationFrame(stepBar);
     };
+    const aimBar = to => {
+      barWant = to;
+      if (!barLoop && barAt !== to) barLoop = requestAnimationFrame(stepBar);
+    };
+    const showChrome = () => aimBar(0);
     const watchChrome = () => {
       const y = Math.max(0, scrollY);
-      const d = y - chromeLast;
-      chromeLast = y;
+      const d = y - barLast;
+      barLast = y;
       if (!d) return;
-      if (y < CHROME_TOP || document.querySelector('.sheet[data-open="true"]')) return showChrome();
-      chromeTravel = d > 0 ? Math.max(0, chromeTravel) + d : Math.min(0, chromeTravel) + d;
-      if (chromeTravel > CHROME_GO && !chromeAway) {
-        chromeAway = true; chromeTravel = 0;
-        document.documentElement.setAttribute("data-chrome", "away");
-      } else if (chromeTravel < -CHROME_COME) {
-        showChrome();
-      }
+      /* stopped part way: send it to whichever end it is nearer */
+      clearTimeout(barRest);
+      barRest = setTimeout(() => aimBar(barWant < 0.5 ? 0 : 1), BAR_SETTLE);
+      if (y < BAR_TOP || document.querySelector('.sheet[data-open="true"]')) return showChrome();
+      aimBar(Math.min(1, Math.max(0, barWant + d / (d > 0 ? BAR_OUT : BAR_BACK))));
     };
 
     const queueDrift = () => {
@@ -2457,7 +2484,7 @@
     /* Every release, newest first. One line each, in words about what
        changed on the page rather than what changed in the file. */
     const RELEASES = [
-      ["23 Aug 2026", "The tab bar slides down out of the screen as you read, instead of vanishing on the spot."],
+      ["23 Aug 2026", "The tab bar moves with the scroll now, so a fast flick can no longer outrun it."],
       ["23 Aug 2026", "The section addresses open again on a direct visit. Typing one gave a not-found page."],
       ["23 Aug 2026", "The tabs moved to the bottom and the sort and filter controls above the list. This page arrived."],
       ["23 Aug 2026", "Hearts started saving again: they had been refused for a week because of the address the site was opened from."],
@@ -2562,7 +2589,7 @@
       drawGround();
       driftGround();
       addEventListener("scroll", queueDrift, { passive: true });
-      chromeLast = Math.max(0, scrollY);
+      barLast = Math.max(0, scrollY);
       calm.addEventListener?.("change", driftGround);
       let groundTimer = 0;
       addEventListener("resize", () => {
