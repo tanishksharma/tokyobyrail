@@ -515,7 +515,7 @@
          the height, so it tracks a resize. */
       bottom: auto; overflow: hidden;
       filter: saturate(1.15);
-      opacity: var(--ground-fade, 0.62);
+      opacity: var(--ground-fade, 0.31);
     }
     /* The blur is NOT on the lattice: it is a pane laid over it that
        blurs what it covers, masked so it covers the middle and lets go
@@ -524,8 +524,8 @@
        so the badges are allowed to come back into focus. One empty div
        does it — the alternative was a second copy of six hundred badges. */
     #bg-soften {
-      -webkit-backdrop-filter: blur(var(--ground-blur, 6px));
-      backdrop-filter: blur(var(--ground-blur, 6px));
+      -webkit-backdrop-filter: blur(var(--ground-blur, 18px));
+      backdrop-filter: blur(var(--ground-blur, 18px));
       -webkit-mask-image: var(--soften-mask);
       mask-image: var(--soften-mask);
       --soften-mask: linear-gradient(90deg,
@@ -537,9 +537,9 @@
     /* white faces punch far harder against a dark page than against a
        light one, so the dark ground sits back further */
     @media (prefers-color-scheme: dark) {
-      :root:not([data-mode="light"]) { --ground-blur: 7.5px; --ground-fade: 0.40; }
+      :root:not([data-mode="light"]) { --ground-blur: 22px; --ground-fade: 0.20; }
     }
-    :root[data-mode="dark"] { --ground-blur: 7.5px; --ground-fade: 0.40; }
+    :root[data-mode="dark"] { --ground-blur: 22px; --ground-fade: 0.20; }
     #bg-lattice .rail-badge {
       position: absolute;
       transform: translate(-50%, -50%) scale(0.42);
