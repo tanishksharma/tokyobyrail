@@ -130,7 +130,17 @@ would tip the icons over with it. Which glyph lands where is a hash of
 the lattice position, so the field looks random but is identical on every
 draw and a resize re-lays it rather than reshuffling it; the seed changes
 per page load. It keeps the library's `.bg-fixed` and its print and
-contrast behaviour. A new CHROME pane takes `.glass`; never hand-roll
+contrast behaviour.
+
+The ground DRIFTS with the page: five pixels of scroll move it one, in the
+same direction, so the wall reads as two planes rather than one sheet over
+a still pattern. That is what the field's vertical REPEAT is for — the
+lattice is drawn one screen plus one period tall and the offset is taken
+modulo the period, so the layer slides the whole length of the wall and
+never leaves its edge on screen. The period is sixteen rows, 1184px,
+longer than a phone screen so the repeat never shows itself on one. One
+transform per frame on a layer nothing else touches; reduced motion holds
+it still. A new CHROME pane takes `.glass`; never hand-roll
 a second recipe, and never put glass on a card. Line data is baked into the file as constants, verified Aug
 2026 against the line articles on English/Japanese Wikipedia and the Japanese
 railway line-color compendium (日本の鉄道ラインカラー一覧). Shinkansen is out

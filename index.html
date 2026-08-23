@@ -1262,19 +1262,30 @@
        never on scroll. */
     const BG_CELL = 74;                    /* lattice pitch in px */
     const BG_SEED = (Math.random() * 1e9) | 0;
+    /* The field REPEATS every sixteen rows down the page. That is what
+       lets the ground scroll: the lattice only has to be drawn a screen
+       and one period tall, and the parallax offset is taken modulo the
+       period, so it can travel forever without ever running out of
+       badges. Sixteen rows is 1184px — longer than a phone screen, so the
+       repeat never shows itself on one. */
+    const BG_PERIOD = 16;
+    const BG_SPAN = BG_PERIOD * BG_CELL;
     const drawGround = () => {
       const host = $("bg-lattice");
       if (!host) return;
       const w = innerWidth, h = innerHeight;
       /* one stable pick per lattice position */
       const pick = (i, j, k) => {
-        let x = Math.imul(i, 73856093) ^ Math.imul(j, 19349663) ^ Math.imul(k, 83492791) ^ BG_SEED;
+        const jj = ((j % BG_PERIOD) + BG_PERIOD) % BG_PERIOD;   // the vertical repeat
+        let x = Math.imul(i, 73856093) ^ Math.imul(jj, 19349663) ^ Math.imul(k, 83492791) ^ BG_SEED;
         x = Math.imul(x ^ (x >>> 15), 2246822519);
         x = Math.imul(x ^ (x >>> 13), 3266489917);
         return LINES[((x ^ (x >>> 16)) >>> 0) % LINES.length];
       };
       const out = [];
-      const cols = Math.ceil(w / BG_CELL) + 1, rows = Math.ceil(h / BG_CELL) + 1;
+      /* a screen, plus the one period the parallax can slide it upward */
+      const cols = Math.ceil(w / BG_CELL) + 1;
+      const rows = Math.ceil((h + BG_SPAN) / BG_CELL) + 1;
       for (let j = -1; j <= rows; j++) {
         for (let i = -1; i <= cols; i++) {
           /* the half-cell twin is what turns the square grid on its side */
@@ -1288,6 +1299,32 @@
         }
       }
       host.innerHTML = out.join("");
+    };
+
+    /* ---- The ground drifts ---------------------------------------------
+       The wall scrolls; the ground goes with it, at a fifth of the pace
+       and in the same direction, so the page reads as two planes rather
+       than one sheet over a still pattern. The offset is taken modulo the
+       lattice's own period, which is why the field repeats: the layer can
+       slide for the whole length of the wall and never leave its edge on
+       screen. One transform per frame, on a layer nothing else touches.
+
+       Reduced motion gets a still ground, as everything else here does. */
+    const GROUND_RATE = 0.2;               // five pixels of page, one of ground
+    let groundY = -1, groundPending = false;
+    const driftGround = () => {
+      groundPending = false;
+      const host = $("bg-lattice");
+      if (!host) return;
+      const y = calm.matches ? 0 : -((scrollY * GROUND_RATE) % BG_SPAN);
+      if (Math.abs(y - groundY) < 0.5) return;
+      groundY = y;
+      host.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
+    };
+    const queueDrift = () => {
+      if (groundPending) return;
+      groundPending = true;
+      requestAnimationFrame(driftGround);
     };
 
     /* ---- Hearts --------------------------------------------------------
@@ -2012,11 +2049,14 @@
       addEventListener("pageshow", e => { if (e.persisted) checkFresh(); });
 
       drawGround();
+      driftGround();
+      addEventListener("scroll", queueDrift, { passive: true });
+      calm.addEventListener?.("change", driftGround);
       let groundTimer = 0;
       addEventListener("resize", () => {
         fitColumns();
         clearTimeout(groundTimer);
-        groundTimer = setTimeout(drawGround, 150);
+        groundTimer = setTimeout(() => { drawGround(); driftGround(); }, 150);
       });
 
       /* Section tabs: swap in place, keep the real URLs. */
