@@ -3,15 +3,15 @@
   "rewrites": [
     {
       "source": "/stations",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/quiz",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/about",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
   "redirects": [
