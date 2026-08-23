@@ -747,6 +747,10 @@
           <span class="list-trail" id="d-area"></span>
         </li>
         <li class="list-item">
+          <span class="list-content"><span class="list-title">Opened</span></span>
+          <span class="list-trail" id="d-opened"></span>
+        </li>
+        <li class="list-item">
           <span class="list-content"><span class="list-title">Daily riders</span></span>
           <span class="list-trail" id="d-riders"></span>
         </li>
@@ -1901,6 +1905,10 @@
       $("d-badge").outerHTML = badge(l).replace('class="rail-badge"', 'class="rail-badge" id="d-badge"');
       $("d-code").textContent = l.c || "—";
       $("d-area").textContent = AREAS[l.a] || "—";
+      /* the year and what it comes to — the Fun tab ranks it among the 98,
+         but the plain fact belongs with the rest of the line's own facts */
+      $("d-opened").textContent = l.y
+        ? `${l.y} · ${new Date().getFullYear() - l.y} years ago` : "—";
       $("d-riders").textContent = l.r ? `~${fmtRiders(l.r)} a day (${l.ry})` : "—";
       $("d-chip").style.setProperty("--c", l.x);
       $("d-hex").textContent = l.x.toUpperCase();
