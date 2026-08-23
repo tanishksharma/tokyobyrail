@@ -524,8 +524,8 @@
        so the badges are allowed to come back into focus. One empty div
        does it — the alternative was a second copy of six hundred badges. */
     #bg-soften {
-      -webkit-backdrop-filter: blur(var(--ground-blur, 3.5px));
-      backdrop-filter: blur(var(--ground-blur, 3.5px));
+      -webkit-backdrop-filter: blur(var(--ground-blur, 6px));
+      backdrop-filter: blur(var(--ground-blur, 6px));
       -webkit-mask-image: var(--soften-mask);
       mask-image: var(--soften-mask);
       --soften-mask: linear-gradient(90deg,
@@ -537,9 +537,9 @@
     /* white faces punch far harder against a dark page than against a
        light one, so the dark ground sits back further */
     @media (prefers-color-scheme: dark) {
-      :root:not([data-mode="light"]) { --ground-blur: 4.5px; --ground-fade: 0.40; }
+      :root:not([data-mode="light"]) { --ground-blur: 7.5px; --ground-fade: 0.40; }
     }
-    :root[data-mode="dark"] { --ground-blur: 4.5px; --ground-fade: 0.40; }
+    :root[data-mode="dark"] { --ground-blur: 7.5px; --ground-fade: 0.40; }
     #bg-lattice .rail-badge {
       position: absolute;
       transform: translate(-50%, -50%) scale(0.42);
@@ -612,12 +612,25 @@
     /* the picked row in a sheet menu wears a check in its value slot */
     .menu-item[aria-pressed="true"] .menu-value::after { content: "✓"; }
 
-    /* Coming-soon panels: one centred column, nothing else. */
+    /* Coming-soon panels: one centred column on a placard of its own. It
+       used to sit straight on the ground, which worked while the ground
+       was faint; now that the ground carries the network's colours, words
+       need a surface under them like everything else here. */
     .soon {
       min-height: 60vh; display: flex; flex-direction: column;
       align-items: center; justify-content: center; text-align: center;
       gap: var(--space-stack);
     }
+    .soon > * { position: relative; z-index: 1; }
+    .soon::before {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(30rem, 100%); height: min(20rem, 100%);
+      background: var(--surface);
+      border: var(--border-element) solid var(--border);
+      box-shadow: var(--placard);
+    }
+    .soon { position: relative; }
     .soon p { max-width: 32ch; color: var(--text-muted); margin: 0; }
     .soon h2 { margin: 0; }
 
@@ -680,14 +693,14 @@
   <!-- ==============================
        Section navigation
        The three sections of the app; real links, so each has its own URL
-       (vercel rewrites /learn and /quiz onto this page) and JS switches
+       (vercel rewrites /stations and /quiz onto this page) and JS switches
        views in place. Pinned to the TOP at every width, since the bottom
        edge belongs to each section's own controls.
        ============================== -->
   <nav class="tab-bar tab-bar-top nav-top" aria-label="Sections" data-print="off">
     <div class="tab-set">
-      <a class="tab-seg" href="/" data-view="explore" aria-current="page">Explore</a>
-      <a class="tab-seg" href="/learn" data-view="learn" aria-current="false">Learn</a>
+      <a class="tab-seg" href="/" data-view="trains" aria-current="page">Trains</a>
+      <a class="tab-seg" href="/stations" data-view="stations" aria-current="false">Stations</a>
       <a class="tab-seg" href="/quiz" data-view="quiz" aria-current="false">Quiz</a>
     </div>
   </nav>
@@ -697,10 +710,10 @@
     <h1 class="visually-hidden">Tokyo by rail</h1>
 
     <!-- ==============================
-         Explore
+         Trains
          The whole network as a wall of cards.
          ============================== -->
-    <section id="view-explore" class="app-view">
+    <section id="view-trains" class="app-view">
       <section id="line-wall" class="stack"></section>
 
       <div class="empty" id="no-match" hidden>
@@ -709,14 +722,18 @@
     </section>
 
     <!-- ==============================
-         Learn · Quiz
-         Both are placeholders until their own builds.
+         Stations · Quiz
+         Both are placeholders until their own builds. Stations is the next
+         one: a station is a building, not a dot, and the interesting part
+         of Shibuya or Shinjuku is how it stacks.
          ============================== -->
-    <section id="view-learn" class="app-view soon" hidden>
-      <span class="eyebrow">Learn</span>
+    <section id="view-stations" class="app-view soon" hidden>
+      <span class="eyebrow">Stations</span>
       <h2>Coming soon</h2>
-      <p>The story of the network — why Tokyo grew this many lines, who built
-        them, and how they knit together.</p>
+      <p>Shibuya, Shinjuku and the rest, floor by floor — the concourses and
+        the levels between them, where the stairs, escalators and lifts run,
+        and which platform on each floor takes which line in which
+        direction.</p>
     </section>
 
     <section id="view-quiz" class="app-view soon" hidden>
@@ -805,11 +822,11 @@
   </dialog>
 
   <!-- ==============================
-       Explore controls
+       Trains controls
        The bottom bar owns this section's state: the order behind the first
        pill, the two filters behind the others.
        ============================== -->
-  <nav class="ctl-bar" id="explore-bar" aria-label="Explore controls" data-print="off">
+  <nav class="ctl-bar" id="trains-bar" aria-label="Trains controls" data-print="off">
     <div class="ctl-row">
       <button type="button" class="ctl-pill glass" id="arrange-pill" aria-controls="sort-sheet" aria-expanded="false"
               data-tip="The order the lines come in" data-event="open-sort">
@@ -1006,7 +1023,7 @@
     const badge = (l, extra) => `<span class="rail-badge${extra ? " " + extra : ""}" data-shape="${l.s}"${(l.c || "").length > 1 ? " data-long" : ""} style="--c:${l.x}" aria-hidden="true">${esc(l.c || "·")}</span>`;
 
     /* One state object; every control writes it, the URL mirrors it. */
-    const state = { view: "explore", arrange: "riders", area: "", op: "" };
+    const state = { view: "trains", arrange: "riders", area: "", op: "" };
 
     /* company → logo file slug + monogram fallback */
     const OPSLUG = {
@@ -1990,19 +2007,22 @@
 
     /* The three sections. Each has its own URL; the tabs swap views in
        place and push history, so Back walks the sections. */
-    const VIEWS = ["explore", "learn", "quiz"];
+    const VIEWS = ["trains", "stations", "quiz"];
     const viewFromPath = () => {
       const seg = location.pathname.replace(/^\/|\/$/g, "");
-      return VIEWS.includes(seg) ? seg : "explore";
+      /* /learn was this section's name until the Stations build was
+         planned; a link out there still lands in the right place */
+      if (seg === "learn") return "stations";
+      return VIEWS.includes(seg) ? seg : "trains";
     };
     const showView = (view, push) => {
       state.view = view;
       for (const v of VIEWS) $("view-" + v).hidden = v !== view;
       document.querySelectorAll(".nav-top .tab-seg").forEach(t =>
         t.setAttribute("aria-current", t.dataset.view === view ? "page" : "false"));
-      $("explore-bar").hidden = view !== "explore";   // the bar belongs to Explore
-      if (push) history.pushState(null, "", view === "explore" ? "/" : "/" + view);
-      if (view === "explore") render();
+      $("trains-bar").hidden = view !== "trains";   // the bar belongs to Trains
+      if (push) history.pushState(null, "", view === "trains" ? "/" : "/" + view);
+      if (view === "trains") render();
     };
 
     document.addEventListener("DOMContentLoaded", () => {

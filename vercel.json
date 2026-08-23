@@ -1,8 +1,11 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/learn", "destination": "/index.html" },
+    { "source": "/stations", "destination": "/index.html" },
     { "source": "/quiz", "destination": "/index.html" }
+  ],
+  "redirects": [
+    { "source": "/learn", "destination": "/stations", "permanent": true }
   ],
   "headers": [
     {

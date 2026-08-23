@@ -6,10 +6,10 @@
 The standalone site for the Tokyo by rail project, deployed on Vercel as a
 static site from `main`. It is ONE file — `index.html` — holding three
 sections, switched by the top tab bar and each with its own URL
-(`vercel.json` rewrites `/learn` and `/quiz` onto the same page; JS reads
+(`vercel.json` rewrites `/stations` and `/quiz` onto the same page; JS reads
 `location.pathname`):
 
-- **Explore** (`/`) — all 98 Greater-Tokyo passenger lines across 22
+- **Trains** (`/`) — all 98 Greater-Tokyo passenger lines across 22
   companies, each with its official color, line symbol and station-number
   badge, its Japanese name and that name's hiragana reading, its riders a
   day, its route length and its stop count. The card wall is the ONLY view:
@@ -49,14 +49,23 @@ sections, switched by the top tab bar and each with its own URL
   clamps it inside the screen, and runs its own clip wipe out of a sliver
   at the pill's x — the library's own riser hangs off a bar corner, which
   is right for a two-corner tab bar and wrong for pills in a row.
-- **Learn** (`/learn`) — placeholder. Planned: a grid of topics on the
-  network's history, each opening as an Instagram-style story.
+- **Stations** (`/stations`) — placeholder, and the NEXT build. A station
+  is a building, not a dot, and the interesting part of Shibuya or
+  Shinjuku is how it stacks: the plan is to walk one floor by floor, with
+  the concourses and the levels between them, where the stairs, escalators
+  and lifts run, and which platform on each floor takes which line in
+  which direction. The section was called Learn until 23 Aug 2026;
+  `vercel.json` 308s `/learn` here and `viewFromPath()` still answers to
+  the old segment, so any link out there lands right.
 - **Quiz** (`/quiz`) — placeholder. Planned: scored rounds with a live
   leaderboard and sign-in to save progress.
 
+The three sections are Trains · Stations · Quiz, in the tab bar and in the
+code (`VIEWS`, `#view-trains`, `#trains-bar`).
+
 The bar convention: the TOP bar navigates between the three sections; the
 BOTTOM bar belongs to whichever section is open and controls its state (on
-Explore: one pill per control, laid along the bottom edge).
+Trains: one pill per control, laid along the bottom edge).
 
 The material: the CHROME wears the embossed frosted glass the library gives
 its tab bar — the recipe is lifted into `--glass-*` tokens and a `.glass`
