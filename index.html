@@ -265,6 +265,33 @@
     .op-marks img { filter: var(--mark-ink); opacity: var(--mark-fade); }
     .op-card-solo .op-title { margin-left: auto; text-align: right; }
 
+    /* THE HEADLINE — one line over the wall saying what is on screen and
+       in what order, then the filters that produced it as removable pills.
+       Lifted from the feed page on tanishksharma.com, which reads the same
+       way: state in one object, every chip mirrors it, and every applied
+       filter is a pill you can take off. */
+    .list-head {
+      display: flex; flex-direction: column; gap: var(--space-tight);
+      margin-bottom: 1.6rem;
+    }
+    .list-line { margin: 0; font-size: 1rem; color: var(--text); }
+    .list-line b { font-weight: var(--weight-strong); }
+    .list-line .list-order { color: var(--text-muted); font-weight: var(--weight-body); }
+    .applied { display: flex; flex-wrap: wrap; gap: var(--space-tight); align-items: center; }
+    /* a pill states its filter and takes it off again; the cross is the
+       whole point, so it is part of the control, not a separate button */
+    .applied .chip {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      min-height: 2rem; padding: 0.25rem 0.7rem;
+      border: var(--border-element) solid var(--accent-3-edge, var(--border));
+      border-radius: var(--radius-pill, 999px);
+      background: var(--accent-3-tint, var(--fill));
+      color: var(--text); font-size: 0.8rem; cursor: pointer;
+    }
+    .applied .chip:hover { background: var(--fill-hover, var(--surface-hover)); }
+    .applied .chip .x { color: var(--text-muted); font-size: 1rem; line-height: 1; }
+    .applied .chip:hover .x { color: var(--text); }
+
     /* the wall's own rhythm: a section is a block, and blocks need air */
     #line-wall > section + section { margin-top: 4.5rem; }
 
@@ -743,6 +770,14 @@
          The whole network as a wall of cards.
          ============================== -->
     <section id="view-trains" class="app-view">
+      <!-- What is on screen, and what is filtering it. The line names the
+           count, the subject and the order; the pills below it are the
+           filters currently applied, each one removable. -->
+      <header class="list-head" id="list-head">
+        <p class="list-line" id="list-line"></p>
+        <div class="row applied" id="applied-filters" hidden></div>
+      </header>
+
       <section id="line-wall" class="stack"></section>
 
       <div class="empty" id="no-match" hidden>
@@ -1095,12 +1130,15 @@
       (!state.area || l.a === state.area) && (!state.op || l.op === state.op));
     /* [heading|null, lines[]] groups per the arrangement mode. */
     const grouped = list => {
-      if (state.arrange === "color") return [[null, [...list].sort((a, b) => hue(a.x) - hue(b.x))]];
-      if (state.arrange === "riders") return [[null, [...list].sort((a, b) => (b.r || 0) - (a.r || 0))]];
+      /* one company is showing: it heads its own grid whatever the order */
+      const only = state.op && list.length
+        ? { op: list[0].op, oj: list[0].oj } : null;
+      if (state.arrange === "color") return [[only, [...list].sort((a, b) => hue(a.x) - hue(b.x))]];
+      if (state.arrange === "riders") return [[only, [...list].sort((a, b) => (b.r || 0) - (a.r || 0))]];
       /* oldest first, and the lines whose opening year is not confirmed go
          last rather than pretending to a date — the same rule ridership
          already follows for the lines with no published figure */
-      if (state.arrange === "age") return [[null, [...list].sort((a, b) => (a.y || 9999) - (b.y || 9999))]];
+      if (state.arrange === "age") return [[only, [...list].sort((a, b) => (a.y || 9999) - (b.y || 9999))]];
       /* By company: the biggest networks first, because that is the order
          a reader already holds the city in — JR East and its seventeen,
          then Seibu, and so on down. Ten companies run exactly one line
@@ -1110,6 +1148,10 @@
       const m = new Map();
       for (const l of list) { if (!m.has(l.op)) m.set(l.op, []); m.get(l.op).push(l); }
       const riders = lines => lines.reduce((n, l) => n + (l.r || 0), 0);
+      /* A company FILTER earns its heading too. Sorting by company gives
+         every company a heading card; filtering to one used to give it a
+         bare grid, which threw away the one heading that was certain to
+         be right. */
       const many = [...m.entries()].filter(([, lines]) => lines.length > 1)
         .sort((a, b) => b[1].length - a[1].length || riders(b[1]) - riders(a[1]))
         .map(([op, lines]) => [{ op, oj: lines[0].oj }, lines]);
@@ -1521,10 +1563,49 @@
       }
     };
 
+    /* ---- The headline -------------------------------------------------
+       Every state the controls can reach says what it is, in one line:
+       how many lines, which ones, and in what order. The subject comes
+       from the filters — a company names itself, an area describes
+       itself, both together read as one phrase — and the order is named
+       only when it is not the default, so the common case stays short.
+       The pills underneath are those same filters, each removable. */
+    const AREA_PHRASE = {
+      tokyo: "entirely inside Tokyo",
+      link: "crossing the Tokyo boundary",
+      out: "outside Tokyo",
+    };
+    const ORDER_PHRASE = {
+      riders: "busiest first", company: "by company",
+      color: "by colour", age: "oldest first",
+    };
+    const headline = list => {
+      const n = list.length;
+      const noun = n === 1 ? "line" : "lines";
+      let subject = state.op ? `<b>${esc(state.op)}</b> ${noun}` : `${noun}`;
+      if (state.area) subject += ` ${AREA_PHRASE[state.area]}`;
+      const order = `<span class="list-order">, ${ORDER_PHRASE[state.arrange]}</span>`;
+      return `<b>${n}</b> ${subject}${n ? order : ""}`;
+    };
+    /* One pill per applied filter. Sort is deliberately absent: it is not
+       a filter, it removes nothing, and the headline already names it. */
+    const appliedPills = () => {
+      const out = [];
+      if (state.op) out.push(["op", state.op, `Show every company again`]);
+      if (state.area) out.push(["area", AREA_WORD[state.area], "Show every area again"]);
+      return out.map(([key, word, label]) =>
+        `<button type="button" class="chip" data-clear="${key}" aria-label="${esc(label)}"
+                 data-tip="${esc(label)}" data-event="lines-clear-filter">${esc(word)}<span class="x" aria-hidden="true">×</span></button>`).join("");
+    };
+
     const render = () => {
       const list = filtered();
       $("line-wall").innerHTML = grouped(list).map(([h, lines]) =>
         `<section>${renderCards(lines, heading(h, h && h.solo ? h.solo.length : lines.length))}</section>`).join("");
+      $("list-line").innerHTML = headline(list);
+      const pills = appliedPills();
+      $("applied-filters").innerHTML = pills;
+      $("applied-filters").hidden = !pills;
       $("no-match").hidden = list.length > 0;
       const p = new URLSearchParams();
       if (state.arrange !== "riders") p.set("arrange", state.arrange);
@@ -2197,6 +2278,16 @@
             undo();
             fx()?.toast?.(`That heart did not save (${err.message})`, "error");
           });
+      });
+
+      /* Taking a filter off from its own pill, the way the feed page's
+         applied filters work. */
+      $("applied-filters").addEventListener("click", e => {
+        const b = e.target.closest("[data-clear]");
+        if (!b) return;
+        state[b.dataset.clear] = "";
+        syncControls();
+        render();
       });
 
       /* One delegated opener for every rendered card. */

@@ -37,6 +37,17 @@ sections, switched by the top tab bar and each with its own URL
   spanning every track, and `fitColumns()` gives each grid only as many
   tracks as it has cards, so a heading ends exactly where its last card
   does.
+  Over the wall sits the HEADLINE: one line naming the count, the subject
+  and the order, and under it the applied filters as removable pills. The
+  model is lifted from the feed page on tanishksharma.com — state in one
+  object, every control mirrors it, every applied filter is a pill you can
+  take off, and the whole state lives in the URL. Every state the controls
+  can reach has its own sentence: the subject comes from the filters (a
+  company names itself, an area describes itself, both read as one
+  phrase), and the order is named always so the line ends the same way.
+  A company FILTER also earns its heading card, whatever the arrangement:
+  sorting by company gives every company one, and filtering to a single
+  company used to throw away the one heading certain to be right.
   Every line wears a HEART anyone can leave without an account (see The
   backend below) — red once this browser has left one, with the count
   rolling up beside it.
