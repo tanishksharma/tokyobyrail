@@ -237,6 +237,23 @@ repo mirrors what is deployed: the migration, the Edge Function and a
 README explaining the shape and its consequences. Change the deployed
 object and the mirror in the same commit.
 
+Two failures this cost us, both now closed:
+
+- A write that did not land was SWALLOWED. The heart went red, the number
+  rolled up, and the tap was gone on the next load with nothing to show
+  for it. A failed write now rolls the card back and toasts the status
+  code, so the next one can be diagnosed rather than guessed at.
+- Every bare `facet.` was a ReferenceError waiting for the library not to
+  arrive, which it does on a flaky connection since it is loaded live and
+  cross-origin. One missing script took the whole wall down with it. Calls
+  go through `fx()` now; a missing library costs the icons and the toasts
+  and nothing else.
+
+One design note, found while testing: the toggle is keyed on the caller's
+hashed IP, so a visitor whose address changes between taps cannot untoggle
+and each tap adds another heart. Fine for a phone on one network, wrong
+for anything behind a rotating egress. Revisit if it ever matters.
+
 The rules it establishes for anything added later:
 
 - The browser reads with the public anon key and writes NOTHING directly.

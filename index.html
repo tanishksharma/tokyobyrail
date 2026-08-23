@@ -1400,6 +1400,14 @@
     const lineKey = l => (l.op + "-" + l.n).toLowerCase()
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+    /* The library is loaded LIVE and cross-origin from
+       facet.tanishksharma.com, so on a flaky connection it simply does not
+       arrive — and a bare `facet.` then throws a ReferenceError that takes
+       the whole render down with it. It did: the wall came up empty. Every
+       call goes through here instead, so a missing library costs the icons
+       and the toasts and nothing else. */
+    const fx = () => (typeof facet === "undefined" ? null : facet);
+
     const hearts = new Map();     // line key -> the count the server gave us
     const mine = new Set();       // line keys this browser has hearted
     try {
@@ -1527,7 +1535,7 @@
       /* the wall was rewritten, so every <svg data-icon> in it is an empty
          placeholder again — the library fills them once at load, not on
          our re-renders */
-      facet.icon?.();
+      fx()?.icon?.();
       fitColumns();
     };
 
@@ -1553,7 +1561,7 @@
         `Area: ${AREA_WORD[state.area]}. Change it`);
       pill("op-pill", state.op || "All companies", !!state.op,
         state.op ? `Company: ${state.op}. Change it` : "Every company. Pick one");
-      facet.icon?.();          // the view pill just swapped its glyph
+      fx()?.icon?.();          // the view pill just swapped its glyph
     };
     const ARRANGE_WORD = { riders: "Ridership", company: "Company", color: "Colour", age: "Age" };
     const AREA_WORD = { "": "All lines", tokyo: "In Tokyo", link: "To the suburbs", out: "Outside Tokyo" };
@@ -1934,7 +1942,7 @@
             <span class="stop-name">${esc(en)}${ja ? `<span class="stop-ja" lang="ja">${esc(ja)}</span>` : ""}</span>
             <svg data-icon="play" aria-hidden="true"></svg>
           </a>`).join("");
-        facet.icon?.();
+        fx()?.icon?.();
       });
     };
 
@@ -1983,7 +1991,7 @@
          <a class="btn btn-secondary" href="${melodyUrl(l.j, l.n)}" target="_blank" rel="noopener" data-event="line-melody">
            <svg data-icon="external" aria-hidden="true"></svg>Hear this line's stations</a>`);
       $("d-fun").innerHTML = bits.join("");
-      facet.icon?.();
+      fx()?.icon?.();
       $("d-chime")?.addEventListener("click", () => playJingle(l));
     };
 
@@ -2014,7 +2022,7 @@
       $("d-hex").textContent = l.x.toUpperCase();
       $("d-term").textContent = l.t || "—";
       $("d-heart-row").innerHTML = heartBtn(l);
-      facet.icon?.();          // fill the heart glyph just injected
+      fx()?.icon?.();          // fill the heart glyph just injected
       $("d-note-row").hidden = !l.note;
       $("d-note").textContent = l.note || "";
       renderStops(l);
@@ -2158,21 +2166,37 @@
            would not restart the animation */
         delete btn.dataset.beat;
         requestAnimationFrame(() => { btn.dataset.beat = ""; });
-        facet.feedback?.tick?.();
+        fx()?.feedback?.tick?.();
+        /* A write that does not land must SAY SO. It used to be swallowed:
+           the heart went red, the number rolled up, and the tap was gone on
+           the next load with nothing to show for it — which is exactly how
+           a whole evening of hearts went missing. A failure now puts the
+           card back the way it was and names the status, so the next one
+           can be diagnosed instead of guessed at. */
+        const undo = () => {
+          on ? mine.delete(k) : mine.add(k);
+          saveMine();
+          hearts.set(k, Math.max(0, (hearts.get(k) || 0) + (on ? -1 : 1)));
+          paintHearts(true);
+        };
         fetch(`${DB}/functions/v1/rail-like`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ line: k }),
         })
-          .then(r => r.ok ? r.json() : null)
-          .then(d => {
-            if (!d || typeof d.likes !== "number") return;
+          .then(async r => {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            const d = await r.json();
+            if (!d || typeof d.likes !== "number") throw new Error("no count came back");
             hearts.set(k, d.likes);
             d.liked ? mine.add(k) : mine.delete(k);
             saveMine();
             paintHearts(true);
           })
-          .catch(() => { /* the tap stands locally; the next load corrects it */ });
+          .catch(err => {
+            undo();
+            fx()?.toast?.(`That heart did not save (${err.message})`, "error");
+          });
       });
 
       /* One delegated opener for every rendered card. */
@@ -2197,7 +2221,7 @@
         if (!current) return;
         try {
           await navigator.clipboard.writeText(current.x.toUpperCase());
-          facet.toast("Hex copied", "success");
+          fx()?.toast?.("Hex copied", "success");
         } catch { /* clipboard denied */ }
       });
     });
