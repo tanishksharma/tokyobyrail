@@ -24,7 +24,16 @@ sections, switched by the top tab bar and each with its own URL
   across one screen fought the line colours, which are the only colours
   there that mean anything. A SECTION HEADING is the exception, amended
   22 Aug 2026 — one mark per section, at size, with nothing beside it to
-  fight, so it wears the company's own wordmark in full colour. Half those
+  fight, so it wears the company's own wordmark in full colour, and from
+  23 Aug its brand colour three ways: a pale wash as the face, the name in
+  a deepened cut of it, and a rule of it along the foot, which answers the
+  line cards' colour band below without competing with it. The colours in
+  `OP_BRAND` were READ OUT of each company's own artwork in `/logos`, never
+  looked up and typed in, so a heading cannot claim a colour its mark does
+  not use; the four companies that draw their mark in one ink get no brand
+  colour and keep the plain heading. `--brand-ink-mix` (60% on paper, 52%
+  in the dark) is solved against all 21 so the worst of them still clears
+  4.5:1 on its own wash. Half those
   wordmarks set their type in black for a printed timetable, so in the
   dark they take a white clear-space chip (`--mark-plate`) rather than an
   inversion into colours the company never uses. The popup likewise shows
@@ -37,8 +46,10 @@ sections, switched by the top tab bar and each with its own URL
   spanning every track, and `fitColumns()` gives each grid only as many
   tracks as it has cards, so a heading ends exactly where its last card
   does.
-  Over the wall sits the HEADLINE: one line naming the count, the subject
-  and the order, and under it the applied filters as removable pills. The
+  Over the wall sits the HEADLINE, on the WALL'S left edge and not the
+  page's — `fitColumns()` hands it the grid's own width, since the wall is
+  centred on fixed tracks and floats some way in. One line naming the
+  count, the subject and the order, and under it the applied filters as removable pills. The
   model is lifted from the feed page on tanishksharma.com — state in one
   object, every control mirrors it, every applied filter is a pill you can
   take off, and the whole state lives in the URL. Every state the controls

@@ -231,10 +231,32 @@
       margin-bottom: 0.55rem;
       display: flex; align-items: center; gap: var(--space-inline);
       padding: 0.9rem 1.1rem;
-      background: var(--card-face);
+      /* A branded heading wears the company's own colour three ways, none
+         of them loud: a pale wash of it as the face, the name set in a
+         deepened cut of it, and a rule of it along the foot — which
+         answers the line cards' colour band below without competing with
+         them. A company whose mark is one ink gets the plain card. */
+      background: var(--brand-face, var(--card-face));
       border: var(--border-element) solid var(--border);
-      border-radius: var(--card-round); box-shadow: var(--card-emboss);
+      border-radius: var(--card-round);
+      box-shadow: var(--card-emboss), inset 0 -3px 0 0 var(--brand, transparent);
+      --brand-face: linear-gradient(180deg,
+        color-mix(in srgb, var(--brand) var(--brand-wash), var(--surface)) 0%,
+        color-mix(in srgb, var(--brand) calc(var(--brand-wash) * 2), var(--surface)) 100%);
     }
+    /* the name takes the brand, deepened until it reads on that wash: the
+       lightest marks here (Toyo's green, Tama's orange) are nowhere near
+       legible at full strength on paper */
+    .op-card .op-name { color: var(--brand-ink, inherit); }
+    /* how far to pull the brand toward the page's own ink before setting
+       it: solved against all 21, so the worst of them still clears 4.5:1
+       on its own wash (Toyo's green on paper, Hokuso's navy in the dark) */
+    .op-card { --brand-ink: color-mix(in srgb, var(--brand, currentColor) var(--brand-ink-mix), var(--brand-mix)); }
+    :root { --brand-wash: 5%; --brand-mix: var(--text); --brand-ink-mix: 60%; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-mode="light"]) { --brand-wash: 9%; --brand-mix: #fff; --brand-ink-mix: 52%; }
+    }
+    :root[data-mode="dark"] { --brand-wash: 9%; --brand-mix: #fff; --brand-ink-mix: 52%; }
     .op-word { width: auto; height: auto; max-width: 8rem; max-height: 2.1rem; flex: none;
       background: var(--mark-plate, none); padding: var(--mark-plate-pad, 0);
       border-radius: 0.35rem; }
@@ -272,7 +294,9 @@
        filter is a pill you can take off. */
     .list-head {
       display: flex; flex-direction: column; gap: var(--space-tight);
-      margin-bottom: 1.6rem;
+      /* fitColumns() gives it the wall's own width; this centres it on the
+         same axis so the two share a left edge */
+      max-width: 100%; margin: 0 auto 1.6rem;
     }
     .list-line { margin: 0; font-size: 1rem; color: var(--text); }
     .list-line b { font-weight: var(--weight-strong); }
@@ -1193,6 +1217,27 @@
        flattened into a solid block. */
     const flatSrc = (slug, kind) => `/logos/flat/${logoFile(slug, kind).replace(/\.svg$/, ".png")}`;
 
+    /* THE BRAND COLOURS. Read out of each company's own artwork in
+       /logos rather than looked up and typed in, so a heading can never
+       claim a colour the mark itself does not use. Four companies draw
+       their mark in one ink — Yokohama City among them — and they simply
+       get no brand colour and keep the plain heading; inventing one for
+       them would be worse than leaving it out. */
+    const OP_BRAND = {
+      "JR East": "#008848", "Tokyo Metro": "#00A3D9", "Toei": "#199332",
+      "Tokyu": "#EF3026", "Seibu": "#2B78C6", "Tobu": "#005BAC",
+      "Keio": "#00377E", "Keisei": "#1E54AE", "Keikyu": "#1C90BD",
+      "Odakyu": "#004EA1", "Sotetsu": "#2561A7",
+      "Yokohama Minatomirai Railway": "#14488E",
+      "Metropolitan Intercity Railway": "#0000FF",
+      "Tokyo Waterfront Area Rapid Transit": "#00418E",
+      "Yurikamome": "#1662B8", "Tokyo Monorail": "#0B70B8",
+      "Tama Toshi Monorail": "#E97118", "Saitama Railway": "#394690",
+      "Toyo Rapid Railway": "#66C542", "Hokuso Railway": "#12284D",
+      "Shibayama Railway": "#007F5A",
+    };
+    const brandStyle = op => OP_BRAND[op] ? ` style="--brand:${OP_BRAND[op]}"` : "";
+
     /* The section heading is a card of its own, laid across the whole row
        the cards below it occupy — the grid places it, so it is exactly as
        wide as its section is, however many fit that screen. The mark is in
@@ -1212,7 +1257,7 @@
         </span>
       </header>`;
       const slug = OPSLUG[h.op];
-      return `<header class="op-card">
+      return `<header class="op-card"${brandStyle(h.op)}>
         <img class="op-word" src="${logoSrc(slug, "word")}" alt="${esc(h.op)}"
              onerror="this.hidden=true;this.nextElementSibling.classList.add('op-title-lead')">
         <span class="op-title">
@@ -1561,6 +1606,12 @@
         const n = Math.min(g.querySelectorAll(".line-card").length, fit);
         g.style.gridTemplateColumns = `repeat(${n}, var(--card-w))`;
       }
+      /* The wall is centred on fixed tracks, so its left edge sits some
+         way in from the page's. The headline belongs ON that edge, not on
+         the page's, or it floats off to the side of everything it
+         describes. */
+      const head = $("list-head");
+      if (head) head.style.width = (fit * card + (fit - 1) * gap) + "px";
     };
 
     /* ---- The headline -------------------------------------------------
