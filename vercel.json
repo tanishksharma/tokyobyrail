@@ -1,17 +1,34 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/stations", "destination": "/index.html" },
-    { "source": "/quiz", "destination": "/index.html" }
+    {
+      "source": "/stations",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/quiz",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/index.html"
+    }
   ],
   "redirects": [
-    { "source": "/learn", "destination": "/stations", "permanent": true }
+    {
+      "source": "/learn",
+      "destination": "/stations",
+      "permanent": true
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ]
