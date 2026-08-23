@@ -74,6 +74,11 @@
        company has two lines or seventeen — never stretched by a short row. */
     .line-grid {
       display: grid;
+      /* The track count is set per section by fitColumns(), not by
+         auto-fill: the heading card spans every track, and a spanning item
+         counts as occupying them, so auto-fit would never collapse the
+         spare ones and the heading would run on past the cards. This is
+         the fallback for the moment before that runs. */
       grid-template-columns: repeat(auto-fill, var(--card-w));
       gap: var(--space-stack);
       --card-w: 16rem;
@@ -142,13 +147,16 @@
     .line-kanji { font-size: calc(var(--u) * 6); font-weight: 700; color: var(--text); }
     /* The band is solid, in the line's ONE colour, because no single ink
        reads on both halves of a split — the Rinkai Line's teal and navy
-       want opposite inks. So the two-colour signal stays where it always
-       was, as the strip along the very bottom edge, and on a single-colour
-       line that strip is simply the same colour as the band above it. */
+       want opposite inks. A line that officially carries a SECOND colour
+       says so with a second stripe under the band, full width, rather than
+       by halving it: two stacked colours read as a line's pair, where a
+       half-and-half strip under a solid band read as a mistake. On a
+       single-colour line the stripe is the band's own colour and so is not
+       there at all. */
     .line-card::after {
       content: ""; position: absolute; left: 0; right: 0; bottom: 0;
       height: 0.375rem; z-index: 3;
-      background: linear-gradient(90deg, var(--c) 0 50%, var(--c2, var(--c)) 50% 100%);
+      background: var(--c2, var(--c));
     }
     /* the whole card opens the dialog through one invisible stretched
        button — a real control, keyboard operable, and deliberately with
@@ -202,17 +210,51 @@
     .line-stats span { display: inline-flex; align-items: center; gap: 0.2rem; }
     .line-stats svg { width: 0.85rem; height: 0.85rem; flex: none; opacity: 0.8; }
 
-    /* Company section heading: the company's own mark, its name, its
-       Japanese name, over a hairline. */
-    .op-head {
+    /* THE SECTION HEADING — a card, not a caption. It sits INSIDE the grid
+       and spans every track, so it is exactly as wide as the row of cards
+       beneath it, whatever a screen fits. The company's wordmark leads in
+       its own colours, its name and Japanese name follow, and the count of
+       lines closes the row. */
+    .op-card {
+      grid-column: 1 / -1;
       display: flex; align-items: center; gap: var(--space-inline);
-      padding-bottom: var(--space-tight);
-      border-bottom: var(--border-hairline, 1px) solid var(--border);
+      padding: 0.9rem 1.1rem;
+      background: var(--surface);
+      border: var(--border-element) solid var(--border);
+      border-radius: var(--radius-card, 0.75rem);
     }
-    .op-head img { width: auto; height: auto; max-width: 6.5rem; max-height: 1.7rem;
-      filter: var(--mark-ink); opacity: var(--mark-fade); }
-    .op-name { font-weight: var(--weight-strong); font-size: 0.95rem; }
-    .op-ja { color: var(--text-muted); font-weight: var(--weight-body); margin-left: 0.4rem; }
+    .op-word { width: auto; height: auto; max-width: 8rem; max-height: 2.1rem; flex: none;
+      background: var(--mark-plate, none); padding: var(--mark-plate-pad, 0);
+      border-radius: 0.35rem; }
+    /* Half these wordmarks set their type in black, drawn for a printed
+       timetable, so in the dark they simply disappear. They keep their own
+       colours and get the white the artwork assumes — the clear-space
+       chip a brand sheet would give them — rather than being inverted
+       into colours the company never uses. */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-mode="light"]) { --mark-plate: #fff; --mark-plate-pad: 0.3rem 0.45rem; }
+    }
+    :root[data-mode="dark"] { --mark-plate: #fff; --mark-plate-pad: 0.3rem 0.45rem; }
+    /* with no wordmark file the name leads instead, and takes the size */
+    .op-title { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; }
+    .op-title-lead .op-name { font-size: 1.25rem; }
+    .op-name { font-weight: var(--weight-strong); font-size: 1.05rem; line-height: 1.2; }
+    .op-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.2; }
+    .op-count {
+      margin-left: auto; flex: none;
+      color: var(--text-muted); font-size: 0.8rem;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    /* The one-line-each heading has no single company to stand for it, so
+       its marks stand in a row instead — one per company in the section,
+       grey the way a card's mark is, because here there ARE ten palettes
+       side by side. */
+    .op-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem; flex: none; max-width: 55%; }
+    .op-marks img { filter: var(--mark-ink); opacity: var(--mark-fade); }
+    .op-card-solo .op-title { margin-left: auto; text-align: right; }
+
+    /* the wall's own rhythm: a section is a block, and blocks need air */
+    #line-wall > section + section { margin-top: var(--space-section, 2.5rem); }
 
     /* company mark, lower left; a monogram stands in when no logo file */
     /* Logo viewBoxes are trimmed to their content, so caps mean the same
@@ -980,9 +1022,23 @@
          last rather than pretending to a date — the same rule ridership
          already follows for the lines with no published figure */
       if (state.arrange === "age") return [[null, [...list].sort((a, b) => (a.y || 9999) - (b.y || 9999))]];
+      /* By company: the biggest networks first, because that is the order
+         a reader already holds the city in — JR East and its seventeen,
+         then Seibu, and so on down. Ten companies run exactly one line
+         each; a section apiece for them would be ten headings over ten
+         single cards, so they share one at the end. Companies level on
+         count are separated by how many riders they carry. */
       const m = new Map();
       for (const l of list) { if (!m.has(l.op)) m.set(l.op, []); m.get(l.op).push(l); }
-      return [...m.entries()].map(([op, lines]) => [{ op, oj: lines[0].oj }, lines]);
+      const riders = lines => lines.reduce((n, l) => n + (l.r || 0), 0);
+      const many = [...m.entries()].filter(([, lines]) => lines.length > 1)
+        .sort((a, b) => b[1].length - a[1].length || riders(b[1]) - riders(a[1]))
+        .map(([op, lines]) => [{ op, oj: lines[0].oj }, lines]);
+      const solo = [...m.entries()].filter(([, lines]) => lines.length === 1)
+        .sort((a, b) => riders(b[1]) - riders(a[1]));
+      return solo.length
+        ? [...many, [{ solo: solo.map(([op]) => op) }, solo.map(([, lines]) => lines[0])]]
+        : many;
     };
     /* Every mark's own width-to-height ratio, measured from its trimmed
        artwork. A single max-width/max-height cap made a 5:1 wordmark cover
@@ -1016,12 +1072,33 @@
        flattened into a solid block. */
     const flatSrc = (slug, kind) => `/logos/flat/${logoFile(slug, kind).replace(/\.svg$/, ".png")}`;
 
-    const heading = h => {
+    /* The section heading is a card of its own, laid across the whole row
+       the cards below it occupy — the grid places it, so it is exactly as
+       wide as its section is, however many fit that screen. The mark is in
+       the company's OWN colours here: the reason marks go grey on a card
+       was twenty-two corporate palettes fighting the line colours across
+       one screen, and a heading is one mark per section, at size, with
+       nothing beside it to fight. */
+    const heading = (h, count) => {
       if (!h) return "";
+      if (h.solo) return `<header class="op-card op-card-solo">
+        <span class="op-marks">${h.solo.map(op =>
+          `<img src="${flatSrc(OPSLUG[op], "mark")}" alt="" data-tip="${esc(op)}"
+                style="${logoBox(OPSLUG[op])}" onerror="this.hidden=true">`).join("")}</span>
+        <span class="op-title">
+          <span class="op-name">One line each</span>
+          <span class="op-sub">${count} companies that run a single line</span>
+        </span>
+      </header>`;
       const slug = OPSLUG[h.op];
-      return `<header class="op-head">
-        <img src="${flatSrc(slug, "word")}" alt="" onerror="this.hidden=true">
-        <span class="op-name">${esc(h.op)}<span class="op-ja" lang="ja">${esc(h.oj)}</span></span>
+      return `<header class="op-card">
+        <img class="op-word" src="${logoSrc(slug, "word")}" alt="${esc(h.op)}"
+             onerror="this.hidden=true;this.nextElementSibling.classList.add('op-title-lead')">
+        <span class="op-title">
+          <span class="op-name">${esc(h.op)}</span>
+          <span class="op-sub" lang="ja">${esc(h.oj)}</span>
+        </span>
+        <span class="op-count">${count} ${count === 1 ? "line" : "lines"}</span>
       </header>`;
     };
 
@@ -1039,10 +1116,17 @@
        sets the unit, never the reading: the name is what the card is for,
        and the reading has a second line to fall onto. */
     const JA_ROOM = 8.6;               // rem left beside the badge and heart
-    /* Six lines carry a parenthesised second name — 東武スカイツリーライン
-       （伊勢崎線）. The card shows the name; the bracket is a note, and it
-       goes with the rest of the detail to the popup and the tooltip. */
+    /* Some lines carry a parenthesised second name — 東武スカイツリーライン
+       （伊勢崎線）, Yurikamome (Tokyo Waterfront New Transit Line). The card
+       shows the name; the bracket is a note, and it goes with the rest of
+       the detail to the popup and the tooltip.
+
+       In English the bracket is dropped only past 34 characters, because a
+       SHORT bracket is doing real work: Chuo Line (Rapid) and Joban Line
+       (Local) would each lose the only thing that tells them from a
+       sibling. Above that length it is always an alternate name. */
     const cardJa = j => j.split("（")[0];
+    const cardEn = n => n.length > 34 ? n.split(" (")[0] : n;
     const jaUnit = j => {
       const runs = [...j].reduce((w, ch) => w + (/[\x20-\x7e]/.test(ch) ? 0.5 : 1), 0);
       /* the cap is the size a short name gets; the floor is the smallest
@@ -1261,10 +1345,10 @@
     const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
     const stat = (icon, text, tip) => text
       ? `<span data-tip="${esc(tip)}"><svg data-icon="${icon}" aria-hidden="true"></svg>${esc(text)}</span>` : "";
-    const renderCards = lines => `<div class="line-grid" data-arrange="${state.arrange}">` + lines.map(l => {
+    const renderCards = (lines, head) => `<div class="line-grid" data-arrange="${state.arrange}">` + head + lines.map(l => {
       const slug = OPSLUG[l.op], band = bandInk(l.x);
       return `<article class="card line-card stack-tight"
-        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(cardJa(l.j))}rem;--name:${nameSize(l.n)}rem;--ink:${band.ink};--mark-band:${band.mark};--jp:${jpSize(cardJa(l.j))}rem">
+        style="--c:${l.x}${l.x2 ? `;--c2:${l.x2}` : ""};--u:${jaUnit(cardJa(l.j))}rem;--name:${nameSize(cardEn(l.n))}rem;--ink:${band.ink};--mark-band:${band.mark};--jp:${jpSize(cardJa(l.j))}rem">
         <button type="button" class="line-open" data-line="${l.i}" data-event="lines-open"
                 data-tip="${esc(l.n)} · ${esc(l.j)} · ${esc(l.op)}" aria-label="${esc(l.n)} details"></button>
         <span class="line-head">
@@ -1274,7 +1358,7 @@
             <span class="line-kanji">${esc(cardJa(l.j))}</span>
           </span>
         </span>
-        <strong class="line-name">${esc(l.n)}</strong>
+        <strong class="line-name">${esc(cardEn(l.n))}</strong>
         <span class="line-jpbg" lang="ja" aria-hidden="true"><span>${esc(cardJa(l.j))}</span></span>
         <span class="line-band">
           <span class="line-stats">
@@ -1290,10 +1374,34 @@
       </article>`;
     }).join("") + `</div>`;
 
+    /* How many cards fit a row, and therefore how wide each section is.
+       A section never claims more tracks than it has cards, so its heading
+       card — which spans every track — ends exactly where its last card
+       does. One layout read per render, not one per card. */
+    const fitColumns = () => {
+      const grids = document.querySelectorAll(".line-grid");
+      if (!grids.length) return;
+      if (matchMedia("(max-width: 34rem)").matches) {
+        /* the phone rule owns the columns there; an inline value would win
+           over it, so hand them back */
+        for (const g of grids) g.style.gridTemplateColumns = "";
+        return;
+      }
+      const cs = getComputedStyle(grids[0]);
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const card = parseFloat(cs.getPropertyValue("--card-w")) * rem;
+      const gap = parseFloat(cs.columnGap) || 0;
+      const fit = Math.max(1, Math.floor((grids[0].clientWidth + gap) / (card + gap)));
+      for (const g of grids) {
+        const n = Math.min(g.querySelectorAll(".line-card").length, fit);
+        g.style.gridTemplateColumns = `repeat(${n}, var(--card-w))`;
+      }
+    };
+
     const render = () => {
       const list = filtered();
       $("line-wall").innerHTML = grouped(list).map(([h, lines]) =>
-        `<section class="stack-tight">${heading(h)}${renderCards(lines)}</section>`).join("");
+        `<section>${renderCards(lines, heading(h, h && h.solo ? h.solo.length : lines.length))}</section>`).join("");
       $("no-match").hidden = list.length > 0 || state.mode === "map";
       if (state.mode === "map") paintMap(list);
       const p = new URLSearchParams();
@@ -1307,6 +1415,7 @@
          placeholder again — the library fills them once at load, not on
          our re-renders */
       facet.icon?.();
+      fitColumns();
     };
 
     /* Mirror the state onto the sheets' menu rows and the mode pill. */
@@ -1857,6 +1966,7 @@
       drawGround();
       let groundTimer = 0;
       addEventListener("resize", () => {
+        fitColumns();
         clearTimeout(groundTimer);
         groundTimer = setTimeout(drawGround, 150);
       });

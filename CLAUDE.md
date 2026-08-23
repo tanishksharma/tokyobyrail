@@ -20,10 +20,23 @@ sections, switched by the top tab bar and each with its own URL
   the suburbs / outside) and company; a per-line detail dialog carries the map
   with that line highlighted, filling the whole top of the popup and taking
   the same gestures plus a zoom pill. Every control mirrors into the URL.
-  Company marks are GREY on the wall, on the cards and in the section
-  headings alike: twenty-two corporate palettes across one screen fought
-  the line colours, which are the only colours here that mean anything.
-  The popup shows the mark once, at size, in its own colours.
+  Company marks are GREY on the CARDS: twenty-two corporate palettes
+  across one screen fought the line colours, which are the only colours
+  there that mean anything. A SECTION HEADING is the exception, amended
+  22 Aug 2026 — one mark per section, at size, with nothing beside it to
+  fight, so it wears the company's own wordmark in full colour. Half those
+  wordmarks set their type in black for a printed timetable, so in the
+  dark they take a white clear-space chip (`--mark-plate`) rather than an
+  inversion into colours the company never uses. The popup likewise shows
+  its mark once, at size, in colour.
+  Sorted by company, the sections run by SIZE — JR East and its seventeen
+  first, down to the two-line operators, companies level on count split by
+  ridership. The ten companies that run a single line share one section at
+  the end, "One line each", whose heading carries their ten marks in a row
+  instead of one. A section heading is a CARD inside its own grid,
+  spanning every track, and `fitColumns()` gives each grid only as many
+  tracks as it has cards, so a heading ends exactly where its last card
+  does.
   Every line wears a HEART anyone can leave without an account (see The
   backend below) — red once this browser has left one, with the count
   rolling up beside it.
@@ -67,8 +80,10 @@ relative-luminance formula on the line's hex and hands the card `--ink`
 mark to match. Every one of the 98 clears 4.5:1; the worst is the
 Shonan-Shinjuku red at 4.68. The band is SOLID, in the primary colour
 only: no single ink reads on both halves of a split, the Rinkai Line's
-teal and navy wanting opposite ones, so the two-colour signal stays where
-it was, as the strip along the very bottom edge.
+teal and navy wanting opposite ones. A line that officially carries a
+second colour says so with a second stripe under the band, full width —
+two stacked colours read as a pair, where a half-and-half strip under a
+solid band read as a mistake.
 
 Below 34rem the card drops the 4:3 and takes only the height it needs, or
 one card would fill a third of a phone, and the watermark goes with it —
