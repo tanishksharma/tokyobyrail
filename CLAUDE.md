@@ -65,9 +65,11 @@ material. Letters on glass are embossed with the `--emboss-up` /
 `--emboss-down` pair, which swaps weight in the dark. The CARDS deliberately
 do NOT: a wall of ninety-eight blurred panes cost more than it said, and a
 card should read as printed, not pressed. A card is a plain 4:3 PLACARD on
-`--surface`: square corners and one hard, unblurred shadow (`--placard`,
-3px down and across), so it reads as a board hung against a wall rather
-than a rounded pane floating over one. The wall is spaced to match — cards
+`--surface`: square corners and a shadow that is soft but TIGHT
+(`--placard`) — it hugs the card rather than spreading under it, so the
+placard reads as pressed against the wall, not floating over it. It was a
+hard unblurred offset for a day; a square of grey beside a square card
+read as a mistake. The wall is spaced to match — cards
 1.35rem apart, a heading a little further from its own cards than they are
 from each other, and 4.5rem between one company and the next. Its content:
 the badge, then the line's reading over its Japanese name
@@ -176,6 +178,27 @@ staging-first workflow used in the other projects:
   appears, it is a mistake — say so instead of using it.
 - Feature-branch previews (Vercel deploys every branch) are the only
   pre-production look.
+
+## Staying current, and the audio session
+
+Two things this site learned the hard way, both worth keeping.
+
+A page left open keeps showing the build it loaded, and iOS hands a
+backgrounded tab straight back from the bfcache untouched — so a deploy can
+sit unseen for days and the wall reads as broken rather than merely old.
+That is how a stale company ordering and a missing section were reported
+when both were correct in the shipped file. On becoming visible again the
+page HEADs its own URL with `cache: "no-store"`, compares the ETag against
+the one it loaded with, and reloads itself if they differ. One request,
+only when the tab is looked at.
+
+The audio context is opened by the CHIME BUTTON and by nothing else, and
+suspended the moment the melody ends, when the popup closes, and when the
+page hides. It used to be opened and resumed by the first tap anywhere on
+the page and then left running forever, which on iOS claims the device's
+audio session: the page reads as playing sound and goes on reading that
+way after the browser is put away. A context runs only while a note is
+actually sounding.
 
 ## The backend
 

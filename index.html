@@ -101,10 +101,11 @@
        carries two colors. */
     .line-card {
       position: relative; text-align: left;
-      /* square corners and one hard, short shadow: a board hung against a
-         wall, not a rounded pane floating over it. The shadow has no blur
-         on purpose — a soft one reads as depth, a sharp one as a real
-         object a few millimetres off the surface. */
+      /* square corners, and a shadow that is soft but TIGHT — it hugs the
+         card rather than spreading under it, so the placard reads as
+         pressed against the wall, not floating over it. It was a hard
+         unblurred offset for a day; a square of grey beside a square card
+         read as a mistake. */
       border-radius: 0; box-shadow: var(--placard);
       aspect-ratio: 4 / 3; overflow: hidden;
       padding: 0.875rem; gap: 0.45rem;
@@ -191,7 +192,7 @@
       display: flex; align-items: flex-end; justify-content: flex-end;
       font-family: "Noto Sans JP", var(--font-body), sans-serif;
       font-weight: 900; font-size: var(--jp, 3rem); line-height: 0.92;
-      color: var(--text); opacity: 0.05;
+      color: var(--text); opacity: 0.028;
       text-align: right; overflow: hidden;
       pointer-events: none; user-select: none;
     }
@@ -463,19 +464,19 @@
         0 1px 0 color-mix(in srgb, var(--surface) 55%, transparent);
       --emboss-up: rgb(255 255 255 / 0.55);
       --emboss-down: rgb(0 0 0 / 0.16);
-      --placard: 3px 3px 0 rgb(16 24 40 / 0.10);
+      --placard: 0 1px 2px rgb(16 24 40 / 0.10), 0 2px 6px rgb(16 24 40 / 0.09);
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-mode="light"]) {
         --emboss-up: rgb(255 255 255 / 0.10);
         --emboss-down: rgb(0 0 0 / 0.55);
-        --placard: 3px 3px 0 rgb(0 0 0 / 0.45);
+        --placard: 0 1px 2px rgb(0 0 0 / 0.55), 0 2px 7px rgb(0 0 0 / 0.40);
       }
     }
     :root[data-mode="dark"] {
       --emboss-up: rgb(255 255 255 / 0.10);
       --emboss-down: rgb(0 0 0 / 0.55);
-      --placard: 3px 3px 0 rgb(0 0 0 / 0.45);
+      --placard: 0 1px 2px rgb(0 0 0 / 0.55), 0 2px 7px rgb(0 0 0 / 0.40);
     }
     .glass {
       background: var(--glass-bg);
@@ -1472,20 +1473,33 @@
        lines, and the recordings are copyrighted. Each line gets a stable
        little bell melody of its own: the key comes from its color's hue,
        the notes from a seeded walk of a major pentatonic ending on the
-       high octave. Audio can only start after a user gesture, so the
-       first click or tap anywhere unlocks it; until then a hover shows a
-       hint instead. */
-    let audioCtx = null;
-    const unlockAudio = () => {
+       high octave.
+
+       The audio context is opened by the CHIME BUTTON and by nothing else,
+       and it is suspended the moment the melody ends. It used to be opened
+       and resumed by the first tap anywhere on the page and then left
+       running forever, which on iOS claims the device's audio session —
+       the page reads as playing sound, and goes on reading that way after
+       the browser is put away. A context is only allowed to run while a
+       note is actually sounding. */
+    let audioCtx = null, sleepTimer = 0;
+    const wakeAudio = () => {
       try {
         audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === "suspended") audioCtx.resume();
-      } catch (e) { /* no WebAudio */ }
+        return true;
+      } catch (e) { return false; }        // no WebAudio here
     };
-    document.addEventListener("pointerdown", unlockAudio, { capture: true });
+    const sleepAudio = () => {
+      clearTimeout(sleepTimer);
+      if (audioCtx && audioCtx.state === "running") audioCtx.suspend().catch(() => {});
+    };
+    /* leaving the page, hiding the tab or closing the dialog all silence it */
+    addEventListener("pagehide", sleepAudio);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) sleepAudio(); });
     let lastPlay = 0;
     const playJingle = l => {
-      if (!audioCtx || audioCtx.state !== "running") return false;
+      if (!wakeAudio()) return false;
       const t0 = audioCtx.currentTime;
       if (t0 - lastPlay < 0.4) return true;      // sweeping across cards ≠ a carillon
       lastPlay = t0;
@@ -1516,6 +1530,9 @@
         }
         t += dur * 0.8;
       }
+      /* hand the audio session back as soon as the last note has rung */
+      clearTimeout(sleepTimer);
+      sleepTimer = setTimeout(sleepAudio, (t - t0 + 1) * 1000);
       return true;
     };
 
@@ -1876,7 +1893,7 @@
            <svg data-icon="external" aria-hidden="true"></svg>Hear this line's stations</a>`);
       $("d-fun").innerHTML = bits.join("");
       facet.icon?.();
-      $("d-chime")?.addEventListener("click", () => { unlockAudio(); setTimeout(() => playJingle(l), 40); });
+      $("d-chime")?.addEventListener("click", () => playJingle(l));
     };
 
     /* Opening a line's card — from a tile, or from a line on the map. */
@@ -1913,6 +1930,9 @@
       renderFun(l);
       showPane("facts");
       $("line-dialog").showModal();
+      /* closing the popup takes the chime with it: the button that opens
+         the audio session lives in there and nowhere else */
+      $("line-dialog").addEventListener("close", sleepAudio, { once: true });
       showMap(l);
     };
 
@@ -1970,6 +1990,26 @@
           placePanel(sheet, pill, open);
         }).observe(sheet, { attributes: true, attributeFilter: ["data-open"] });
       }
+
+      /* ---- Staying current ------------------------------------------
+         A page left open keeps showing the build it loaded. iOS hands a
+         backgrounded tab straight back from the bfcache, untouched, so a
+         deploy can sit unseen for days and the wall reads as broken rather
+         than merely old — which is exactly how a stale ordering and a
+         missing section were reported. Coming back to the page, it asks
+         the server whether this document has changed and reloads itself if
+         it has. One HEAD request, and only when the tab is looked at. */
+      let buildTag = null;
+      const readTag = () => fetch(location.pathname, { method: "HEAD", cache: "no-store" })
+        .then(r => r.headers.get("etag") || r.headers.get("last-modified"))
+        .catch(() => null);
+      readTag().then(t => { buildTag = t; });
+      const checkFresh = () => {
+        if (!buildTag || document.hidden) return;
+        readTag().then(t => { if (t && t !== buildTag) location.reload(); });
+      };
+      document.addEventListener("visibilitychange", checkFresh);
+      addEventListener("pageshow", e => { if (e.persisted) checkFresh(); });
 
       drawGround();
       let groundTimer = 0;
