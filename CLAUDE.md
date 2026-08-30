@@ -18,20 +18,60 @@ sections, switched by the top tab bar and each with its own URL
   the popup alone. Sorted seven ways — ridership, length, stops, age, name,
   company, colour — each one comparator in `ORDER_BY`, with the lines
   missing that figure sorted LAST rather than as a zero pretending to be
-  the shortest or the quietest. Filtered by
-  area (inside Tokyo / to the suburbs / outside) and company, BOTH
-  multi-select: each holds a set, picking a second widens the wall rather
-  than replacing what you had, and the sheet stays open while you pick.
-  Sort stays single, an order being one thing by definition. The company
+  the shortest or the quietest. Filtered EIGHT ways from a row of
+  pills: area (inside Tokyo / to the suburbs / outside), company, and
+  SHAPE — all three multi-select, each holding a set, so picking a second
+  widens the wall rather than replacing what you had and the sheet stays
+  open while you pick — plus the four single-value filters added
+  30 Aug 2026: opening era (before 1970 / 1970 onward, which splits the 98
+  almost in half at 64 and 34), badge shape (round 41 / square 57), a
+  second official colour (4 lines), and the lines this browser has
+  HEARTED. The last two are TOGGLES: one tap is the whole control, so
+  they carry no panel and no chevron, and the pill holds the state in
+  `aria-pressed`. Sort stays single, an order being one thing by
+  definition. Eight controls outgrow a phone, so the row SCROLLS
+  SIDEWAYS and says it does: `ctlEdges()` reads the scroll position and
+  masks a fade onto whichever side still holds something, so a row that
+  fits shows no fade at all, and a filter restored from a shared link
+  that lands off screen scrolls itself into view once, on the first draw
+  only. Every filter row prints how many lines it would leave, the way
+  the company rows always have — a filter that would empty the wall says
+  so before it is tapped.
+  SHAPE is what the route DOES, and it is the one filter that needed new
+  data: `sh` is an array of tags on each line, verified Aug 2026 line by
+  line against each line's own article — `loop` (2: Yamanote and Oedo),
+  `fork` (7, where the route splits so which branch a train takes decides
+  where you end up), `through` (65, 相互直通運転, where trains carry on
+  onto another company's tracks, which is how Tokyo hides its company
+  boundaries from the passenger). 28 lines carry no tag and are ordinary
+  there-and-back routes; the popup drops the row rather than printing a
+  word for "nothing unusual". The company
   sheet groups its twenty-two names BY AREA — where most of that company's
   own lines run — because one column of twenty-two is a wall to read and
   three short lists are a place to look. Every pick is its own chip under
   the headline with its own cross, and a Clear all appears once more than
   one is on. The URL carries them comma-separated (`?op=a,b&area=x,y`) and
-  drops anything it does not recognise. A per-line
+  drops anything it does not recognise; the single-value filters ride it
+  as `?era=`, `?badge=`, `?two=1`, `?heart=1` and the shape set as
+  `?shape=a,b`. The HEADLINE names every one of them in one sentence, in
+  a settled order so the same set of filters always reads the same way,
+  and the shape verb agrees with the count — "2 lines that loop",
+  "1 line that loops". A per-line
   detail dialog carries the map with that line highlighted, filling the
   whole top of the popup — one finger pans, two fingers pinch, the wheel
   zooms — plus a zoom pill. Every control mirrors into the URL.
+  THE POPUP'S FACT LIST, settled 30 Aug 2026: ONE FACT, ONE PLACE. The
+  head carries the badge, the English name, the Japanese name and that
+  name's reading (which the card showed and the popup used to drop). The
+  line tab runs company mark, then Symbol, Official colour, Second colour
+  (only the 4 that have one), Opened, Length, Stops, Daily riders, Area,
+  Shape (only where the line carries a tag) and Runs, then the note.
+  Length and stops were on every card and in no fact list until this
+  round; they are facts, not trivia. The FUN tab stopped repeating them —
+  "Where it runs" and "Worth knowing" were the fact list said twice — and
+  now carries only what a list cannot say: how RARE each fact is across
+  the 98, counted from the data rather than written down, so a rank can
+  never drift from what the wall holds.
   Company marks are GREY on the CARDS: twenty-two corporate palettes
   across one screen fought the line colours, which are the only colours
   there that mean anything. A SECTION HEADING is the exception, amended
