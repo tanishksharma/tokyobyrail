@@ -278,6 +278,40 @@ publish 輸送密度 (passenger density), which measures something else, and
 mixing the two would corrupt the column. The Fun tab says so on those lines
 rather than showing a gap.
 
+## Shipping — the icon, the card, the offer
+
+Settled 30 Aug 2026, against the App publish workflow.
+
+The ICON SET lives in `/icons`, cut by script from the one 512px
+`icon.png` (the roundel of line colours around 東): 180 for the Apple
+touch icon, 192 and 512 for the manifest, 32 and 16 for the tab, and a
+512 MASKABLE whose art is scaled to 72% of the plate — a launcher may
+crop to a circle inside the outer fifth, and the roundel runs edge to
+edge, so trusting the corners would shave the ring. The emoji favicon it
+replaced was a stand-in that read as a different app on every platform.
+
+The SHARE CARD (`share.png`, 1200x630) is DRAWN FROM THE APP'S OWN DATA
+— every badge on it is a real line's code in that line's real colour and
+badge shape — laid out as the same diamond lattice the wall sits on, with
+the same trick: the blur is a pane over the field, masked so the middle
+goes soft where the words are and the edges keep their focus. Regenerate
+it by re-rendering the card page rather than editing the PNG, or the
+badges stop being the data. A shared link had no picture at all before
+this.
+
+The INSTALL OFFER is the library's, self-wired from markup: a
+`.nudge-scrim` card and an `.overlay-guide` for iPhone, which has no
+prompt of its own and gets the three steps written out. It shows once a
+session, never on load, never while a panel is open, and never once the
+app is installed or the offer declined. It is TIME-GATED (20s), not
+gated on the first real interaction as the publish checklist asks;
+gating on interaction belongs in the library, not here.
+
+`vercel.json` also carries the three response headers the checklist
+asks for (nosniff, strict-origin-when-cross-origin, SAMEORIGIN), and
+`sw.js`'s cache name is bumped with every release that changes what it
+holds.
+
 This project GREW OUT OF the tanishksharmacom mini app (`/apps/tokyo-lines`,
 never shipped to its live grid) but is NOT bound by that repo's mini-app
 conventions: no `/apps` plumbing, no shared `/apps/about` page, no Supabase
