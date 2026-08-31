@@ -13,12 +13,13 @@
   Bump CACHE on strategy changes so old caches are swept on activate.
 */
 
-const CACHE = "tokyobyrail-v1";
+const CACHE = "tokyobyrail-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(["/", "/manifest.webmanifest", "/icon.png"]))
+      .then((cache) => cache.addAll(["/", "/manifest.webmanifest", "/stations.json",
+                                    "/icons/icon-192.png", "/icons/icon-512.png"]))
       .then(() => self.skipWaiting())
   );
 });

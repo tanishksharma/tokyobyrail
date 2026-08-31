@@ -18,20 +18,80 @@ sections, switched by the top tab bar and each with its own URL
   the popup alone. Sorted seven ways — ridership, length, stops, age, name,
   company, colour — each one comparator in `ORDER_BY`, with the lines
   missing that figure sorted LAST rather than as a zero pretending to be
-  the shortest or the quietest. Filtered by
-  area (inside Tokyo / to the suburbs / outside) and company, BOTH
-  multi-select: each holds a set, picking a second widens the wall rather
-  than replacing what you had, and the sheet stays open while you pick.
-  Sort stays single, an order being one thing by definition. The company
+  the shortest or the quietest. Filtered EIGHT ways from a row of
+  pills: area (inside Tokyo / to the suburbs / outside), company, and
+  SHAPE — all three multi-select, each holding a set, so picking a second
+  widens the wall rather than replacing what you had and the sheet stays
+  open while you pick — plus the four single-value filters added
+  30 Aug 2026: opening era (before 1970 / 1970 onward, which splits the 98
+  almost in half at 64 and 34), badge shape (round 41 / square 57), a
+  second official colour (4 lines), and the lines this browser has
+  HEARTED. The last two are TOGGLES: one tap is the whole control, so
+  they carry no panel and no chevron, and the pill holds the state in
+  `aria-pressed`. Sort stays single, an order being one thing by
+  definition. Eight controls outgrow a phone, so the row SCROLLS
+  SIDEWAYS and says it does: `ctlEdges()` reads the scroll position and
+  masks a fade onto whichever side still holds something, so a row that
+  fits shows no fade at all, and a filter restored from a shared link
+  that lands off screen scrolls itself into view once, on the first draw
+  only. Every filter row prints how many lines it would leave, the way
+  the company rows always have — a filter that would empty the wall says
+  so before it is tapped.
+  SHAPE is what the route DOES, and it is the one filter that needed new
+  data: `sh` is an array of tags on each line, verified Aug 2026 line by
+  line against each line's own article — `loop` (2: Yamanote and Oedo),
+  `fork` (7, where the route splits so which branch a train takes decides
+  where you end up), `through` (65, 相互直通運転, where trains carry on
+  onto another company's tracks, which is how Tokyo hides its company
+  boundaries from the passenger). 28 lines carry no tag and are ordinary
+  there-and-back routes; the popup drops the row rather than printing a
+  word for "nothing unusual". The company
   sheet groups its twenty-two names BY AREA — where most of that company's
   own lines run — because one column of twenty-two is a wall to read and
   three short lists are a place to look. Every pick is its own chip under
   the headline with its own cross, and a Clear all appears once more than
   one is on. The URL carries them comma-separated (`?op=a,b&area=x,y`) and
-  drops anything it does not recognise. A per-line
-  detail dialog carries the map with that line highlighted, filling the
-  whole top of the popup — one finger pans, two fingers pinch, the wheel
-  zooms — plus a zoom pill. Every control mirrors into the URL.
+  drops anything it does not recognise; the single-value filters ride it
+  as `?era=`, `?badge=`, `?two=1`, `?heart=1` and the shape set as
+  `?shape=a,b`. The HEADLINE names every one of them in one sentence, in
+  a settled order so the same set of filters always reads the same way,
+  and the shape verb agrees with the count — "2 lines that loop",
+  "1 line that loops".
+  The wall runs to FIVE COLUMNS where there is room, amended 31 Aug 2026:
+  `.app-main` takes a `--width-page` of 92rem rather than the library's
+  reading-column default, and `fitColumns()` still counts the tracks from
+  the width it actually gets but stops at `MAX_COLS` 5 — past that the
+  cards stop reading as a wall and start reading as a spreadsheet. 1440px
+  gives five, 1280 gives four; it gave three at any width before.
+  A per-line detail dialog takes a REAL SHARE of the screen — about two
+  thirds in both directions from 60rem up, nearly all of a phone — and
+  its height is SET rather than merely capped, so the map pane has
+  something to fill. THE MAP IS A TAB, not a strip across the top: it
+  leads the four (Map · Line · Stops · Fun) and opens first, since it is
+  the reason the popup is that size; a line the 2015 diagram is too old
+  to show has no Map tab at all and opens on Line. Each pane owns its own
+  scroll, so the map fills the body while the stop list still scrolls
+  inside it. One finger pans, two fingers pinch, the wheel zooms, and a
+  zoom pill floats on the map.
+  On the map the chosen line is LIT, not merely left alone: dimming the
+  rest was never enough on a diagram of a hundred near-equal threads. Its
+  strokes are redrawn 1.6x thicker with a white halo under them, and
+  every other line drops to 6% AND loses its colour, so the only colour
+  left on the plate is the line you opened. The thickened strokes are
+  remembered in `dLit` and put back when the next line opens, because the
+  diagram is mounted once and reused. Every control mirrors into the URL.
+  THE POPUP'S FACT LIST, settled 30 Aug 2026: ONE FACT, ONE PLACE. The
+  head carries the badge, the English name, the Japanese name and that
+  name's reading (which the card showed and the popup used to drop). The
+  line tab runs company mark, then Symbol, Official colour, Second colour
+  (only the 4 that have one), Opened, Length, Stops, Daily riders, Area,
+  Shape (only where the line carries a tag) and Runs, then the note.
+  Length and stops were on every card and in no fact list until this
+  round; they are facts, not trivia. The FUN tab stopped repeating them —
+  "Where it runs" and "Worth knowing" were the fact list said twice — and
+  now carries only what a list cannot say: how RARE each fact is across
+  the 98, counted from the data rather than written down, so a rank can
+  never drift from what the wall holds.
   Company marks are GREY on the CARDS: twenty-two corporate palettes
   across one screen fought the line colours, which are the only colours
   there that mean anything. A SECTION HEADING is the exception, amended
@@ -109,7 +169,11 @@ control's panel drops from under its own button and is clamped to the
 screen. The tabs were at the top and the controls floated at the bottom
 until this rework.
 
-THE TAB BAR GETS OUT OF THE WAY. Reading down, it leaves through the
+THE TAB BAR GETS OUT OF THE WAY, and since 31 Aug 2026 the LIBRARY owns
+it: `data-bar-hide` on the nav is the whole of it, and the copy that
+lived here — the transform, the `--bar-away` property and sixty lines of
+scroll tracking — is deleted. `fx()?.showBar?.()` brings it back when a
+panel opens. Reading down, it leaves through the
 bottom edge and a touch of upward scroll brings it back. It travels far
 enough to clear its own height, its inset and the home indicator with room
 to spare, so no sliver is ever left showing. The trigger is TRAVEL IN ONE
@@ -118,8 +182,8 @@ per-event test flickers the bar on every wobble. Coming back is cheaper
 than going away (10px against 26), because wanting the tabs back is the
 impatient move. It stays put while a panel is open and near the top of the
 page. It rides on transform, so nothing reflows and the wall never moves
-under the finger. This is the behaviour headed for Facet as the
-app-navigation component.
+under the finger. This behaviour now LIVES in Facet; the notes above
+describe what the library does, not what this file holds.
 
 The material: the CHROME wears the embossed frosted glass the library gives
 its tab bar — the recipe is lifted into `--glass-*` tokens and a `.glass`
@@ -237,6 +301,40 @@ blank, on 11 lines, and it stays blank on purpose: the Japanese sources
 publish 輸送密度 (passenger density), which measures something else, and
 mixing the two would corrupt the column. The Fun tab says so on those lines
 rather than showing a gap.
+
+## Shipping — the icon, the card, the offer
+
+Settled 30 Aug 2026, against the App publish workflow.
+
+The ICON SET lives in `/icons`, cut by script from the one 512px
+`icon.png` (the roundel of line colours around 東): 180 for the Apple
+touch icon, 192 and 512 for the manifest, 32 and 16 for the tab, and a
+512 MASKABLE whose art is scaled to 72% of the plate — a launcher may
+crop to a circle inside the outer fifth, and the roundel runs edge to
+edge, so trusting the corners would shave the ring. The emoji favicon it
+replaced was a stand-in that read as a different app on every platform.
+
+The SHARE CARD (`share.png`, 1200x630) is DRAWN FROM THE APP'S OWN DATA
+— every badge on it is a real line's code in that line's real colour and
+badge shape — laid out as the same diamond lattice the wall sits on, with
+the same trick: the blur is a pane over the field, masked so the middle
+goes soft where the words are and the edges keep their focus. Regenerate
+it by re-rendering the card page rather than editing the PNG, or the
+badges stop being the data. A shared link had no picture at all before
+this.
+
+The INSTALL OFFER is the library's, self-wired from markup: a
+`.nudge-scrim` card and an `.overlay-guide` for iPhone, which has no
+prompt of its own and gets the three steps written out. It shows once a
+session, never on load, never while a panel is open, and never once the
+app is installed or the offer declined. It is TIME-GATED (20s), not
+gated on the first real interaction as the publish checklist asks;
+gating on interaction belongs in the library, not here.
+
+`vercel.json` also carries the three response headers the checklist
+asks for (nosniff, strict-origin-when-cross-origin, SAMEORIGIN), and
+`sw.js`'s cache name is bumped with every release that changes what it
+holds.
 
 This project GREW OUT OF the tanishksharmacom mini app (`/apps/tokyo-lines`,
 never shipped to its live grid) but is NOT bound by that repo's mini-app

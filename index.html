@@ -15,8 +15,24 @@
   <meta property="og:site_name" content="Tokyo by rail">
   <meta property="og:url" content="https://tokyorail.tanishk.ai/">
   <link rel="canonical" href="https://tokyorail.tanishk.ai/">
-  <link rel="apple-touch-icon" href="/icon.png">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚇</text></svg>">
+  <!-- The real icon set: the roundel of line colours around 東, cut to the
+       sizes each surface asks for. The emoji favicon it replaces was a
+       stand-in and read as a different app on every platform. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+  <meta name="theme-color" content="#FBFBFA">
+  <!-- The share card: the badge lattice the app itself draws, softened in
+       the middle so the name reads, with the three figures under it. A
+       shared link had no picture at all until this. -->
+  <meta property="og:image" content="https://tokyorail.tanishk.ai/share.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Tokyo by rail — 98 lines, 22 companies, 1,631 stations, over a field of station-number badges in their own colours.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tokyo by rail">
+  <meta name="twitter:description" content="Every passenger line in Greater Tokyo, in its own colour.">
+  <meta name="twitter:image" content="https://tokyorail.tanishk.ai/share.png">
   <link rel="stylesheet" href="https://facet.tanishksharma.com/lib/facet.css">
   <!-- app-specific faces: Jost stands in for FUTURA, which is the typeface
        Tokyo Metro sets its station numbers in, and is used for every badge
@@ -648,24 +664,12 @@
        and scrolls away with them, so the middle of the screen is lines
        and nothing else. */
     .nav-tabs .tab-set { flex: 0 0 auto; }   /* three tabs hug, they do not span */
-    /* Reading DOWN, the tab bar leaves through the bottom edge, and it
-       leaves WITH THE FINGER rather than on a clock of its own. --bar-away
-       is how far out it is, 0 showing and 1 gone, and the JS below sets it
-       from how far you have scrolled. That is the whole point: a timed
-       animation runs at its own speed, so a fast flick outruns it and the
-       bar is simply not there by the time the eye arrives.
-
-       It travels far enough to clear its own height, its inset and the
-       home indicator with room to spare, so no sliver is ever left
-       showing. */
-    .nav-tabs {
-      --bar-away: 0;
-      transform: translate(-50%, calc(
-        var(--bar-away) * (100% + var(--space-inline) + var(--safe-bottom) + 3rem)));
-      will-change: transform;
-    }
-    /* no transition here on purpose: the JS below owns the whole move, so
-       a timed one would be a second animator fighting it */
+    /* Reading down, the tab bar leaves through the bottom edge and a touch
+       of upward scroll brings it back. That behaviour started here and now
+       lives in the library as data-bar-hide on the markup above: the
+       attribute is the whole of it, and the copy that used to sit here —
+       its transform, its --bar-away, and the sixty lines of scroll
+       tracking below — is gone. */
     /* About is a view without a tab, so no tab is the current one. The
        moving highlight would otherwise stay parked on Trains and claim a
        section the reader is not in: it fades out instead. */
@@ -673,6 +677,13 @@
       opacity: 0;
     }
     .app-main {
+      /* The wall is the page's whole content, so it takes a wider ceiling
+         than the library's reading-column default: five tracks of card
+         plus their gaps, which is what a desktop screen has room for.
+         fitColumns() below still decides the count from the width it
+         actually gets, and stops at five — past that the cards stop
+         reading as a wall and start reading as a spreadsheet. */
+      --width-page: 92rem;
       padding-top: var(--space-stack);
       padding-bottom: var(--bar-clearance-bottom);
     }
@@ -681,7 +692,10 @@
        its own button. These rules are the JS-off floor. */
     #sort-sheet.sheet.sheet-rise,
     #area-sheet.sheet.sheet-rise,
-    #op-sheet.sheet.sheet-rise { bottom: auto; }
+    #op-sheet.sheet.sheet-rise,
+    #shape-sheet.sheet.sheet-rise,
+    #era-sheet.sheet.sheet-rise,
+    #badge-sheet.sheet.sheet-rise { bottom: auto; }
     /* THE CONTROL ROW — three buttons above the wall. Each says what it
        controls with its icon and what it is set to with its word, so the
        row reads as a sentence about the list below and nothing needs
@@ -690,8 +704,20 @@
       display: flex; align-items: center; gap: var(--space-tight);
       max-width: 100%;
       overflow-x: auto; scrollbar-width: none;
+      scroll-behavior: smooth;
     }
     .ctl-row::-webkit-scrollbar { display: none; }
+    /* EIGHT controls outgrow a phone, so the row scrolls sideways. A row
+       that scrolls has to SAY it does, or the pills past the edge are
+       simply invisible: the row fades out on whichever side still has
+       something on it, set from the scroll position rather than guessed
+       at, so a row that fits shows no fade at all. */
+    .ctl-row[data-more] { mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent); }
+    .ctl-row[data-less] { mask-image: linear-gradient(90deg, transparent, #000 2.5rem); }
+    .ctl-row[data-less][data-more] {
+      mask-image: linear-gradient(90deg, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent);
+    }
+    @media (prefers-reduced-motion: reduce) { .ctl-row { scroll-behavior: auto; } }
     /* In the page rather than floating over it, so it takes the same
        face as the cards below and a chevron to say it opens. */
     .ctl-pill {
@@ -710,6 +736,8 @@
       transition: transform var(--duration-fast, 160ms);
     }
     .ctl-pill[aria-expanded="true"]::after { transform: translateY(1px) rotate(-135deg); }
+    /* a toggle opens nothing, so it wears no chevron */
+    .ctl-toggle::after { display: none; }
     .ctl-pill svg { width: 1.05rem; height: 1.05rem; flex: none; opacity: 0.75; }
     .ctl-pill:hover { border-color: color-mix(in srgb, var(--border-strong) 70%, transparent); }
     /* set away from its default: the pill carries the accent */
@@ -801,11 +829,39 @@
        free — and it pans, pinches and wheel-zooms. The map is an artwork
        with its own light ground, so it
        keeps a white plate in dark mode too. */
-    .line-map { position: relative; flex: 0 0 auto; margin: 0; }
+    /* THE POPUP takes a real share of the screen. On a phone it is nearly
+       the whole of it; from a laptop up it holds about two thirds in BOTH
+       directions, because the map tab is the reason the dialog exists and
+       a map the size of a postcard tells you nothing. Its height is set,
+       not merely capped, so the map pane has something to fill. */
+    #line-dialog.modal.modal-lg {
+      width: min(94vw, 34rem);
+      height: min(88dvh, 46rem);
+      max-height: 88dvh;
+    }
+    @media (min-width: 60rem) {
+      #line-dialog.modal.modal-lg {
+        width: 66vw; max-width: 76rem;
+        height: 68dvh; max-height: 68dvh;
+      }
+    }
+    /* Each pane owns its own scroll, so the map can fill the body while
+       the stop list still scrolls inside it. */
+    #line-dialog > .dialog-body { display: flex; flex-direction: column; overflow: hidden; }
+    #line-dialog > .dialog-body > .dialog-head-row,
+    #line-dialog > .dialog-body > .d-tabs { flex: 0 0 auto; }
+    #line-dialog .d-pane:not([hidden]) { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+    #line-dialog .d-pane[data-pane="map"] { overflow: hidden; }
+    /* prose holds a reading column; the fact list and the stop list are
+       label-and-value rows and read correctly at any width */
+    #line-dialog .d-pane[data-pane="fun"] > * { max-width: 46rem; }
+
+    .line-map { position: relative; margin: 0; height: 100%; }
     #d-map-host {
-      height: min(42vh, 20rem); overflow: hidden; touch-action: none;
+      height: 100%; overflow: hidden; touch-action: none;
+      border-radius: var(--card-round);
       background: #fff; cursor: grab;
-      border-bottom: var(--border-hairline, 1px) solid var(--border);
+      border: var(--border-element) solid var(--border);
     }
     #d-map-host[data-panning] { cursor: grabbing; }
     #d-map-host svg { width: 100%; height: 100%; display: block; }
@@ -829,10 +885,8 @@
       display: inline-flex;
     }
     .dialog-close .btn { background: var(--surface); }
-    /* the head row keeps clear of both floating controls */
+    /* the head row keeps clear of the close button */
     .dialog-head-row { padding-right: 2.75rem; }
-    #line-dialog:not(:has(#d-map[hidden])) .dialog-head-row { padding-left: 0; }
-    #line-dialog:has(#d-map[hidden]) .dialog-head-row { padding-left: 6.5rem; }
 
     /* The detail dialog's color chip. */
     .hex-chip {
@@ -859,7 +913,7 @@
        fixed thing on the page; everything that decides the list sits in
        the page above the cards.
        ============================== -->
-  <nav class="tab-bar nav-tabs" aria-label="Sections" data-print="off">
+  <nav class="tab-bar nav-tabs" data-bar-hide aria-label="Sections" data-print="off">
     <div class="tab-set">
       <a class="tab-seg" href="/" data-view="trains" aria-current="page">Trains</a>
       <a class="tab-seg" href="/stations" data-view="stations" aria-current="false">Stations</a>
@@ -897,6 +951,28 @@
       <button type="button" class="ctl-pill glass" id="op-pill" aria-controls="op-sheet" aria-expanded="false"
               data-tip="Which company to show" data-event="open-company">
         <svg data-icon="tag" aria-hidden="true"></svg><span id="op-word">Rail companies</span>
+      </button>
+      <button type="button" class="ctl-pill glass" id="shape-pill" aria-controls="shape-sheet" aria-expanded="false"
+              data-tip="How the route itself is shaped" data-event="open-shape">
+        <svg data-icon="share" aria-hidden="true"></svg><span id="shape-word">Shape</span>
+      </button>
+      <button type="button" class="ctl-pill glass" id="era-pill" aria-controls="era-sheet" aria-expanded="false"
+              data-tip="When the line opened" data-event="open-era">
+        <svg data-icon="clock" aria-hidden="true"></svg><span id="era-word">Opened</span>
+      </button>
+      <button type="button" class="ctl-pill glass" id="badge-pill" aria-controls="badge-sheet" aria-expanded="false"
+              data-tip="The shape of the station-number badge" data-event="open-badge">
+        <svg data-icon="target" aria-hidden="true"></svg><span id="badge-word">Badge</span>
+      </button>
+      <!-- The two toggles: one tap each, so they carry no panel and no
+           chevron. They say what they are set to like every other pill. -->
+      <button type="button" class="ctl-pill ctl-toggle glass" id="two-pill" aria-pressed="false"
+              data-tip="Only the lines that officially carry a second colour" data-event="filter-two-colour">
+        <svg data-icon="contrast" aria-hidden="true"></svg><span id="two-word">Colours</span>
+      </button>
+      <button type="button" class="ctl-pill ctl-toggle glass" id="heart-pill" aria-pressed="false"
+              data-tip="Only the lines you have hearted" data-event="filter-hearted">
+        <svg data-icon="heart" aria-hidden="true"></svg><span id="heart-word">Hearts</span>
       </button>
     </div>
         <div class="row applied" id="applied-filters" hidden></div>
@@ -984,16 +1060,36 @@
 
   </main>
 
+  <!-- ==============================
+       Add to Home Screen
+       The offer, and the how-to for the platform that has no prompt of its
+       own. Both self-wire from the library: the card appears once a
+       session, never on load, never while a panel is open, and never at
+       all once the app is installed or the offer is declined.
+       ============================== -->
+  <div class="nudge-scrim" data-nudge-key="tokyorail-a2hs" data-nudge-delay="20000" hidden>
+    <div class="nudge-card" role="dialog" aria-modal="true" aria-labelledby="nudge-title">
+      <span class="eyebrow">One tap away</span>
+      <h2 id="nudge-title">Keep Tokyo by rail on your Home Screen</h2>
+      <p>It opens full screen, and the whole network works without a signal.</p>
+      <button type="button" class="btn btn-primary nudge-add" data-nudge="add" data-event="nudge-add">Add now</button>
+      <button type="button" class="btn nudge-later" data-nudge="later" data-event="nudge-later">Add it later</button>
+      <button type="button" class="nudge-never" data-nudge="never" data-event="nudge-never">Don't ask again</button>
+    </div>
+  </div>
+
+  <!-- iPhone and iPad have no install prompt to offer, so the steps are
+       spelled out rather than gestured at. -->
+  <div class="overlay-guide" hidden>
+    <span class="eyebrow">Add to Home Screen</span>
+    <p class="overlay-title">Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong></p>
+    <p class="overlay-sub">1 · Tap the Share button in Safari's toolbar — the square with the arrow coming out of it.</p>
+    <p class="overlay-sub">2 · Scroll the list and choose Add to Home Screen.</p>
+    <p class="overlay-sub">3 · Tap Add. Tokyo by rail lands beside your other apps.</p>
+    <p class="overlay-sub" style="opacity:.55">Tap anywhere to close</p>
+  </div>
+
   <dialog class="modal modal-lg" id="line-dialog">
-    <figure class="line-map" id="d-map" hidden>
-      <div id="d-map-host" role="img" aria-label="Greater Tokyo network map with this line highlighted"></div>
-      <figcaption class="text-caption">Map: Naoki Hashimoto (CC0)</figcaption>
-      <div class="map-zoom" role="group" aria-label="Zoom the map">
-        <button type="button" class="btn btn-icon btn-small" id="d-zoom-in" aria-label="Zoom in" data-tip="Zoom in on the map"><svg data-icon="plus" aria-hidden="true"></svg></button>
-        <button type="button" class="btn btn-icon btn-small" id="d-zoom-out" aria-label="Zoom out" data-tip="Zoom out of the map"><svg data-icon="minus" aria-hidden="true"></svg></button>
-        <button type="button" class="btn btn-icon btn-small" id="d-zoom-fit" aria-label="Fit the line" data-tip="Frame the whole line again"><svg data-icon="refresh" aria-hidden="true"></svg></button>
-      </div>
-    </figure>
     <div class="heart-row" id="d-heart-row"></div>
     <form method="dialog" class="dialog-close"><button class="btn btn-icon" aria-label="Close"><svg width="20" height="20" data-icon="close" aria-hidden="true"></svg></button></form>
     <div class="dialog-body stack">
@@ -1002,16 +1098,35 @@
         <span>
           <h4 id="d-name" style="margin: 0;">Line</h4>
           <span id="d-ja" style="display: block;"></span>
+          <!-- how the name is actually said: the card shows it, so the
+               popup should not be the one place it goes missing -->
+          <span id="d-k" class="text-caption" style="display: block;" lang="ja"></span>
         </span>
       </div>
 
+      <!-- The map leads: it is the reason the popup is this size, and it
+           gets the whole pane rather than a strip across the top. A line
+           the 2015 diagram is too old to show has no Map tab at all. -->
       <div class="tab-set d-tabs" role="tablist" aria-label="About this line">
-        <button type="button" class="tab-seg" role="tab" data-pane="facts" aria-selected="true">The line</button>
+        <button type="button" class="tab-seg" role="tab" id="d-tab-map" data-pane="map" aria-selected="true">Map</button>
+        <button type="button" class="tab-seg" role="tab" data-pane="facts" aria-selected="false">Line</button>
         <button type="button" class="tab-seg" role="tab" data-pane="stops" aria-selected="false">Stops</button>
         <button type="button" class="tab-seg" role="tab" data-pane="fun" aria-selected="false">Fun</button>
       </div>
 
-      <div class="d-pane" data-pane="facts">
+      <div class="d-pane" data-pane="map">
+        <figure class="line-map" id="d-map">
+          <div id="d-map-host" role="img" aria-label="Greater Tokyo network map with this line highlighted"></div>
+          <figcaption class="text-caption">Map: Naoki Hashimoto (CC0)</figcaption>
+          <div class="map-zoom" role="group" aria-label="Zoom the map">
+            <button type="button" class="btn btn-icon btn-small" id="d-zoom-in" aria-label="Zoom in" data-tip="Zoom in on the map"><svg data-icon="plus" aria-hidden="true"></svg></button>
+            <button type="button" class="btn btn-icon btn-small" id="d-zoom-out" aria-label="Zoom out" data-tip="Zoom out of the map"><svg data-icon="minus" aria-hidden="true"></svg></button>
+            <button type="button" class="btn btn-icon btn-small" id="d-zoom-fit" aria-label="Fit the line" data-tip="Frame the whole line again"><svg data-icon="refresh" aria-hidden="true"></svg></button>
+          </div>
+        </figure>
+      </div>
+
+      <div class="d-pane" data-pane="facts" hidden>
       <div class="row d-company" id="d-company"></div>
       <ul class="list list-boxed">
         <li class="list-item">
@@ -1019,21 +1134,40 @@
           <span class="list-trail" id="d-code"></span>
         </li>
         <li class="list-item">
-          <span class="list-content"><span class="list-title">Area</span></span>
-          <span class="list-trail" id="d-area"></span>
+          <span class="list-content"><span class="list-title">Official colour</span></span>
+          <span class="list-trail"><span class="hex-chip" id="d-chip" aria-hidden="true"></span><span id="d-hex"></span>
+            <button type="button" class="btn btn-icon btn-small" id="d-copy" aria-label="Copy the hex" data-tip="Copies the hex to your clipboard" data-event="lines-copy-hex"><svg data-icon="copy" aria-hidden="true"></svg></button></span>
+        </li>
+        <!-- only the four lines that officially carry a second colour -->
+        <li class="list-item" id="d-x2-row">
+          <span class="list-content"><span class="list-title">Second colour</span></span>
+          <span class="list-trail"><span class="hex-chip" id="d-chip2" aria-hidden="true"></span><span id="d-hex2"></span></span>
         </li>
         <li class="list-item">
           <span class="list-content"><span class="list-title">Opened</span></span>
           <span class="list-trail" id="d-opened"></span>
         </li>
         <li class="list-item">
+          <span class="list-content"><span class="list-title">Length</span></span>
+          <span class="list-trail" id="d-km"></span>
+        </li>
+        <li class="list-item">
+          <span class="list-content"><span class="list-title">Stops</span></span>
+          <span class="list-trail" id="d-st"></span>
+        </li>
+        <li class="list-item">
           <span class="list-content"><span class="list-title">Daily riders</span></span>
           <span class="list-trail" id="d-riders"></span>
         </li>
         <li class="list-item">
-          <span class="list-content"><span class="list-title">Official color</span></span>
-          <span class="list-trail"><span class="hex-chip" id="d-chip" aria-hidden="true"></span><span id="d-hex"></span>
-            <button type="button" class="btn btn-icon btn-small" id="d-copy" aria-label="Copy the hex" data-tip="Copies the hex to your clipboard" data-event="lines-copy-hex"><svg data-icon="copy" aria-hidden="true"></svg></button></span>
+          <span class="list-content"><span class="list-title">Area</span></span>
+          <span class="list-trail" id="d-area"></span>
+        </li>
+        <!-- what the route does: a ring, a split, or trains that carry on
+             onto another company's tracks -->
+        <li class="list-item" id="d-shape-row">
+          <span class="list-content"><span class="list-title">Shape</span></span>
+          <span class="list-trail" id="d-shape"></span>
         </li>
         <li class="list-item">
           <span class="list-content">
@@ -1109,6 +1243,54 @@
     </div>
   </aside>
 
+  <div class="sheet-scrim" data-open="false"></div>
+  <aside class="sheet sheet-rise" id="shape-sheet" data-open="false"
+         aria-hidden="true" aria-label="Filter by route shape">
+    <div class="sheet-scroll">
+      <!-- What the route DOES, rather than where it goes: a ring with no
+           end, a route that splits, or one whose trains carry on onto
+           another company's tracks. Multi-select, like area and company. -->
+      <div class="sheet-group" id="shape-menu">
+        <p class="menu-label">Filter by shape</p>
+        <button type="button" class="menu-item" data-shape="">Any shape<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-shape="loop">Loops<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-shape="fork">Forks<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-shape="through">Runs through<span class="menu-value"></span></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="sheet-scrim" data-open="false"></div>
+  <aside class="sheet sheet-rise" id="era-sheet" data-open="false"
+         aria-hidden="true" aria-label="Filter by when the line opened">
+    <div class="sheet-scroll">
+      <!-- 1970 splits the network almost in half: the pre-war and post-war
+           build-out on one side, the subway and new-town era on the other. -->
+      <div class="sheet-group" id="era-menu">
+        <p class="menu-label">Filter by opening</p>
+        <button type="button" class="menu-item" data-era="">Any year<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-era="pre">Before 1970<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-era="post">1970 onward<span class="menu-value"></span></button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="sheet-scrim" data-open="false"></div>
+  <aside class="sheet sheet-rise" id="badge-sheet" data-open="false"
+         aria-hidden="true" aria-label="Filter by badge shape">
+    <div class="sheet-scroll">
+      <!-- The roundel is the subway convention, the rounded square the JR
+           and private-railway one, so this filter cuts the network the way
+           its own signage does. -->
+      <div class="sheet-group" id="badge-menu">
+        <p class="menu-label">Filter by badge</p>
+        <button type="button" class="menu-item" data-badge="">Any badge<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-badge="circle">Round<span class="menu-value"></span></button>
+        <button type="button" class="menu-item" data-badge="square">Square<span class="menu-value"></span></button>
+      </div>
+    </div>
+  </aside>
+
   <script>
     /* App data + list logic only — the nav-menu, settings pills, install
        tooltips, dropdown menus, sounds and haptics are all wired by the Facet
@@ -1131,102 +1313,102 @@
        figure is published) + ry (that figure's year), y (the year the line
        opened, as its own article records it — all 98). */
     const LINES = [
-      {"i": 0, "op": "JR East", "oj": "JR東日本", "n": "Yamanote Line", "j": "山手線", "k": "やまのてせん", "c": "JY", "x": "#9ACD32", "s": "square", "t": "Loop: Tokyo – Shinagawa – Shibuya – Shinjuku – Ikebukuro – Ueno", "note": "Loop line", "a": "tokyo", "r": 4100000, "ry": 2015, "km": 34.5, "st": 30, "y": 1885},
-      {"i": 1, "op": "JR East", "oj": "JR東日本", "n": "Keihin-Tohoku Line", "j": "京浜東北線", "k": "けいひんとうほくせん", "c": "JK", "x": "#00B2E5", "s": "square", "t": "Omiya – Yokohama – Ofuna", "note": "Operated through with the Negishi Line (Yokohama – Ofuna)", "a": "link", "r": 2970000, "ry": 2015, "km": 81.2, "st": 47, "y": 1914},
-      {"i": 2, "op": "JR East", "oj": "JR東日本", "n": "Chuo Line (Rapid)", "j": "中央線快速", "k": "ちゅうおうせんかいそく", "c": "JC", "x": "#F15A22", "s": "square", "t": "Tokyo – Takao", "note": "JC also covers Ome Line (Tachikawa – Okutama) and Itsukaichi Line through services", "a": "tokyo", "r": 2260000, "ry": 2015, "km": 53.1, "st": 24, "y": 1889},
+      {"i": 0, "op": "JR East", "oj": "JR東日本", "n": "Yamanote Line", "j": "山手線", "k": "やまのてせん", "c": "JY", "x": "#9ACD32", "s": "square", "t": "Loop: Tokyo – Shinagawa – Shibuya – Shinjuku – Ikebukuro – Ueno", "note": "Loop line", "a": "tokyo", "r": 4100000, "ry": 2015, "km": 34.5, "st": 30, "y": 1885, "sh": ["loop"]},
+      {"i": 1, "op": "JR East", "oj": "JR東日本", "n": "Keihin-Tohoku Line", "j": "京浜東北線", "k": "けいひんとうほくせん", "c": "JK", "x": "#00B2E5", "s": "square", "t": "Omiya – Yokohama – Ofuna", "note": "Operated through with the Negishi Line (Yokohama – Ofuna)", "a": "link", "r": 2970000, "ry": 2015, "km": 81.2, "st": 47, "y": 1914, "sh": ["through"]},
+      {"i": 2, "op": "JR East", "oj": "JR東日本", "n": "Chuo Line (Rapid)", "j": "中央線快速", "k": "ちゅうおうせんかいそく", "c": "JC", "x": "#F15A22", "s": "square", "t": "Tokyo – Takao", "note": "JC also covers Ome Line (Tachikawa – Okutama) and Itsukaichi Line through services", "a": "tokyo", "r": 2260000, "ry": 2015, "km": 53.1, "st": 24, "y": 1889, "sh": ["through"]},
       {"i": 3, "op": "JR East", "oj": "JR東日本", "n": "Chuo-Sobu Line (Local)", "j": "中央・総武線各駅停車", "k": "ちゅうおう・そうぶせんかくえきていしゃ", "c": "JB", "x": "#FFD400", "s": "square", "t": "Mitaka – Chiba", "a": "link", "r": 2360000, "ry": 2015, "km": 60.2, "st": 39, "y": 1932},
-      {"i": 4, "op": "JR East", "oj": "JR東日本", "n": "Saikyo Line", "j": "埼京線", "k": "さいきょうせん", "c": "JA", "x": "#00AC9A", "s": "square", "t": "Osaki – Omiya", "note": "Through services to Rinkai Line, Kawagoe Line and Sotetsu Line", "a": "link", "r": 1110000, "ry": 2015, "km": 36.9, "st": 19, "y": 1985},
-      {"i": 5, "op": "JR East", "oj": "JR東日本", "n": "Shonan-Shinjuku Line", "j": "湘南新宿ライン", "k": "しょうなんしんじゅくライン", "c": "JS", "x": "#E31F26", "s": "square", "t": "Ofuna – Shinjuku – Omiya", "note": "Through-running corridor (Zushi/Odawara – Utsunomiya/Takasaki)", "a": "link", "r": 479000, "ry": 2015, "km": 86.4, "st": 16, "y": 2001},
-      {"i": 6, "op": "JR East", "oj": "JR東日本", "n": "Yokosuka Line / Sobu Line (Rapid)", "j": "横須賀・総武快速線", "k": "よこすか・そうぶかいそくせん", "c": "JO", "x": "#0067C0", "s": "square", "t": "Kurihama – Tokyo – Chiba", "a": "link", "r": 1450000, "ry": 2015, "km": 112.5, "st": 28, "y": 1889},
-      {"i": 7, "op": "JR East", "oj": "JR東日本", "n": "Tokaido Line", "j": "東海道線", "k": "とうかいどうせん", "c": "JT", "x": "#F68B1E", "s": "square", "t": "Tokyo – Atami", "a": "link", "km": 104.6, "st": 21, "x2": "#009900", "note": "Officially a two-colour line: the Shonan colours, orange #F68B1E over green #009900, which is why its trains wear an orange and green band", "y": 1872},
-      {"i": 8, "op": "JR East", "oj": "JR東日本", "n": "Utsunomiya Line / Takasaki Line", "j": "宇都宮線・高崎線", "k": "うつのみやせん・たかさきせん", "c": "JU", "x": "#F68B1E", "s": "square", "t": "Tokyo – Omiya (– Utsunomiya / Takasaki)", "note": "JU applies Tokyo – Omiya; Officially a two-colour line: the Shonan colours, orange #F68B1E over green #009900, which is why its trains wear an orange and green band", "a": "link", "km": 238.2, "st": 52, "x2": "#009900", "y": 1883},
-      {"i": 9, "op": "JR East", "oj": "JR東日本", "n": "Ueno-Tokyo Line", "j": "上野東京ライン", "k": "うえのとうきょうライン", "c": "JU", "x": "#91278F", "s": "square", "t": "Ueno – Tokyo", "note": "Through-running corridor; trains carry the JT/JU/JJ codes of their own lines; shown purple on maps; Signed purple as its own brand, but it carries Tokaido, Utsunomiya, Takasaki and Joban services, so its trains wear the Shonan orange and green", "a": "tokyo", "r": 320000, "ry": 2015, "km": 3.6, "st": 2, "y": 2015},
-      {"i": 10, "op": "JR East", "oj": "JR東日本", "n": "Joban Line (Rapid)", "j": "常磐線快速", "k": "じょうばんせんかいそく", "c": "JJ", "x": "#00B261", "s": "square", "t": "Ueno – Toride", "a": "link", "km": 39.6, "st": 10, "y": 1889},
-      {"i": 11, "op": "JR East", "oj": "JR東日本", "n": "Joban Line (Local)", "j": "常磐線各駅停車", "k": "じょうばんせんかくえきていしゃ", "c": "JL", "x": "#00B261", "s": "square", "t": "Ayase – Toride", "note": "Through service with Tokyo Metro Chiyoda Line; grey is sometimes used to distinguish it from JJ", "a": "link", "km": 29.7, "st": 14, "y": 1971},
-      {"i": 12, "op": "JR East", "oj": "JR東日本", "n": "Keiyo Line", "j": "京葉線", "k": "けいようせん", "c": "JE", "x": "#C9252F", "s": "square", "t": "Tokyo – Soga", "a": "link", "r": 660000, "ry": 2024, "km": 43.0, "st": 19, "y": 1975},
-      {"i": 13, "op": "JR East", "oj": "JR東日本", "n": "Musashino Line", "j": "武蔵野線", "k": "むさしのせん", "c": "JM", "x": "#F15A22", "s": "square", "t": "Fuchuhommachi – Nishi-Funabashi", "a": "link", "r": 944000, "ry": 2024, "km": 71.8, "st": 26, "y": 1973},
-      {"i": 14, "op": "JR East", "oj": "JR東日本", "n": "Nambu Line", "j": "南武線", "k": "なんぶせん", "c": "JN", "x": "#FFD400", "s": "square", "t": "Kawasaki – Tachikawa", "note": "Hama-Kawasaki branch: Shitte – Hama-Kawasaki", "a": "link", "r": 757000, "ry": 2024, "km": 35.5, "st": 26, "y": 1927},
-      {"i": 15, "op": "JR East", "oj": "JR東日本", "n": "Yokohama Line", "j": "横浜線", "k": "よこはません", "c": "JH", "x": "#80C342", "s": "square", "t": "Higashi-Kanagawa – Hachioji", "a": "link", "r": 760000, "ry": 2024, "km": 42.6, "st": 20, "y": 1908},
-      {"i": 16, "op": "JR East", "oj": "JR東日本", "n": "Tsurumi Line", "j": "鶴見線", "k": "つるみせん", "c": "JI", "x": "#FFD400", "s": "square", "t": "Tsurumi – Ogimachi", "note": "Branches to Umi-Shibaura and Okawa", "a": "out", "r": 40600, "ry": 2024, "km": 7.0, "st": 13, "y": 1926},
+      {"i": 4, "op": "JR East", "oj": "JR東日本", "n": "Saikyo Line", "j": "埼京線", "k": "さいきょうせん", "c": "JA", "x": "#00AC9A", "s": "square", "t": "Osaki – Omiya", "note": "Through services to Rinkai Line, Kawagoe Line and Sotetsu Line", "a": "link", "r": 1110000, "ry": 2015, "km": 36.9, "st": 19, "y": 1985, "sh": ["through"]},
+      {"i": 5, "op": "JR East", "oj": "JR東日本", "n": "Shonan-Shinjuku Line", "j": "湘南新宿ライン", "k": "しょうなんしんじゅくライン", "c": "JS", "x": "#E31F26", "s": "square", "t": "Ofuna – Shinjuku – Omiya", "note": "Through-running corridor (Zushi/Odawara – Utsunomiya/Takasaki)", "a": "link", "r": 479000, "ry": 2015, "km": 86.4, "st": 16, "y": 2001, "sh": ["through"]},
+      {"i": 6, "op": "JR East", "oj": "JR東日本", "n": "Yokosuka Line / Sobu Line (Rapid)", "j": "横須賀・総武快速線", "k": "よこすか・そうぶかいそくせん", "c": "JO", "x": "#0067C0", "s": "square", "t": "Kurihama – Tokyo – Chiba", "a": "link", "r": 1450000, "ry": 2015, "km": 112.5, "st": 28, "y": 1889, "sh": ["through"]},
+      {"i": 7, "op": "JR East", "oj": "JR東日本", "n": "Tokaido Line", "j": "東海道線", "k": "とうかいどうせん", "c": "JT", "x": "#F68B1E", "s": "square", "t": "Tokyo – Atami", "a": "link", "km": 104.6, "st": 21, "x2": "#009900", "note": "Officially a two-colour line: the Shonan colours, orange #F68B1E over green #009900, which is why its trains wear an orange and green band", "y": 1872, "sh": ["through"]},
+      {"i": 8, "op": "JR East", "oj": "JR東日本", "n": "Utsunomiya Line / Takasaki Line", "j": "宇都宮線・高崎線", "k": "うつのみやせん・たかさきせん", "c": "JU", "x": "#F68B1E", "s": "square", "t": "Tokyo – Omiya (– Utsunomiya / Takasaki)", "note": "JU applies Tokyo – Omiya; Officially a two-colour line: the Shonan colours, orange #F68B1E over green #009900, which is why its trains wear an orange and green band", "a": "link", "km": 238.2, "st": 52, "x2": "#009900", "y": 1883, "sh": ["fork", "through"]},
+      {"i": 9, "op": "JR East", "oj": "JR東日本", "n": "Ueno-Tokyo Line", "j": "上野東京ライン", "k": "うえのとうきょうライン", "c": "JU", "x": "#91278F", "s": "square", "t": "Ueno – Tokyo", "note": "Through-running corridor; trains carry the JT/JU/JJ codes of their own lines; shown purple on maps; Signed purple as its own brand, but it carries Tokaido, Utsunomiya, Takasaki and Joban services, so its trains wear the Shonan orange and green", "a": "tokyo", "r": 320000, "ry": 2015, "km": 3.6, "st": 2, "y": 2015, "sh": ["through"]},
+      {"i": 10, "op": "JR East", "oj": "JR東日本", "n": "Joban Line (Rapid)", "j": "常磐線快速", "k": "じょうばんせんかいそく", "c": "JJ", "x": "#00B261", "s": "square", "t": "Ueno – Toride", "a": "link", "km": 39.6, "st": 10, "y": 1889, "sh": ["through"]},
+      {"i": 11, "op": "JR East", "oj": "JR東日本", "n": "Joban Line (Local)", "j": "常磐線各駅停車", "k": "じょうばんせんかくえきていしゃ", "c": "JL", "x": "#00B261", "s": "square", "t": "Ayase – Toride", "note": "Through service with Tokyo Metro Chiyoda Line; grey is sometimes used to distinguish it from JJ", "a": "link", "km": 29.7, "st": 14, "y": 1971, "sh": ["through"]},
+      {"i": 12, "op": "JR East", "oj": "JR東日本", "n": "Keiyo Line", "j": "京葉線", "k": "けいようせん", "c": "JE", "x": "#C9252F", "s": "square", "t": "Tokyo – Soga", "a": "link", "r": 660000, "ry": 2024, "km": 43.0, "st": 19, "y": 1975, "sh": ["through"]},
+      {"i": 13, "op": "JR East", "oj": "JR東日本", "n": "Musashino Line", "j": "武蔵野線", "k": "むさしのせん", "c": "JM", "x": "#F15A22", "s": "square", "t": "Fuchuhommachi – Nishi-Funabashi", "a": "link", "r": 944000, "ry": 2024, "km": 71.8, "st": 26, "y": 1973, "sh": ["through"]},
+      {"i": 14, "op": "JR East", "oj": "JR東日本", "n": "Nambu Line", "j": "南武線", "k": "なんぶせん", "c": "JN", "x": "#FFD400", "s": "square", "t": "Kawasaki – Tachikawa", "note": "Hama-Kawasaki branch: Shitte – Hama-Kawasaki", "a": "link", "r": 757000, "ry": 2024, "km": 35.5, "st": 26, "y": 1927, "sh": ["fork"]},
+      {"i": 15, "op": "JR East", "oj": "JR東日本", "n": "Yokohama Line", "j": "横浜線", "k": "よこはません", "c": "JH", "x": "#80C342", "s": "square", "t": "Higashi-Kanagawa – Hachioji", "a": "link", "r": 760000, "ry": 2024, "km": 42.6, "st": 20, "y": 1908, "sh": ["through"]},
+      {"i": 16, "op": "JR East", "oj": "JR東日本", "n": "Tsurumi Line", "j": "鶴見線", "k": "つるみせん", "c": "JI", "x": "#FFD400", "s": "square", "t": "Tsurumi – Ogimachi", "note": "Branches to Umi-Shibaura and Okawa", "a": "out", "r": 40600, "ry": 2024, "km": 7.0, "st": 13, "y": 1926, "sh": ["fork"]},
       {"i": 17, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Ginza Line", "j": "銀座線", "k": "ぎんざせん", "c": "G", "x": "#FF9500", "s": "circle", "t": "Asakusa – Shibuya", "a": "tokyo", "r": 987000, "ry": 2024, "km": 14.3, "st": 19, "y": 1927},
-      {"i": 18, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Marunouchi Line", "j": "丸ノ内線", "k": "まるのうちせん", "c": "M", "x": "#F62E36", "s": "circle", "t": "Ogikubo – Ikebukuro", "note": "Branch line (Mb): Nakano-Sakaue – Honancho", "a": "tokyo", "r": 1260000, "ry": 2024, "km": 27.4, "st": 28, "y": 1954},
-      {"i": 19, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Hibiya Line", "j": "日比谷線", "k": "ひびやせん", "c": "H", "x": "#B5B5AC", "s": "circle", "t": "Naka-Meguro – Kita-Senju", "a": "tokyo", "r": 1130000, "ry": 2024, "km": 20.3, "st": 22, "y": 1961},
-      {"i": 20, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Tozai Line", "j": "東西線", "k": "とうざいせん", "c": "T", "x": "#009BBF", "s": "circle", "t": "Nakano – Nishi-Funabashi", "a": "link", "r": 1300000, "ry": 2024, "km": 30.8, "st": 23, "y": 1964},
-      {"i": 21, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Chiyoda Line", "j": "千代田線", "k": "ちよだせん", "c": "C", "x": "#00BB85", "s": "circle", "t": "Yoyogi-Uehara – Ayase", "note": "Branch: Ayase – Kita-Ayase", "a": "tokyo", "r": 1180000, "ry": 2024, "km": 24.0, "st": 20, "y": 1969},
-      {"i": 22, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Yurakucho Line", "j": "有楽町線", "k": "ゆうらくちょうせん", "c": "Y", "x": "#C1A470", "s": "circle", "t": "Wakoshi – Shin-Kiba", "a": "link", "r": 1050000, "ry": 2024, "km": 28.3, "st": 24, "y": 1974},
-      {"i": 23, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Hanzomon Line", "j": "半蔵門線", "k": "はんぞうもんせん", "c": "Z", "x": "#8F76D6", "s": "circle", "t": "Shibuya – Oshiage", "a": "tokyo", "r": 973000, "ry": 2024, "km": 16.8, "st": 14, "y": 1978},
-      {"i": 24, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Namboku Line", "j": "南北線", "k": "なんぼくせん", "c": "N", "x": "#00AC9B", "s": "circle", "t": "Meguro – Akabane-Iwabuchi", "a": "tokyo", "r": 518000, "ry": 2024, "km": 21.3, "st": 19, "y": 1991},
-      {"i": 25, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Fukutoshin Line", "j": "副都心線", "k": "ふくとしんせん", "c": "F", "x": "#9C5E31", "s": "circle", "t": "Wakoshi – Shibuya", "a": "link", "r": 556000, "ry": 2024, "km": 20.2, "st": 16, "y": 2008},
-      {"i": 26, "op": "Toei", "oj": "東京都交通局", "n": "Asakusa Line", "j": "浅草線", "k": "あさくさせん", "c": "A", "x": "#EC6E65", "s": "circle", "t": "Nishi-Magome – Oshiage", "note": "Current official rose; the older rose-pink #E85298 is still widely seen", "a": "tokyo", "r": 729000, "ry": 2024, "km": 18.3, "st": 20, "y": 1960},
-      {"i": 27, "op": "Toei", "oj": "東京都交通局", "n": "Mita Line", "j": "三田線", "k": "みたせん", "c": "I", "x": "#006AB8", "s": "circle", "t": "Meguro – Nishi-Takashimadaira", "note": "Older blue #0079C2 also in use", "a": "tokyo", "r": 646000, "ry": 2024, "km": 26.5, "st": 27, "y": 1968},
-      {"i": 28, "op": "Toei", "oj": "東京都交通局", "n": "Shinjuku Line", "j": "新宿線", "k": "しんじゅくせん", "c": "S", "x": "#B0BF1E", "s": "circle", "t": "Shinjuku – Motoyawata", "a": "link", "r": 740000, "ry": 2024, "km": 23.5, "st": 21, "y": 1978},
-      {"i": 29, "op": "Toei", "oj": "東京都交通局", "n": "Oedo Line", "j": "大江戸線", "k": "おおえどせん", "c": "E", "x": "#CE045B", "s": "circle", "t": "Tochomae – Hikarigaoka (via loop through Daimon and Iidabashi)", "note": "Older magenta #B6007A also in use", "a": "tokyo", "r": 889000, "ry": 2024, "km": 40.7, "st": 38, "y": 1991},
+      {"i": 18, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Marunouchi Line", "j": "丸ノ内線", "k": "まるのうちせん", "c": "M", "x": "#F62E36", "s": "circle", "t": "Ogikubo – Ikebukuro", "note": "Branch line (Mb): Nakano-Sakaue – Honancho", "a": "tokyo", "r": 1260000, "ry": 2024, "km": 27.4, "st": 28, "y": 1954, "sh": ["fork"]},
+      {"i": 19, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Hibiya Line", "j": "日比谷線", "k": "ひびやせん", "c": "H", "x": "#B5B5AC", "s": "circle", "t": "Naka-Meguro – Kita-Senju", "a": "tokyo", "r": 1130000, "ry": 2024, "km": 20.3, "st": 22, "y": 1961, "sh": ["through"]},
+      {"i": 20, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Tozai Line", "j": "東西線", "k": "とうざいせん", "c": "T", "x": "#009BBF", "s": "circle", "t": "Nakano – Nishi-Funabashi", "a": "link", "r": 1300000, "ry": 2024, "km": 30.8, "st": 23, "y": 1964, "sh": ["through"]},
+      {"i": 21, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Chiyoda Line", "j": "千代田線", "k": "ちよだせん", "c": "C", "x": "#00BB85", "s": "circle", "t": "Yoyogi-Uehara – Ayase", "note": "Branch: Ayase – Kita-Ayase", "a": "tokyo", "r": 1180000, "ry": 2024, "km": 24.0, "st": 20, "y": 1969, "sh": ["fork", "through"]},
+      {"i": 22, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Yurakucho Line", "j": "有楽町線", "k": "ゆうらくちょうせん", "c": "Y", "x": "#C1A470", "s": "circle", "t": "Wakoshi – Shin-Kiba", "a": "link", "r": 1050000, "ry": 2024, "km": 28.3, "st": 24, "y": 1974, "sh": ["through"]},
+      {"i": 23, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Hanzomon Line", "j": "半蔵門線", "k": "はんぞうもんせん", "c": "Z", "x": "#8F76D6", "s": "circle", "t": "Shibuya – Oshiage", "a": "tokyo", "r": 973000, "ry": 2024, "km": 16.8, "st": 14, "y": 1978, "sh": ["through"]},
+      {"i": 24, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Namboku Line", "j": "南北線", "k": "なんぼくせん", "c": "N", "x": "#00AC9B", "s": "circle", "t": "Meguro – Akabane-Iwabuchi", "a": "tokyo", "r": 518000, "ry": 2024, "km": 21.3, "st": 19, "y": 1991, "sh": ["through"]},
+      {"i": 25, "op": "Tokyo Metro", "oj": "東京メトロ", "n": "Fukutoshin Line", "j": "副都心線", "k": "ふくとしんせん", "c": "F", "x": "#9C5E31", "s": "circle", "t": "Wakoshi – Shibuya", "a": "link", "r": 556000, "ry": 2024, "km": 20.2, "st": 16, "y": 2008, "sh": ["through"]},
+      {"i": 26, "op": "Toei", "oj": "東京都交通局", "n": "Asakusa Line", "j": "浅草線", "k": "あさくさせん", "c": "A", "x": "#EC6E65", "s": "circle", "t": "Nishi-Magome – Oshiage", "note": "Current official rose; the older rose-pink #E85298 is still widely seen", "a": "tokyo", "r": 729000, "ry": 2024, "km": 18.3, "st": 20, "y": 1960, "sh": ["through"]},
+      {"i": 27, "op": "Toei", "oj": "東京都交通局", "n": "Mita Line", "j": "三田線", "k": "みたせん", "c": "I", "x": "#006AB8", "s": "circle", "t": "Meguro – Nishi-Takashimadaira", "note": "Older blue #0079C2 also in use", "a": "tokyo", "r": 646000, "ry": 2024, "km": 26.5, "st": 27, "y": 1968, "sh": ["through"]},
+      {"i": 28, "op": "Toei", "oj": "東京都交通局", "n": "Shinjuku Line", "j": "新宿線", "k": "しんじゅくせん", "c": "S", "x": "#B0BF1E", "s": "circle", "t": "Shinjuku – Motoyawata", "a": "link", "r": 740000, "ry": 2024, "km": 23.5, "st": 21, "y": 1978, "sh": ["through"]},
+      {"i": 29, "op": "Toei", "oj": "東京都交通局", "n": "Oedo Line", "j": "大江戸線", "k": "おおえどせん", "c": "E", "x": "#CE045B", "s": "circle", "t": "Tochomae – Hikarigaoka (via loop through Daimon and Iidabashi)", "note": "Older magenta #B6007A also in use", "a": "tokyo", "r": 889000, "ry": 2024, "km": 40.7, "st": 38, "y": 1991, "sh": ["loop"]},
       {"i": 30, "op": "Toei", "oj": "東京都交通局", "n": "Toden Arakawa Line (Tokyo Sakura Tram)", "j": "都電荒川線（東京さくらトラム）", "k": "とでんあらかわせん", "c": "SA", "x": "#EE86A7", "s": "circle", "t": "Minowabashi – Waseda", "note": "Tramway", "a": "tokyo", "r": 49100, "ry": 2011, "km": 12.2, "st": 30, "y": 1911},
       {"i": 31, "op": "Toei", "oj": "東京都交通局", "n": "Nippori-Toneri Liner", "j": "日暮里・舎人ライナー", "k": "にっぽり・とねりライナー", "c": "NT", "x": "#D53A77", "s": "square", "t": "Nippori – Minumadai-Shinsuikoen", "note": "Automated guideway transit; secondary color green #69B444", "a": "tokyo", "r": 95200, "ry": 2024, "x2": "#69B444", "km": 9.7, "st": 13, "y": 2008},
-      {"i": 32, "op": "Tokyu", "oj": "東急電鉄", "n": "Toyoko Line", "j": "東横線", "k": "とうよこせん", "c": "TY", "x": "#DA0442", "s": "square", "t": "Shibuya – Yokohama", "a": "link", "r": 1100000, "ry": 2024, "km": 24.2, "st": 21, "y": 1926},
-      {"i": 33, "op": "Tokyu", "oj": "東急電鉄", "n": "Meguro Line", "j": "目黒線", "k": "めぐろせん", "c": "MG", "x": "#009CD2", "s": "square", "t": "Meguro – Hiyoshi", "a": "link", "r": 382000, "ry": 2024, "km": 11.9, "st": 13, "y": 1923},
-      {"i": 34, "op": "Tokyu", "oj": "東急電鉄", "n": "Tokyu Shin-Yokohama Line", "j": "東急新横浜線", "k": "とうきゅうしんよこはません", "c": "SH", "x": "#8A1186", "s": "square", "t": "Hiyoshi – Shin-Yokohama", "a": "out", "r": 97600, "ry": 2024, "km": 5.8, "st": 3, "y": 2023},
-      {"i": 35, "op": "Tokyu", "oj": "東急電鉄", "n": "Den-en-toshi Line", "j": "田園都市線", "k": "でんえんとしせん", "c": "DT", "x": "#20A288", "s": "square", "t": "Shibuya – Chuo-Rinkan", "a": "link", "r": 1160000, "ry": 2024, "km": 31.5, "st": 27, "y": 1963},
-      {"i": 36, "op": "Tokyu", "oj": "東急電鉄", "n": "Oimachi Line", "j": "大井町線", "k": "おおいまちせん", "c": "OM", "x": "#F18C43", "s": "square", "t": "Oimachi – Mizonokuchi", "a": "link", "r": 456000, "ry": 2024, "km": 12.4, "st": 16, "y": 1927},
+      {"i": 32, "op": "Tokyu", "oj": "東急電鉄", "n": "Toyoko Line", "j": "東横線", "k": "とうよこせん", "c": "TY", "x": "#DA0442", "s": "square", "t": "Shibuya – Yokohama", "a": "link", "r": 1100000, "ry": 2024, "km": 24.2, "st": 21, "y": 1926, "sh": ["through"]},
+      {"i": 33, "op": "Tokyu", "oj": "東急電鉄", "n": "Meguro Line", "j": "目黒線", "k": "めぐろせん", "c": "MG", "x": "#009CD2", "s": "square", "t": "Meguro – Hiyoshi", "a": "link", "r": 382000, "ry": 2024, "km": 11.9, "st": 13, "y": 1923, "sh": ["through"]},
+      {"i": 34, "op": "Tokyu", "oj": "東急電鉄", "n": "Tokyu Shin-Yokohama Line", "j": "東急新横浜線", "k": "とうきゅうしんよこはません", "c": "SH", "x": "#8A1186", "s": "square", "t": "Hiyoshi – Shin-Yokohama", "a": "out", "r": 97600, "ry": 2024, "km": 5.8, "st": 3, "y": 2023, "sh": ["through"]},
+      {"i": 35, "op": "Tokyu", "oj": "東急電鉄", "n": "Den-en-toshi Line", "j": "田園都市線", "k": "でんえんとしせん", "c": "DT", "x": "#20A288", "s": "square", "t": "Shibuya – Chuo-Rinkan", "a": "link", "r": 1160000, "ry": 2024, "km": 31.5, "st": 27, "y": 1963, "sh": ["through"]},
+      {"i": 36, "op": "Tokyu", "oj": "東急電鉄", "n": "Oimachi Line", "j": "大井町線", "k": "おおいまちせん", "c": "OM", "x": "#F18C43", "s": "square", "t": "Oimachi – Mizonokuchi", "a": "link", "r": 456000, "ry": 2024, "km": 12.4, "st": 16, "y": 1927, "sh": ["through"]},
       {"i": 37, "op": "Tokyu", "oj": "東急電鉄", "n": "Ikegami Line", "j": "池上線", "k": "いけがみせん", "c": "IK", "x": "#EE86A7", "s": "square", "t": "Gotanda – Kamata", "a": "tokyo", "r": 219000, "ry": 2024, "km": 10.8, "st": 15, "y": 1922},
       {"i": 38, "op": "Tokyu", "oj": "東急電鉄", "n": "Tokyu Tamagawa Line", "j": "東急多摩川線", "k": "とうきゅうたまがわせん", "c": "TM", "x": "#AE0378", "s": "square", "t": "Tamagawa – Kamata", "a": "tokyo", "r": 140000, "ry": 2024, "km": 5.6, "st": 7, "y": 1923},
       {"i": 39, "op": "Tokyu", "oj": "東急電鉄", "n": "Kodomonokuni Line", "j": "こどもの国線", "k": "こどものくにせん", "c": "KD", "x": "#0068B7", "s": "square", "t": "Nagatsuta – Kodomonokuni", "a": "out", "r": 11100, "ry": 2024, "km": 3.4, "st": 3, "y": 1967},
       {"i": 40, "op": "Tokyu", "oj": "東急電鉄", "n": "Setagaya Line", "j": "世田谷線", "k": "せたがやせん", "c": "SG", "x": "#FCC70D", "s": "square", "t": "Sangen-Jaya – Shimo-Takaido", "note": "Tramway", "a": "tokyo", "r": 52300, "ry": 2022, "km": 5.0, "st": 10, "y": 1925},
-      {"i": 41, "op": "Yokohama Minatomirai Railway", "oj": "横浜高速鉄道", "n": "Minatomirai Line", "j": "みなとみらい線", "k": "みなとみらいせん", "c": "MM", "x": "#09357F", "s": "square", "t": "Yokohama – Motomachi-Chukagai", "note": "Through service with Tokyu Toyoko Line; documented hexes vary (#003EA2, #0067C0 also seen)", "a": "out", "r": 221000, "ry": 2025, "km": 4.1, "st": 6, "y": 2004},
-      {"i": 42, "op": "Odakyu", "oj": "小田急電鉄", "n": "Odawara Line", "j": "小田原線", "k": "おだわらせん", "c": "OH", "x": "#2288CC", "s": "square", "t": "Shinjuku – Odawara", "a": "link", "r": 1460000, "ry": 2024, "km": 82.5, "st": 47, "y": 1927},
-      {"i": 43, "op": "Odakyu", "oj": "小田急電鉄", "n": "Enoshima Line", "j": "江ノ島線", "k": "えのしません", "c": "OE", "x": "#2288CC", "s": "square", "t": "Sagami-Ono – Katase-Enoshima", "a": "out", "r": 381000, "ry": 2024, "km": 27.6, "st": 17, "y": 1929},
-      {"i": 44, "op": "Odakyu", "oj": "小田急電鉄", "n": "Tama Line", "j": "多摩線", "k": "たません", "c": "OT", "x": "#2288CC", "s": "square", "t": "Shin-Yurigaoka – Karakida", "a": "link", "r": 76500, "ry": 2024, "km": 10.6, "st": 8, "y": 1974},
-      {"i": 45, "op": "Keio", "oj": "京王電鉄", "n": "Keio Line", "j": "京王線", "k": "けいおうせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Shinjuku – Keio-Hachioji", "a": "tokyo", "r": 1280000, "ry": 2024, "km": 37.9, "st": 32, "y": 1913},
-      {"i": 46, "op": "Keio", "oj": "京王電鉄", "n": "Keio New Line", "j": "京王新線", "k": "けいおうしんせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Shinjuku – Sasazuka", "note": "Through service with Toei Shinjuku Line", "a": "tokyo", "km": 3.6, "st": 4, "y": 1978},
-      {"i": 47, "op": "Keio", "oj": "京王電鉄", "n": "Sagamihara Line", "j": "相模原線", "k": "さがみはらせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Chofu – Hashimoto", "a": "link", "km": 22.6, "st": 12, "y": 1916},
-      {"i": 48, "op": "Keio", "oj": "京王電鉄", "n": "Takao Line", "j": "高尾線", "k": "たかおせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Kitano – Takaosanguchi", "a": "tokyo", "km": 8.6, "st": 7, "y": 1931},
-      {"i": 49, "op": "Keio", "oj": "京王電鉄", "n": "Keibajo Line", "j": "競馬場線", "k": "けいばじょうせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Higashi-Fuchu – Fuchu-Keiba-Seimommae", "note": "Branch line", "a": "tokyo", "km": 0.9, "st": 2, "y": 1955},
+      {"i": 41, "op": "Yokohama Minatomirai Railway", "oj": "横浜高速鉄道", "n": "Minatomirai Line", "j": "みなとみらい線", "k": "みなとみらいせん", "c": "MM", "x": "#09357F", "s": "square", "t": "Yokohama – Motomachi-Chukagai", "note": "Through service with Tokyu Toyoko Line; documented hexes vary (#003EA2, #0067C0 also seen)", "a": "out", "r": 221000, "ry": 2025, "km": 4.1, "st": 6, "y": 2004, "sh": ["through"]},
+      {"i": 42, "op": "Odakyu", "oj": "小田急電鉄", "n": "Odawara Line", "j": "小田原線", "k": "おだわらせん", "c": "OH", "x": "#2288CC", "s": "square", "t": "Shinjuku – Odawara", "a": "link", "r": 1460000, "ry": 2024, "km": 82.5, "st": 47, "y": 1927, "sh": ["through"]},
+      {"i": 43, "op": "Odakyu", "oj": "小田急電鉄", "n": "Enoshima Line", "j": "江ノ島線", "k": "えのしません", "c": "OE", "x": "#2288CC", "s": "square", "t": "Sagami-Ono – Katase-Enoshima", "a": "out", "r": 381000, "ry": 2024, "km": 27.6, "st": 17, "y": 1929, "sh": ["through"]},
+      {"i": 44, "op": "Odakyu", "oj": "小田急電鉄", "n": "Tama Line", "j": "多摩線", "k": "たません", "c": "OT", "x": "#2288CC", "s": "square", "t": "Shin-Yurigaoka – Karakida", "a": "link", "r": 76500, "ry": 2024, "km": 10.6, "st": 8, "y": 1974, "sh": ["through"]},
+      {"i": 45, "op": "Keio", "oj": "京王電鉄", "n": "Keio Line", "j": "京王線", "k": "けいおうせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Shinjuku – Keio-Hachioji", "a": "tokyo", "r": 1280000, "ry": 2024, "km": 37.9, "st": 32, "y": 1913, "sh": ["through"]},
+      {"i": 46, "op": "Keio", "oj": "京王電鉄", "n": "Keio New Line", "j": "京王新線", "k": "けいおうしんせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Shinjuku – Sasazuka", "note": "Through service with Toei Shinjuku Line", "a": "tokyo", "km": 3.6, "st": 4, "y": 1978, "sh": ["through"]},
+      {"i": 47, "op": "Keio", "oj": "京王電鉄", "n": "Sagamihara Line", "j": "相模原線", "k": "さがみはらせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Chofu – Hashimoto", "a": "link", "km": 22.6, "st": 12, "y": 1916, "sh": ["through"]},
+      {"i": 48, "op": "Keio", "oj": "京王電鉄", "n": "Takao Line", "j": "高尾線", "k": "たかおせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Kitano – Takaosanguchi", "a": "tokyo", "km": 8.6, "st": 7, "y": 1931, "sh": ["through"]},
+      {"i": 49, "op": "Keio", "oj": "京王電鉄", "n": "Keibajo Line", "j": "競馬場線", "k": "けいばじょうせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Higashi-Fuchu – Fuchu-Keiba-Seimommae", "note": "Branch line", "a": "tokyo", "km": 0.9, "st": 2, "y": 1955, "sh": ["through"]},
       {"i": 50, "op": "Keio", "oj": "京王電鉄", "n": "Dobutsuen Line", "j": "動物園線", "k": "どうぶつえんせん", "c": "KO", "x": "#DD0077", "s": "circle", "t": "Takahatafudo – Tama-Dobutsukoen", "note": "Branch line", "a": "tokyo", "km": 2.0, "st": 2, "y": 1964},
       {"i": 51, "op": "Keio", "oj": "京王電鉄", "n": "Inokashira Line", "j": "井の頭線", "k": "いのかしらせん", "c": "IN", "x": "#000088", "s": "circle", "t": "Shibuya – Kichijoji", "a": "tokyo", "r": 491000, "ry": 2024, "km": 12.7, "st": 17, "y": 1933},
-      {"i": 52, "op": "Seibu", "oj": "西武鉄道", "n": "Ikebukuro Line", "j": "池袋線", "k": "いけぶくろせん", "c": "SI", "x": "#EF810F", "s": "square", "t": "Ikebukuro – Agano", "a": "link", "r": 730000, "ry": 2024, "km": 57.8, "st": 31, "y": 1915},
-      {"i": 53, "op": "Seibu", "oj": "西武鉄道", "n": "Seibu Chichibu Line", "j": "西武秩父線", "k": "せいぶちちぶせん", "c": "SI", "x": "#EF810F", "s": "square", "t": "Agano – Seibu-Chichibu", "a": "out", "km": 19.0, "st": 6, "y": 1969},
+      {"i": 52, "op": "Seibu", "oj": "西武鉄道", "n": "Ikebukuro Line", "j": "池袋線", "k": "いけぶくろせん", "c": "SI", "x": "#EF810F", "s": "square", "t": "Ikebukuro – Agano", "a": "link", "r": 730000, "ry": 2024, "km": 57.8, "st": 31, "y": 1915, "sh": ["through"]},
+      {"i": 53, "op": "Seibu", "oj": "西武鉄道", "n": "Seibu Chichibu Line", "j": "西武秩父線", "k": "せいぶちちぶせん", "c": "SI", "x": "#EF810F", "s": "square", "t": "Agano – Seibu-Chichibu", "a": "out", "km": 19.0, "st": 6, "y": 1969, "sh": ["through"]},
       {"i": 54, "op": "Seibu", "oj": "西武鉄道", "n": "Toshima Line", "j": "豊島線", "k": "としません", "c": "SI", "x": "#EF810F", "s": "square", "t": "Nerima – Toshimaen", "note": "Branch line", "a": "tokyo", "r": 7960, "ry": 2024, "km": 1.0, "st": 2, "y": 1927},
       {"i": 55, "op": "Seibu", "oj": "西武鉄道", "n": "Sayama Line", "j": "狭山線", "k": "さやません", "c": "SI", "x": "#EF810F", "s": "square", "t": "Nishi-Tokorozawa – Seibu-Kyujo-mae", "note": "Branch line", "a": "out", "r": 9560, "ry": 2024, "km": 4.2, "st": 3, "y": 1929},
-      {"i": 56, "op": "Seibu", "oj": "西武鉄道", "n": "Seibu Yurakucho Line", "j": "西武有楽町線", "k": "せいぶゆうらくちょうせん", "c": "SI", "x": "#EF810F", "s": "square", "t": "Kotake-Mukaihara – Nerima", "note": "Link to Tokyo Metro Yurakucho/Fukutoshin lines", "a": "tokyo", "r": 88300, "ry": 2024, "km": 2.6, "st": 3, "y": 1983},
+      {"i": 56, "op": "Seibu", "oj": "西武鉄道", "n": "Seibu Yurakucho Line", "j": "西武有楽町線", "k": "せいぶゆうらくちょうせん", "c": "SI", "x": "#EF810F", "s": "square", "t": "Kotake-Mukaihara – Nerima", "note": "Link to Tokyo Metro Yurakucho/Fukutoshin lines", "a": "tokyo", "r": 88300, "ry": 2024, "km": 2.6, "st": 3, "y": 1983, "sh": ["through"]},
       {"i": 57, "op": "Seibu", "oj": "西武鉄道", "n": "Shinjuku Line", "j": "新宿線", "k": "しんじゅくせん", "c": "SS", "x": "#00A6BF", "s": "square", "t": "Seibu-Shinjuku – Hon-Kawagoe", "a": "link", "r": 602000, "ry": 2024, "km": 47.5, "st": 29, "y": 1978},
-      {"i": 58, "op": "Seibu", "oj": "西武鉄道", "n": "Haijima Line", "j": "拝島線", "k": "はいじません", "c": "SS", "x": "#00A6BF", "s": "square", "t": "Kodaira – Haijima", "a": "tokyo", "r": 74600, "ry": 2024, "km": 14.3, "st": 8, "y": 1928},
-      {"i": 59, "op": "Seibu", "oj": "西武鉄道", "n": "Tamako Line", "j": "多摩湖線", "k": "たまこせん", "c": "ST", "x": "#FDBC00", "s": "square", "t": "Kokubunji – Tamako", "a": "tokyo", "r": 44300, "ry": 2024, "km": 9.2, "st": 7, "y": 1928},
+      {"i": 58, "op": "Seibu", "oj": "西武鉄道", "n": "Haijima Line", "j": "拝島線", "k": "はいじません", "c": "SS", "x": "#00A6BF", "s": "square", "t": "Kodaira – Haijima", "a": "tokyo", "r": 74600, "ry": 2024, "km": 14.3, "st": 8, "y": 1928, "sh": ["through"]},
+      {"i": 59, "op": "Seibu", "oj": "西武鉄道", "n": "Tamako Line", "j": "多摩湖線", "k": "たまこせん", "c": "ST", "x": "#FDBC00", "s": "square", "t": "Kokubunji – Tamako", "a": "tokyo", "r": 44300, "ry": 2024, "km": 9.2, "st": 7, "y": 1928, "sh": ["through"]},
       {"i": 60, "op": "Seibu", "oj": "西武鉄道", "n": "Kokubunji Line", "j": "国分寺線", "k": "こくぶんじせん", "c": "SK", "x": "#00CC66", "s": "square", "t": "Higashi-Murayama – Kokubunji", "a": "tokyo", "r": 66600, "ry": 2024, "km": 7.8, "st": 5, "y": 1894},
       {"i": 61, "op": "Seibu", "oj": "西武鉄道", "n": "Seibuen Line", "j": "西武園線", "k": "せいぶえんせん", "c": "SK", "x": "#00CC66", "s": "square", "t": "Higashi-Murayama – Seibuen", "note": "Branch line", "a": "link", "r": 1730, "ry": 2024, "km": 2.4, "st": 2, "y": 1930},
       {"i": 62, "op": "Seibu", "oj": "西武鉄道", "n": "Seibu Tamagawa Line", "j": "多摩川線", "k": "たまがわせん", "c": "SW", "x": "#EF810F", "s": "square", "t": "Musashi-Sakai – Koremasa", "note": "Isolated from the rest of the network", "a": "tokyo", "r": 31200, "ry": 2024, "km": 8.0, "st": 6, "y": 1917},
       {"i": 63, "op": "Seibu", "oj": "西武鉄道", "n": "Yamaguchi Line (Leo Liner)", "j": "山口線", "k": "やまぐちせん", "c": "SY", "x": "#FF3333", "s": "square", "t": "Tamako – Seibu-Kyujo-mae", "note": "Automated guideway transit", "a": "link", "r": 1850, "ry": 2024, "km": 2.8, "st": 3, "y": 1913},
-      {"i": 64, "op": "Tobu", "oj": "東武鉄道", "n": "Tobu Skytree Line", "j": "東武スカイツリーライン（伊勢崎線）", "k": "とうぶスカイツリーライン", "c": "TS", "x": "#0067C0", "s": "square", "t": "Asakusa / Oshiage – Tobu-Dobutsu-Koen", "note": "Southern Isesaki Line", "a": "link", "r": 781000, "ry": 2024, "km": 41.0, "st": 30, "y": 2012},
-      {"i": 65, "op": "Tobu", "oj": "東武鉄道", "n": "Isesaki Line", "j": "伊勢崎線", "k": "いせさきせん", "c": "TI", "x": "#ED1A3D", "s": "square", "t": "Tobu-Dobutsu-Koen – Isesaki", "note": "Northern section; TI also covers Sano, Koizumi and Kiryu lines", "a": "out", "km": 73.5, "st": 26, "y": 1899},
+      {"i": 64, "op": "Tobu", "oj": "東武鉄道", "n": "Tobu Skytree Line", "j": "東武スカイツリーライン（伊勢崎線）", "k": "とうぶスカイツリーライン", "c": "TS", "x": "#0067C0", "s": "square", "t": "Asakusa / Oshiage – Tobu-Dobutsu-Koen", "note": "Southern Isesaki Line", "a": "link", "r": 781000, "ry": 2024, "km": 41.0, "st": 30, "y": 2012, "sh": ["fork", "through"]},
+      {"i": 65, "op": "Tobu", "oj": "東武鉄道", "n": "Isesaki Line", "j": "伊勢崎線", "k": "いせさきせん", "c": "TI", "x": "#ED1A3D", "s": "square", "t": "Tobu-Dobutsu-Koen – Isesaki", "note": "Northern section; TI also covers Sano, Koizumi and Kiryu lines", "a": "out", "km": 73.5, "st": 26, "y": 1899, "sh": ["through"]},
       {"i": 66, "op": "Tobu", "oj": "東武鉄道", "n": "Kameido Line", "j": "亀戸線", "k": "かめいどせん", "c": "TS", "x": "#0067C0", "s": "square", "t": "Hikifune – Kameido", "note": "Branch line", "a": "tokyo", "r": 22700, "ry": 2024, "km": 3.4, "st": 5, "y": 1904},
       {"i": 67, "op": "Tobu", "oj": "東武鉄道", "n": "Daishi Line", "j": "大師線", "k": "だいしせん", "c": "TS", "x": "#0067C0", "s": "square", "t": "Nishiarai – Daishimae", "note": "Branch line", "a": "tokyo", "r": 5980, "ry": 2024, "km": 1.0, "st": 2, "y": 1899},
-      {"i": 68, "op": "Tobu", "oj": "東武鉄道", "n": "Nikko Line", "j": "日光線", "k": "にっこうせん", "c": "TN", "x": "#FFA500", "s": "square", "t": "Tobu-Dobutsu-Koen – Tobu-Nikko", "note": "Sources give the color only as 'orange'", "a": "out", "r": 35600, "ry": 2024, "km": 94.5, "st": 26, "y": 1929},
-      {"i": 69, "op": "Tobu", "oj": "東武鉄道", "n": "Urban Park Line (Noda Line)", "j": "東武アーバンパークライン（野田線）", "k": "とうぶアーバンパークライン", "c": "TD", "x": "#00BFFF", "s": "square", "t": "Omiya – Kashiwa – Funabashi", "a": "out", "r": 439000, "ry": 2024, "km": 62.7, "st": 35, "y": 1911},
-      {"i": 70, "op": "Tobu", "oj": "東武鉄道", "n": "Tojo Line", "j": "東上本線", "k": "とうじょうほんせん", "c": "TJ", "x": "#004098", "s": "square", "t": "Ikebukuro – Yorii", "a": "link", "r": 865000, "ry": 2024, "km": 75.0, "st": 39, "y": 1914},
+      {"i": 68, "op": "Tobu", "oj": "東武鉄道", "n": "Nikko Line", "j": "日光線", "k": "にっこうせん", "c": "TN", "x": "#FFA500", "s": "square", "t": "Tobu-Dobutsu-Koen – Tobu-Nikko", "note": "Sources give the color only as 'orange'", "a": "out", "r": 35600, "ry": 2024, "km": 94.5, "st": 26, "y": 1929, "sh": ["through"]},
+      {"i": 69, "op": "Tobu", "oj": "東武鉄道", "n": "Urban Park Line (Noda Line)", "j": "東武アーバンパークライン（野田線）", "k": "とうぶアーバンパークライン", "c": "TD", "x": "#00BFFF", "s": "square", "t": "Omiya – Kashiwa – Funabashi", "a": "out", "r": 439000, "ry": 2024, "km": 62.7, "st": 35, "y": 1911, "sh": ["through"]},
+      {"i": 70, "op": "Tobu", "oj": "東武鉄道", "n": "Tojo Line", "j": "東上本線", "k": "とうじょうほんせん", "c": "TJ", "x": "#004098", "s": "square", "t": "Ikebukuro – Yorii", "a": "link", "r": 865000, "ry": 2024, "km": 75.0, "st": 39, "y": 1914, "sh": ["through"]},
       {"i": 71, "op": "Tobu", "oj": "東武鉄道", "n": "Ogose Line", "j": "越生線", "k": "おごせせん", "c": "TJ", "x": "#004098", "s": "square", "t": "Sakado – Ogose", "note": "Branch line", "a": "out", "r": 17500, "ry": 2024, "km": 10.9, "st": 8, "y": 1932},
-      {"i": 72, "op": "Keisei", "oj": "京成電鉄", "n": "Keisei Main Line", "j": "京成本線", "k": "けいせいほんせん", "c": "KS", "x": "#0060B0", "s": "circle", "t": "Keisei-Ueno – Narita Airport", "note": "Higashi-Narita Line branch: Keisei-Narita – Higashi-Narita", "a": "link", "r": 521000, "ry": 2024, "km": 69.3, "st": 42, "y": 1912},
-      {"i": 73, "op": "Keisei", "oj": "京成電鉄", "n": "Oshiage Line", "j": "押上線", "k": "おしあげせん", "c": "KS", "x": "#CD66FF", "s": "circle", "t": "Oshiage – Aoto", "note": "Through service with Toei Asakusa Line", "a": "tokyo", "r": 154000, "ry": 2024, "km": 5.7, "st": 6, "y": 1912},
+      {"i": 72, "op": "Keisei", "oj": "京成電鉄", "n": "Keisei Main Line", "j": "京成本線", "k": "けいせいほんせん", "c": "KS", "x": "#0060B0", "s": "circle", "t": "Keisei-Ueno – Narita Airport", "note": "Higashi-Narita Line branch: Keisei-Narita – Higashi-Narita", "a": "link", "r": 521000, "ry": 2024, "km": 69.3, "st": 42, "y": 1912, "sh": ["fork", "through"]},
+      {"i": 73, "op": "Keisei", "oj": "京成電鉄", "n": "Oshiage Line", "j": "押上線", "k": "おしあげせん", "c": "KS", "x": "#CD66FF", "s": "circle", "t": "Oshiage – Aoto", "note": "Through service with Toei Asakusa Line", "a": "tokyo", "r": 154000, "ry": 2024, "km": 5.7, "st": 6, "y": 1912, "sh": ["through"]},
       {"i": 74, "op": "Keisei", "oj": "京成電鉄", "n": "Kanamachi Line", "j": "金町線", "k": "かなまちせん", "c": "KS", "x": "#FF0000", "s": "circle", "t": "Keisei-Takasago – Keisei-Kanamachi", "note": "Branch line", "a": "tokyo", "r": 16100, "ry": 2024, "km": 2.5, "st": 3, "y": 1899},
-      {"i": 75, "op": "Keisei", "oj": "京成電鉄", "n": "Chiba Line", "j": "千葉線", "k": "ちばせん", "c": "KS", "x": "#FF1E56", "s": "circle", "t": "Keisei-Tsudanuma – Chibachuo", "a": "out", "r": 50200, "ry": 2024, "km": 12.9, "st": 10, "y": 1921},
-      {"i": 76, "op": "Keisei", "oj": "京成電鉄", "n": "Chihara Line", "j": "千原線", "k": "ちはらせん", "c": "KS", "x": "#FF1E56", "s": "circle", "t": "Chibachuo – Chiharadai", "a": "out", "r": 13100, "ry": 2024, "km": 10.9, "st": 6, "y": 1992},
-      {"i": 77, "op": "Keisei", "oj": "京成電鉄", "n": "Narita Sky Access Line", "j": "成田空港線（成田スカイアクセス）", "k": "なりたくうこうせん", "c": "KS", "x": "#FF8620", "s": "circle", "t": "Keisei-Takasago – Narita Airport", "note": "Skyliner route via Hokuso Line tracks", "a": "link", "r": 32000, "ry": 2024, "km": 51.4, "st": 8, "y": 2010},
-      {"i": 78, "op": "Keisei", "oj": "京成電鉄", "n": "Matsudo Line", "j": "松戸線", "k": "まつどせん", "c": "SL", "x": "#A97344", "s": "circle", "t": "Matsudo – Keisei-Tsudanuma", "note": "Former Shin-Keisei Line (merged into Keisei 2025); keeps SL station numbers; Shin-Keisei-era color was gentle pink #EF59A1", "a": "out", "r": 233000, "ry": 2021, "km": 26.5, "st": 24, "y": 1947},
-      {"i": 79, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Keikyu Main Line", "j": "京急本線", "k": "けいきゅうほんせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Sengakuji – Uraga", "note": "Through service with Toei Asakusa Line", "a": "link", "r": 1140000, "ry": 2024, "km": 56.7, "st": 50, "y": 1895},
-      {"i": 80, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Airport Line", "j": "空港線", "k": "くうこうせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Keikyu Kamata – Haneda Airport Terminal 1·2", "a": "tokyo", "r": 229000, "ry": 2024, "km": 6.5, "st": 7, "y": 1902},
+      {"i": 75, "op": "Keisei", "oj": "京成電鉄", "n": "Chiba Line", "j": "千葉線", "k": "ちばせん", "c": "KS", "x": "#FF1E56", "s": "circle", "t": "Keisei-Tsudanuma – Chibachuo", "a": "out", "r": 50200, "ry": 2024, "km": 12.9, "st": 10, "y": 1921, "sh": ["through"]},
+      {"i": 76, "op": "Keisei", "oj": "京成電鉄", "n": "Chihara Line", "j": "千原線", "k": "ちはらせん", "c": "KS", "x": "#FF1E56", "s": "circle", "t": "Chibachuo – Chiharadai", "a": "out", "r": 13100, "ry": 2024, "km": 10.9, "st": 6, "y": 1992, "sh": ["through"]},
+      {"i": 77, "op": "Keisei", "oj": "京成電鉄", "n": "Narita Sky Access Line", "j": "成田空港線（成田スカイアクセス）", "k": "なりたくうこうせん", "c": "KS", "x": "#FF8620", "s": "circle", "t": "Keisei-Takasago – Narita Airport", "note": "Skyliner route via Hokuso Line tracks", "a": "link", "r": 32000, "ry": 2024, "km": 51.4, "st": 8, "y": 2010, "sh": ["through"]},
+      {"i": 78, "op": "Keisei", "oj": "京成電鉄", "n": "Matsudo Line", "j": "松戸線", "k": "まつどせん", "c": "SL", "x": "#A97344", "s": "circle", "t": "Matsudo – Keisei-Tsudanuma", "note": "Former Shin-Keisei Line (merged into Keisei 2025); keeps SL station numbers; Shin-Keisei-era color was gentle pink #EF59A1", "a": "out", "r": 233000, "ry": 2021, "km": 26.5, "st": 24, "y": 1947, "sh": ["through"]},
+      {"i": 79, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Keikyu Main Line", "j": "京急本線", "k": "けいきゅうほんせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Sengakuji – Uraga", "note": "Through service with Toei Asakusa Line", "a": "link", "r": 1140000, "ry": 2024, "km": 56.7, "st": 50, "y": 1895, "sh": ["through"]},
+      {"i": 80, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Airport Line", "j": "空港線", "k": "くうこうせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Keikyu Kamata – Haneda Airport Terminal 1·2", "a": "tokyo", "r": 229000, "ry": 2024, "km": 6.5, "st": 7, "y": 1902, "sh": ["through"]},
       {"i": 81, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Daishi Line", "j": "大師線", "k": "だいしせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Keikyu Kawasaki – Kojimashinden", "a": "out", "r": 79100, "ry": 2024, "km": 4.5, "st": 7, "y": 1899},
-      {"i": 82, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Zushi Line", "j": "逗子線", "k": "ずしせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Kanazawa-Hakkei – Zushi·Hayama", "a": "out", "r": 39000, "ry": 2024, "km": 5.9, "st": 4, "y": 1930},
-      {"i": 83, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Kurihama Line", "j": "久里浜線", "k": "くりはません", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Horinouchi – Misakiguchi", "a": "out", "r": 101000, "ry": 2024, "km": 13.4, "st": 9, "y": 1942},
-      {"i": 84, "op": "Sotetsu", "oj": "相模鉄道", "n": "Sotetsu Main Line", "j": "相鉄本線", "k": "そうてつほんせん", "c": "SO", "x": "#041452", "s": "square", "t": "Yokohama – Ebina", "note": "Line color is the corporate 'Yokohama Navy Blue'", "a": "out", "r": 500000, "ry": 2024, "km": 24.6, "st": 18, "y": 1926},
-      {"i": 85, "op": "Sotetsu", "oj": "相模鉄道", "n": "Izumino Line", "j": "いずみ野線", "k": "そうてついずみのせん", "c": "SO", "x": "#041452", "s": "square", "t": "Futamatagawa – Shonandai", "a": "out", "r": 55900, "ry": 2024, "km": 11.3, "st": 8, "y": 1976},
-      {"i": 86, "op": "Sotetsu", "oj": "相模鉄道", "n": "Sotetsu Shin-Yokohama Line", "j": "相鉄新横浜線", "k": "そうてつしんよこはません", "c": "SO", "x": "#041452", "s": "square", "t": "Nishiya – Shin-Yokohama", "note": "Carries the Sotetsu–JR direct service (via Hazawa yokohama-kokudai) and Tokyu direct service", "a": "out", "r": 50500, "ry": 2024, "km": 6.3, "st": 3, "y": 2019},
+      {"i": 82, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Zushi Line", "j": "逗子線", "k": "ずしせん", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Kanazawa-Hakkei – Zushi·Hayama", "a": "out", "r": 39000, "ry": 2024, "km": 5.9, "st": 4, "y": 1930, "sh": ["through"]},
+      {"i": 83, "op": "Keikyu", "oj": "京浜急行電鉄", "n": "Kurihama Line", "j": "久里浜線", "k": "くりはません", "c": "KK", "x": "#00BFFF", "s": "circle", "t": "Horinouchi – Misakiguchi", "a": "out", "r": 101000, "ry": 2024, "km": 13.4, "st": 9, "y": 1942, "sh": ["through"]},
+      {"i": 84, "op": "Sotetsu", "oj": "相模鉄道", "n": "Sotetsu Main Line", "j": "相鉄本線", "k": "そうてつほんせん", "c": "SO", "x": "#041452", "s": "square", "t": "Yokohama – Ebina", "note": "Line color is the corporate 'Yokohama Navy Blue'", "a": "out", "r": 500000, "ry": 2024, "km": 24.6, "st": 18, "y": 1926, "sh": ["through"]},
+      {"i": 85, "op": "Sotetsu", "oj": "相模鉄道", "n": "Izumino Line", "j": "いずみ野線", "k": "そうてついずみのせん", "c": "SO", "x": "#041452", "s": "square", "t": "Futamatagawa – Shonandai", "a": "out", "r": 55900, "ry": 2024, "km": 11.3, "st": 8, "y": 1976, "sh": ["through"]},
+      {"i": 86, "op": "Sotetsu", "oj": "相模鉄道", "n": "Sotetsu Shin-Yokohama Line", "j": "相鉄新横浜線", "k": "そうてつしんよこはません", "c": "SO", "x": "#041452", "s": "square", "t": "Nishiya – Shin-Yokohama", "note": "Carries the Sotetsu–JR direct service (via Hazawa yokohama-kokudai) and Tokyu direct service", "a": "out", "r": 50500, "ry": 2024, "km": 6.3, "st": 3, "y": 2019, "sh": ["through"]},
       {"i": 87, "op": "Metropolitan Intercity Railway", "oj": "首都圏新都市鉄道", "n": "Tsukuba Express", "j": "つくばエクスプレス", "c": "TX", "x": "#000084", "s": "square", "t": "Akihabara – Tsukuba", "a": "link", "r": 423000, "ry": 2025, "km": 58.3, "st": 20, "y": 2005},
-      {"i": 88, "op": "Tokyo Waterfront Area Rapid Transit", "oj": "東京臨海高速鉄道", "n": "Rinkai Line", "j": "りんかい線", "k": "りんかいせん", "c": "R", "x": "#00B19D", "s": "circle", "t": "Shin-Kiba – Osaki", "note": "Through service with JR Saikyo Line; secondary color #00389E", "a": "tokyo", "r": 225000, "ry": 2024, "x2": "#00389E", "km": 12.2, "st": 8, "y": 1996},
+      {"i": 88, "op": "Tokyo Waterfront Area Rapid Transit", "oj": "東京臨海高速鉄道", "n": "Rinkai Line", "j": "りんかい線", "k": "りんかいせん", "c": "R", "x": "#00B19D", "s": "circle", "t": "Shin-Kiba – Osaki", "note": "Through service with JR Saikyo Line; secondary color #00389E", "a": "tokyo", "r": 225000, "ry": 2024, "x2": "#00389E", "km": 12.2, "st": 8, "y": 1996, "sh": ["through"]},
       {"i": 89, "op": "Yurikamome", "oj": "ゆりかもめ", "n": "Yurikamome (Tokyo Waterfront New Transit Line)", "j": "ゆりかもめ（東京臨海新交通臨海線）", "c": "U", "x": "#0067C0", "s": "circle", "t": "Shimbashi – Toyosu", "note": "Automated guideway transit", "a": "tokyo", "r": 125000, "ry": 2023, "km": 14.7, "st": 16, "y": 1995},
       {"i": 90, "op": "Tokyo Monorail", "oj": "東京モノレール", "n": "Haneda Airport Line", "j": "東京モノレール羽田空港線", "k": "とうきょうモノレールはねだくうこうせん", "c": "MO", "x": "#003686", "s": "square", "t": "Monorail Hamamatsucho – Haneda Airport Terminal 2", "a": "tokyo", "r": 108000, "ry": 2023, "km": 17.8, "st": 11, "y": 1964},
       {"i": 91, "op": "Tama Toshi Monorail", "oj": "多摩都市モノレール", "n": "Tama Toshi Monorail Line", "j": "多摩都市モノレール線", "k": "たまとしモノレールせん", "c": "TT", "x": "#FF6633", "s": "square", "t": "Tama-Center – Kamikitadai", "note": "Line drawn orange on maps; station-number badge is dark teal", "a": "tokyo", "r": 132000, "ry": 2023, "km": 16.0, "st": 19, "y": 1998},
-      {"i": 92, "op": "Saitama Railway", "oj": "埼玉高速鉄道", "n": "Saitama Rapid Railway Line (Saitama Stadium Line)", "j": "埼玉高速鉄道線", "k": "さいたまこうそくてつどうせん", "c": "SR", "x": "#345CAA", "s": "circle", "t": "Akabane-Iwabuchi – Urawa-Misono", "note": "Through service with Tokyo Metro Namboku Line", "a": "link", "r": 123000, "ry": 2024, "km": 14.6, "st": 8, "y": 2001},
-      {"i": 93, "op": "Toyo Rapid Railway", "oj": "東葉高速鉄道", "n": "Toyo Rapid Line", "j": "東葉高速線", "k": "とうようこうそくせん", "c": "TR", "x": "#00B16B", "s": "circle", "t": "Nishi-Funabashi – Toyo-Katsutadai", "note": "Through service with Tokyo Metro Tozai Line", "a": "out", "r": 154000, "ry": 2024, "km": 16.2, "st": 9, "y": 1996},
-      {"i": 94, "op": "Hokuso Railway", "oj": "北総鉄道", "n": "Hokuso Line", "j": "北総線", "k": "ほくそうせん", "c": "HS", "x": "#00BFFF", "s": "circle", "t": "Keisei-Takasago – Imba-Nihon-Idai", "a": "link", "r": 117000, "ry": 2025, "km": 32.3, "st": 15, "y": 1979},
-      {"i": 95, "op": "Shibayama Railway", "oj": "芝山鉄道", "n": "Shibayama Railway Line", "j": "芝山鉄道線", "k": "しばやまてつどうせん", "c": "SR", "x": "#00A650", "s": "circle", "t": "Higashi-Narita – Shibayama-Chiyoda", "note": "Code SR collides with Saitama Rapid (different operator area)", "a": "out", "r": 1420, "ry": 2023, "km": 2.2, "st": 2, "y": 2002},
+      {"i": 92, "op": "Saitama Railway", "oj": "埼玉高速鉄道", "n": "Saitama Rapid Railway Line (Saitama Stadium Line)", "j": "埼玉高速鉄道線", "k": "さいたまこうそくてつどうせん", "c": "SR", "x": "#345CAA", "s": "circle", "t": "Akabane-Iwabuchi – Urawa-Misono", "note": "Through service with Tokyo Metro Namboku Line", "a": "link", "r": 123000, "ry": 2024, "km": 14.6, "st": 8, "y": 2001, "sh": ["through"]},
+      {"i": 93, "op": "Toyo Rapid Railway", "oj": "東葉高速鉄道", "n": "Toyo Rapid Line", "j": "東葉高速線", "k": "とうようこうそくせん", "c": "TR", "x": "#00B16B", "s": "circle", "t": "Nishi-Funabashi – Toyo-Katsutadai", "note": "Through service with Tokyo Metro Tozai Line", "a": "out", "r": 154000, "ry": 2024, "km": 16.2, "st": 9, "y": 1996, "sh": ["through"]},
+      {"i": 94, "op": "Hokuso Railway", "oj": "北総鉄道", "n": "Hokuso Line", "j": "北総線", "k": "ほくそうせん", "c": "HS", "x": "#00BFFF", "s": "circle", "t": "Keisei-Takasago – Imba-Nihon-Idai", "a": "link", "r": 117000, "ry": 2025, "km": 32.3, "st": 15, "y": 1979, "sh": ["through"]},
+      {"i": 95, "op": "Shibayama Railway", "oj": "芝山鉄道", "n": "Shibayama Railway Line", "j": "芝山鉄道線", "k": "しばやまてつどうせん", "c": "SR", "x": "#00A650", "s": "circle", "t": "Higashi-Narita – Shibayama-Chiyoda", "note": "Code SR collides with Saitama Rapid (different operator area)", "a": "out", "r": 1420, "ry": 2023, "km": 2.2, "st": 2, "y": 2002, "sh": ["through"]},
       {"i": 96, "op": "Yokohama City Transportation Bureau", "oj": "横浜市交通局", "n": "Blue Line", "j": "ブルーライン", "c": "B", "x": "#005BA5", "s": "circle", "t": "Azamino – Shonandai", "note": "Entirely outside Tokyo; shown on Greater Tokyo network maps", "a": "out", "r": 542000, "ry": 2025, "km": 40.4, "st": 32, "y": 1985},
       {"i": 97, "op": "Yokohama City Transportation Bureau", "oj": "横浜市交通局", "n": "Green Line", "j": "グリーンライン", "c": "G", "x": "#048D58", "s": "circle", "t": "Nakayama – Hiyoshi", "note": "Entirely outside Tokyo; shown on Greater Tokyo network maps", "a": "out", "r": 144000, "ry": 2025, "km": 13.0, "st": 10, "y": 1975}
     ];
@@ -1255,7 +1437,8 @@
        something you can pick several of, and picking a second should widen
        the wall rather than replace what you had. Sort stays single — an
        order is one thing by definition. */
-    const state = { view: "trains", arrange: "riders", areas: [], ops: [] };
+    const state = { view: "trains", arrange: "riders", areas: [], ops: [], shapes: [],
+                    era: "", badge: "", two: false, hearted: false };
 
     /* company → logo file slug + monogram fallback */
     const OPSLUG = {
@@ -1294,9 +1477,17 @@
       n >= 1e6 ? (Math.round(n / 1e4) / 100) + "M" :
       n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
 
+    /* Every filter is an AND against the same line: the sets widen within
+       themselves and narrow against each other. A line carries its shapes
+       as tags, so "loops or forks" is one membership test. */
     const filtered = () => LINES.filter(l =>
       (!state.areas.length || state.areas.includes(l.a)) &&
-      (!state.ops.length || state.ops.includes(l.op)));
+      (!state.ops.length || state.ops.includes(l.op)) &&
+      (!state.shapes.length || state.shapes.some(t => (l.sh || []).includes(t))) &&
+      (!state.era || (state.era === "pre" ? l.y < 1970 : l.y >= 1970)) &&
+      (!state.badge || l.s === state.badge) &&
+      (!state.two || !!l.x2) &&
+      (!state.hearted || mine.has(lineKey(l))));
     /* [heading|null, lines[]] groups per the arrangement mode. */
     const grouped = list => {
       /* ONE company is showing: it heads its own grid whatever the order.
@@ -1490,7 +1681,8 @@
        pressed wherever that button happens to be. The library's animation
        is cancelled first, and with it the visibility it would have set on
        close, so that is done here too. */
-    const PANELS = [["sort-sheet", "arrange-pill"], ["area-sheet", "area-pill"], ["op-sheet", "op-pill"]];
+    const PANELS = [["sort-sheet", "arrange-pill"], ["area-sheet", "area-pill"], ["op-sheet", "op-pill"],
+                    ["shape-sheet", "shape-pill"], ["era-sheet", "era-pill"], ["badge-sheet", "badge-pill"]];
     const PANEL_GAP = 8;               /* air between a panel and the bar */
     const placePanel = (sheet, pill, open) => {
       const inset = 12;
@@ -1611,72 +1803,10 @@
       host.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
     };
 
-    /* ---- The tab bar gets out of the way -------------------------------
-       Reading down the wall it leaves through the bottom edge; a touch of
-       upward scroll brings it back.
-
-       It moves WITH THE SCROLL, not on a clock. Ninety pixels of downward
-       scroll take it all the way out and sixty upward bring it all the way
-       back, in proportion the whole time, so at any speed it travels the
-       distance the finger travelled. A timed animation cannot do that: it
-       runs at its own pace, and a fast flick outruns it, which is why it
-       read as vanishing rather than sliding.
-
-       Coming back is cheaper than going away, because wanting the tabs
-       back is the impatient move and wanting them gone is the settled one.
-
-       When the scroll stops part way, the bar settles to whichever end it
-       is nearer, and that one move IS timed — nothing is racing it. Any
-       new scroll takes the timing straight back off, so the finger always
-       wins.
-
-       The tab bar is the only fixed thing left: the controls live in the
-       page now and scroll away by themselves. It stays put while a panel
-       is open and near the top of the page. */
-    const BAR_OUT = 90, BAR_BACK = 60, BAR_TOP = 40, BAR_SETTLE = 140, BAR_EASE = 0.18;
-    /* barWant is where the scroll says the bar belongs; barAt is where it
-       actually is, and each frame it closes a sixth of the distance. Two
-       values rather than one, because a flick can put barWant a whole
-       screen away in a single frame and the bar must still be SEEN to go:
-       chasing it takes about a third of a second however fast the flick
-       was. Scroll slowly and the gap never opens, so the bar tracks the
-       finger exactly. */
-    let barWant = 0, barAt = 0, barLast = 0, barLoop = 0, barRest = 0, barEl = null;
-    const calmly = matchMedia("(prefers-reduced-motion: reduce)");
-    const stepBar = () => {
-      barLoop = 0;
-      const gap = barWant - barAt;
-      /* a sixth of what is left each frame, but never less than a pixel or
-         so, or the last stretch of an exponential crawls; and under that
-         much left, land it */
-      const step = Math.max(Math.abs(gap) * BAR_EASE, 0.012);
-      barAt = Math.abs(gap) <= step || calmly.matches
-        ? barWant : barAt + Math.sign(gap) * step;
-      barEl ||= document.querySelector(".nav-tabs");
-      barEl?.style.setProperty("--bar-away", barAt.toFixed(3));
-      if (barAt !== barWant) barLoop = requestAnimationFrame(stepBar);
-    };
-    const aimBar = to => {
-      barWant = to;
-      if (!barLoop && barAt !== to) barLoop = requestAnimationFrame(stepBar);
-    };
-    const showChrome = () => aimBar(0);
-    const watchChrome = () => {
-      const y = Math.max(0, scrollY);
-      const d = y - barLast;
-      barLast = y;
-      if (!d) return;
-      /* stopped part way: send it to whichever end it is nearer */
-      clearTimeout(barRest);
-      barRest = setTimeout(() => aimBar(barWant < 0.5 ? 0 : 1), BAR_SETTLE);
-      if (y < BAR_TOP || document.querySelector('.sheet[data-open="true"]')) return showChrome();
-      aimBar(Math.min(1, Math.max(0, barWant + d / (d > 0 ? BAR_OUT : BAR_BACK))));
-    };
-
     const queueDrift = () => {
       if (groundPending) return;
       groundPending = true;
-      requestAnimationFrame(() => { driftGround(); watchChrome(); });
+      requestAnimationFrame(driftGround);
     };
 
     /* ---- Hearts --------------------------------------------------------
@@ -1812,6 +1942,7 @@
        A section never claims more tracks than it has cards, so its heading
        card — which spans every track — ends exactly where its last card
        does. One layout read per render, not one per card. */
+    const MAX_COLS = 5;
     const fitColumns = () => {
       const grids = document.querySelectorAll(".line-grid");
       if (!grids.length) return;
@@ -1825,7 +1956,8 @@
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
       const card = parseFloat(cs.getPropertyValue("--card-w")) * rem;
       const gap = parseFloat(cs.columnGap) || 0;
-      const fit = Math.max(1, Math.floor((grids[0].clientWidth + gap) / (card + gap)));
+      const fit = Math.min(MAX_COLS,
+        Math.max(1, Math.floor((grids[0].clientWidth + gap) / (card + gap))));
       /* EVERY section takes the full width, however few cards it holds. A
          two-line company narrowing to two tracks and centring itself read
          as a different layout dropped into the middle of the wall; held to
@@ -1877,11 +2009,20 @@
       words.length > 3 ? `${words.length} ${many}`
       : words.length === 1 ? words[0]
       : words.slice(0, -1).join(", ") + " and " + words[words.length - 1];
+    /* The clauses the five newer filters add to the sentence. Each one
+       reads as something said ABOUT the lines, so they stack in a fixed
+       order and the line stays grammatical however many are on. */
+    /* the verb agrees with the count: 2 lines that loop, 1 line that loops */
+    const SHAPE_VERB = { loop: "loop", fork: "fork", through: "run through" };
+    const SHAPE_VERB_ONE = { loop: "loops", fork: "forks", through: "runs through" };
+    const BADGE_PHRASE = { circle: "with a round badge", square: "with a square badge" };
+    const ERA_PHRASE = { pre: "opened before 1970", post: "opened since 1970" };
     const headline = list => {
       const n = list.length;
       const noun = n === 1 ? "line" : "lines";
       let subject = state.ops.length
         ? `<b>${esc(listWords(state.ops, "companies"))}</b> ${noun}` : noun;
+      if (state.hearted) subject += " you have hearted";
       if (state.areas.length) {
         /* one area gets the full phrase; two get the short labels, or the
            line runs past a breath */
@@ -1889,6 +2030,15 @@
           : state.areas.length === 1 ? AREA_PHRASE[state.areas[0]]
           : state.areas.map(a => AREA_SHORT[a]).join(" or "));
       }
+      /* the rest are commas on the end, in one settled order so the same
+         set of filters always reads the same way */
+      const said = [];
+      if (state.shapes.length)
+        said.push("that " + state.shapes.map(t => (n === 1 ? SHAPE_VERB_ONE : SHAPE_VERB)[t]).join(" or "));
+      if (state.two) said.push("with a second colour");
+      if (state.badge) said.push(BADGE_PHRASE[state.badge]);
+      if (state.era) said.push(ERA_PHRASE[state.era]);
+      if (said.length) subject += (state.shapes.length ? " " : ", ") + said.join(", ");
       const order = `<span class="list-order">, ${ORDER_PHRASE[state.arrange]}</span>`;
       return `<b>${n}</b> ${subject}${n ? order : ""}`;
     };
@@ -1902,7 +2052,14 @@
                  aria-label="${esc(label)}" data-tip="${esc(label)}"
                  data-event="lines-clear-filter">${esc(word)}<span class="x" aria-hidden="true">×</span></button>`;
       const out = state.ops.map(op => chip("ops", op, op, `Stop showing only ${op}`))
-        .concat(state.areas.map(a => chip("areas", a, AREA_WORD[a], `Stop showing only ${AREA_WORD[a]}`)));
+        .concat(state.areas.map(a => chip("areas", a, AREA_WORD[a], `Stop showing only ${AREA_WORD[a]}`)))
+        .concat(state.shapes.map(t => chip("shapes", t, SHAPE_WORD[t], `Stop showing only lines that ${SHAPE_VERB[t]}`)));
+      /* the three single-value filters each come off in one tap; the
+         chip's value is empty because taking it off is clearing it */
+      if (state.two) out.push(chip("two", "", "Two colours", "Stop showing only two-colour lines"));
+      if (state.badge) out.push(chip("badge", "", BADGE_WORD[state.badge], `Stop showing only ${BADGE_WORD[state.badge].toLowerCase()} lines`));
+      if (state.era) out.push(chip("era", "", ERA_WORD[state.era], `Stop showing only lines ${ERA_PHRASE[state.era]}`));
+      if (state.hearted) out.push(chip("hearted", "", "Hearted", "Stop showing only the lines you have hearted"));
       if (out.length > 1) out.push(
         `<button type="button" class="chip chip-clear" data-clear-all
                  aria-label="Clear every filter" data-tip="Clear every filter"
@@ -1923,6 +2080,11 @@
       if (state.arrange !== "riders") p.set("arrange", state.arrange);
       if (state.areas.length) p.set("area", state.areas.join(","));
       if (state.ops.length) p.set("op", state.ops.join(","));
+      if (state.shapes.length) p.set("shape", state.shapes.join(","));
+      if (state.era) p.set("era", state.era);
+      if (state.badge) p.set("badge", state.badge);
+      if (state.two) p.set("two", "1");
+      if (state.hearted) p.set("heart", "1");
       const qs = p.toString();
       history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
       /* the wall was rewritten, so every <svg data-icon> in it is an empty
@@ -1942,8 +2104,15 @@
       });
       markSet("#area-menu .menu-item", "area", state.areas);
       markSet("#op-menu .menu-item", "op", state.ops);
+      markSet("#shape-menu .menu-item", "shape", state.shapes);
       document.querySelectorAll("#arrange-menu .menu-item").forEach(b =>
         b.setAttribute("aria-pressed", String(b.dataset.arrange === state.arrange)));
+      /* a single-value menu ticks the row that IS the value, and its "any"
+         row when nothing is set */
+      const markOne = (sel, key, val) => document.querySelectorAll(sel).forEach(b =>
+        b.setAttribute("aria-pressed", String((b.dataset[key] || "") === val)));
+      markOne("#era-menu .menu-item", "era", state.era);
+      markOne("#badge-menu .menu-item", "badge", state.badge);
       /* Each pill prints what it is set to, marks itself when that is not
          the default, and says the same thing in its accessible name — the
          colour is never the only signal. */
@@ -1965,11 +2134,69 @@
       pill("op-pill", picked(state.ops, "Rail companies", "companies"), !!state.ops.length,
         state.ops.length ? `Company: ${picked(state.ops, "", "companies")}. Change it`
                          : "Every company. Pick one or more");
+      pill("shape-pill", !state.shapes.length ? "Shape"
+             : state.shapes.length === 1 ? SHAPE_WORD[state.shapes[0]] : `${state.shapes.length} shapes`,
+        !!state.shapes.length,
+        state.shapes.length ? `Shape: lines that ${state.shapes.map(t => SHAPE_VERB[t]).join(" or ")}. Change it`
+                            : "Every shape. Pick one or more");
+      pill("era-pill", state.era ? ERA_WORD[state.era] : "Opened", !!state.era,
+        state.era ? `Opened: ${ERA_WORD[state.era].toLowerCase()}. Change it`
+                  : "Every opening year. Pick one");
+      pill("badge-pill", state.badge ? BADGE_WORD[state.badge] : "Badge", !!state.badge,
+        state.badge ? `Badge: ${BADGE_WORD[state.badge].toLowerCase()}. Change it`
+                    : "Every badge shape. Pick one");
+      /* the two toggles say what they are set to the same way, and carry
+         the state in aria-pressed since they open nothing */
+      const toggle = (id, word, on, label) => {
+        pill(id, word, on, label);
+        $(id).setAttribute("aria-pressed", String(on));
+      };
+      toggle("two-pill", state.two ? "Two colours" : "Colours", state.two,
+        state.two ? "Showing only the lines with a second colour. Show them all again"
+                  : "Show only the lines that officially carry a second colour");
+      toggle("heart-pill", state.hearted ? "Hearted" : "Hearts", state.hearted,
+        state.hearted ? "Showing only the lines you have hearted. Show them all again"
+                      : "Show only the lines you have hearted");
+      showSetPill();
       fx()?.icon?.();          // the view pill just swapped its glyph
     };
     const ARRANGE_WORD = { riders: "Ridership", km: "Length", st: "Stops", age: "Age",
                            name: "Name", company: "Company", color: "Colour" };
     const AREA_WORD = { "": "All lines", tokyo: "In Tokyo", link: "To the suburbs", out: "Outside Tokyo" };
+    /* what each newer filter prints on its pill and its chip */
+    const SHAPE_WORD = { loop: "Loops", fork: "Forks", through: "Runs through" };
+    const BADGE_WORD = { circle: "Round", square: "Square" };
+    const ERA_WORD = { pre: "Before 1970", post: "1970 onward" };
+
+    /* ---- The control row scrolls --------------------------------------
+       Eight controls do not fit a phone, so the row scrolls sideways. A
+       row that scrolls has to SAY so, or the pills past the edge simply
+       are not there: it fades on whichever side still holds something,
+       read from the scroll position rather than assumed, so a row that
+       fits shows no fade at all. And a filter restored from a shared link
+       may sit off screen with nothing to show for it, so the first time
+       the row is drawn it scrolls the first set pill into view. */
+    let rowSettled = false;
+    const ctlEdges = () => {
+      const row = $("trains-bar");
+      if (!row) return;
+      const max = row.scrollWidth - row.clientWidth;
+      row.toggleAttribute("data-less", row.scrollLeft > 4);
+      row.toggleAttribute("data-more", row.scrollLeft < max - 4);
+    };
+    const showSetPill = () => {
+      const row = $("trains-bar");
+      if (!row) return;
+      if (!rowSettled) {
+        rowSettled = true;
+        const set = row.querySelector(".ctl-pill[data-set]");
+        /* only when it is actually out of sight: an in-view pill must not
+           make the row jump on load */
+        if (set && set.offsetLeft + set.offsetWidth > row.clientWidth)
+          set.scrollIntoView({ inline: "center", block: "nearest" });
+      }
+      requestAnimationFrame(ctlEdges);
+    };
 
     /* ---- Original line chimes ------------------------------------------
        Synthesized in the browser, deliberately NOT the official station
@@ -2178,27 +2405,56 @@
     /* The dialog's map: this line lit, the network dimmed behind it, and
        roamable — dMap is its gesture handle, dFit the view it opened at. */
     let dMap = null, dFit = null;
+    /* The diagram is a hundred lines of near-equal weight, so dimming the
+       rest was never enough: at a glance the chosen line was one more
+       coloured thread among them. It is now LIT rather than merely left
+       alone — its strokes are drawn half again as thick and it carries a
+       white halo that separates it from whatever runs under it — while the
+       rest go further down AND lose their colour, so the only colour left
+       on the plate is the line you opened. The lit strokes are remembered
+       so the next line opened puts them back; the diagram is mounted once
+       and reused. */
+    const MAP_LIT = 1.6;             // how much thicker the chosen line runs
+    let dLit = [];
+    const shapesIn = el => el.matches("path,line,polyline,polygon,rect,circle")
+      ? [el] : [...el.querySelectorAll("path,line,polyline,polygon,rect,circle")];
+    const unlight = () => {
+      for (const sh of dLit) sh.style.strokeWidth = "";
+      dLit = [];
+    };
+    const noMap = () => {
+      $("d-tab-map").hidden = true;
+      if (!$("d-map").closest(".d-pane").hidden) showPane("facts");
+    };
     const showMap = l => {
       const ids = MAP_ID[l.op + "|" + l.n];
-      const fig = $("d-map");
-      fig.hidden = !ids;
       if (!ids) return;
       mountMap("d-map-host").then(svg => {
-        if (!svg) { fig.hidden = true; return; }
+        if (!svg) { noMap(); return; }
+        unlight();
         const targets = new Set(ids), matched = [];
         for (const [base, el] of mapEls(svg)) {
           const on = targets.has(base);
-          el.style.opacity = on ? "1" : "0.1";
+          el.style.opacity = on ? "1" : "0.06";
+          el.style.filter = on
+            ? "drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px rgba(255,255,255,.9))"
+            : "grayscale(1)";
           if (on) matched.push(el);
         }
-        if (!matched.length) { fig.hidden = true; return; }
+        for (const el of matched) for (const sh of shapesIn(el)) {
+          const w = parseFloat(getComputedStyle(sh).strokeWidth) || 0;
+          if (!w) continue;
+          sh.style.strokeWidth = (w * MAP_LIT) + "px";
+          dLit.push(sh);
+        }
+        if (!matched.length) { noMap(); return; }
         let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
         for (const el of matched) {
           const bb = el.getBBox();
           x0 = Math.min(x0, bb.x); y0 = Math.min(y0, bb.y);
           x1 = Math.max(x1, bb.x + bb.width); y1 = Math.max(y1, bb.y + bb.height);
         }
-        const pad = Math.max(x1 - x0, y1 - y0) * 0.18 + 120;
+        const pad = Math.max(x1 - x0, y1 - y0) * 0.12 + 90;
         /* the framed view is remembered so the Fit button can return to it */
         dFit = [x0 - pad, y0 - pad, (x1 - x0) + 2 * pad, (y1 - y0) + 2 * pad];
         svg.setAttribute("viewBox", dFit.join(" "));
@@ -2351,6 +2607,16 @@
       });
     };
 
+    /* A line's shape said plainly. A line with none of the three is an
+       ordinary there-and-back route and the row is dropped rather than
+       filled with a word for "nothing unusual". */
+    const SHAPE_SAID = {
+      loop: "Runs as a loop",
+      fork: "Forks into branches",
+      through: "Runs through onto another company",
+    };
+    const shapeWords = l => (l.sh || []).map(t => SHAPE_SAID[t]).join(" · ");
+
     /* The fun pane: where this line stands among the 98, in figures we
        already hold, plus the two sounds — ours to play, theirs to go and
        hear. Every rank is counted here rather than written down, so none
@@ -2378,12 +2644,19 @@
         const rank = place === 1 ? "the oldest" : place === dated.length ? "the newest" : `the ${ordinal(place)} oldest`;
         say("How old", `Opened in ${l.y}, ${new Date().getFullYear() - l.y} years ago — ${rank} of the ${dated.length}.`);
       }
-      say("Where it runs", `${AREAS[l.a] || "—"}. ${esc(l.t || "")}`);
+      /* Where it runs, the note and the plain facts moved to the fact
+         list, where they belong. What stays here is what the list cannot
+         say: how RARE each of those facts is across the 98. */
       if (l.x2) {
         const two = LINES.filter(x => x.x2).length;
-        say("Two colours", `One of ${two} lines that officially carry a second colour, which is why its card is striped in both.`);
+        say("Two colours", `One of only ${two} lines that officially carry a second colour, which is why its card is striped in both.`);
       }
-      if (l.note) say("Worth knowing", esc(l.note));
+      for (const t of (l.sh || [])) {
+        const n = LINES.filter(x => (x.sh || []).includes(t)).length;
+        if (t === "loop") say("A loop", `One of only ${n} lines on the network that come back round to where they started.`);
+        if (t === "fork") say("It forks", `One of ${n} lines that split, so which branch a train takes decides where you end up.`);
+        if (t === "through") say("It keeps going", `One of ${n} lines whose trains run through onto another company's tracks, which is how Tokyo hides its company boundaries from the passenger.`);
+      }
       say("Its chime, ours",
         `<p>An original bell melody, generated from this line's own colour. It is not the official melody, and deliberately so.</p>
          <button type="button" class="btn btn-secondary" id="d-chime" data-event="lines-jingle"
@@ -2417,7 +2690,21 @@
         + `<span class="d-op-name">${esc(l.op)} · ${esc(l.oj)}</span>`;
       $("d-badge").outerHTML = badge(l).replace('class="rail-badge"', 'class="rail-badge" id="d-badge"');
       $("d-code").textContent = l.c || "—";
+      $("d-k").textContent = l.k || "";
+      $("d-k").hidden = !l.k;
       $("d-area").textContent = AREAS[l.a] || "—";
+      /* the two figures the card already prints, which the fact list used
+         to leave out and only the Fun tab ranked */
+      $("d-km").textContent = l.km ? `${l.km} km` : "—";
+      $("d-st").textContent = l.st ? `${l.st} stations` : "—";
+      $("d-x2-row").hidden = !l.x2;
+      if (l.x2) {
+        $("d-chip2").style.setProperty("--c", l.x2);
+        $("d-hex2").textContent = l.x2.toUpperCase();
+      }
+      const shape = shapeWords(l);
+      $("d-shape-row").hidden = !shape;
+      $("d-shape").textContent = shape;
       /* the year and what it comes to — the Fun tab ranks it among the 98,
          but the plain fact belongs with the rest of the line's own facts */
       $("d-opened").textContent = l.y
@@ -2432,7 +2719,10 @@
       $("d-note").textContent = l.note || "";
       renderStops(l);
       renderFun(l);
-      showPane("facts");
+      /* the map leads, when the 2015 diagram carries this line at all */
+      const mapped = !!MAP_ID[l.op + "|" + l.n];
+      $("d-tab-map").hidden = !mapped;
+      showPane(mapped ? "map" : "facts");
       $("line-dialog").showModal();
       /* closing the popup takes the chime with it: the button that opens
          the audio session lives in there and nowhere else */
@@ -2484,6 +2774,16 @@
     /* Every release, newest first. One line each, in words about what
        changed on the page rather than what changed in the file. */
     const RELEASES = [
+      ["31 Aug 2026", "The disappearing tab bar is the design library's now, so every app of mine gets it."],
+      ["31 Aug 2026", "The wall opens out to five columns on a desktop screen, instead of stopping at three."],
+      ["31 Aug 2026", "A line's popup takes about two thirds of a big screen, and the map moved into a tab of its own so it opens at that size."],
+      ["31 Aug 2026", "On the map, the line you opened is the only colour left: everything else goes grey, and the line runs thicker with a halo."],
+      ["30 Aug 2026", "Sharing a link now shows a picture: the app's own field of station badges, with the name and the figures on it."],
+      ["30 Aug 2026", "The app got its real icon, so it lands on a Home Screen looking like itself rather than a stock subway emoji."],
+      ["30 Aug 2026", "An offer to keep the app on your Home Screen, with the steps spelled out on an iPhone, which has no prompt of its own."],
+      ["30 Aug 2026", "Five new ways to cut the wall: how the route is shaped, when the line opened, the badge it wears, whether it carries a second colour, and the lines you have hearted."],
+      ["30 Aug 2026", "Every line now says what its route does — a loop, a fork, or trains that carry on onto another company."],
+      ["30 Aug 2026", "A line's popup gained its length, its stop count, its second colour and the way its name is said; the Fun tab stopped repeating them."],
       ["23 Aug 2026", "The tab bar moves with the scroll now, so a fast flick can no longer outrun it."],
       ["23 Aug 2026", "The section addresses open again on a direct visit. Typing one gave a not-found page."],
       ["23 Aug 2026", "The tabs moved to the bottom and the sort and filter controls above the list. This page arrived."],
@@ -2538,6 +2838,20 @@
             : "";
         }).join(""));
 
+      /* Every filter row says how many lines it would leave, the way the
+         company rows always have — a filter that would empty the wall
+         should say so before it is tapped, not after. */
+      const countRows = (menuId, key, test) =>
+        document.querySelectorAll(`#${menuId} .menu-item`).forEach(b => {
+          const v = b.dataset[key] || "";
+          b.querySelector(".menu-value").textContent =
+            LINES.filter(l => !v || test(l, v)).length;
+        });
+      countRows("shape-menu", "shape", (l, v) => (l.sh || []).includes(v));
+      countRows("era-menu", "era", (l, v) => v === "pre" ? l.y < 1970 : l.y >= 1970);
+      countRows("badge-menu", "badge", (l, v) => l.s === v);
+      countRows("area-menu", "area", (l, v) => l.a === v);
+
       /* Restore a shared URL. */
       const p = new URLSearchParams(location.search);
       if (ORDER_PHRASE[p.get("arrange")]) state.arrange = p.get("arrange");
@@ -2547,6 +2861,11 @@
         .map(v => v.trim()).filter(v => v && ok(v));
       state.areas = fromURL("area", v => !!AREAS[v]);
       state.ops = fromURL("op", v => counts.has(v));
+      state.shapes = fromURL("shape", v => !!SHAPE_WORD[v]);
+      if (ERA_WORD[p.get("era")]) state.era = p.get("era");
+      if (BADGE_WORD[p.get("badge")]) state.badge = p.get("badge");
+      state.two = p.get("two") === "1";
+      state.hearted = p.get("heart") === "1";
       syncControls();
       showView(viewFromPath(), false);
       /* the wall renders with zeros and fills in when the counts land */
@@ -2560,7 +2879,7 @@
         new MutationObserver(() => {
           const open = sheet.dataset.open === "true";
           if (open) sheet.style.visibility = "visible";
-          if (open) showChrome();      // a panel hangs off a pill that must be there
+          if (open) fx()?.showBar?.();  // a panel hangs off a pill that must be there
           placePanel(sheet, pill, open);
         }).observe(sheet, { attributes: true, attributeFilter: ["data-open"] });
       }
@@ -2589,10 +2908,11 @@
       drawGround();
       driftGround();
       addEventListener("scroll", queueDrift, { passive: true });
-      barLast = Math.max(0, scrollY);
       calm.addEventListener?.("change", driftGround);
       let groundTimer = 0;
+      $("trains-bar").addEventListener("scroll", ctlEdges, { passive: true });
       addEventListener("resize", () => {
+        ctlEdges();
         fitColumns();
         clearTimeout(groundTimer);
         groundTimer = setTimeout(() => { drawGround(); driftGround(); }, 150);
@@ -2635,7 +2955,22 @@
       };
       pickFrom("area-menu", b => toggleIn(state.areas, b.dataset.area), { close: false });
       pickFrom("op-menu", b => toggleIn(state.ops, b.dataset.op), { close: false });
+      pickFrom("shape-menu", b => toggleIn(state.shapes, b.dataset.shape), { close: false });
       pickFrom("arrange-menu", b => { state.arrange = b.dataset.arrange; });
+      /* one value at a time: picking a row IS the value, and picking the
+         row already on takes it off again */
+      pickFrom("era-menu", b => { state.era = state.era === b.dataset.era ? "" : (b.dataset.era || ""); });
+      pickFrom("badge-menu", b => { state.badge = state.badge === b.dataset.badge ? "" : (b.dataset.badge || ""); });
+
+      /* The two toggles: no panel to open, so the pill itself is the
+         control and one tap does the whole thing. */
+      for (const [id, key] of [["two-pill", "two"], ["heart-pill", "hearted"]])
+        $(id).addEventListener("click", () => {
+          state[key] = !state[key];
+          fx()?.feedback?.tick?.();
+          syncControls();
+          render();
+        });
 
       /* Chime wiring: hover plays on fine pointers (once a click has
          unlocked audio — until then the hover shows a hint); on touch the
@@ -2704,9 +3039,15 @@
       $("applied-filters").addEventListener("click", e => {
         const all = e.target.closest("[data-clear-all]");
         const one = e.target.closest("[data-drop]");
-        if (all) { state.ops = []; state.areas = []; }
-        else if (one) toggleIn(state[one.dataset.drop], one.dataset.val);
-        else return;
+        if (all) {
+          state.ops = []; state.areas = []; state.shapes = [];
+          state.era = ""; state.badge = ""; state.two = false; state.hearted = false;
+        } else if (one) {
+          /* a set drops one of its picks; a single-value filter clears */
+          const cur = state[one.dataset.drop];
+          if (Array.isArray(cur)) toggleIn(cur, one.dataset.val);
+          else state[one.dataset.drop] = typeof cur === "boolean" ? false : "";
+        } else return;
         syncControls();
         render();
       });
