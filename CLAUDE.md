@@ -169,7 +169,11 @@ control's panel drops from under its own button and is clamped to the
 screen. The tabs were at the top and the controls floated at the bottom
 until this rework.
 
-THE TAB BAR GETS OUT OF THE WAY. Reading down, it leaves through the
+THE TAB BAR GETS OUT OF THE WAY, and since 31 Aug 2026 the LIBRARY owns
+it: `data-bar-hide` on the nav is the whole of it, and the copy that
+lived here — the transform, the `--bar-away` property and sixty lines of
+scroll tracking — is deleted. `fx()?.showBar?.()` brings it back when a
+panel opens. Reading down, it leaves through the
 bottom edge and a touch of upward scroll brings it back. It travels far
 enough to clear its own height, its inset and the home indicator with room
 to spare, so no sliver is ever left showing. The trigger is TRAVEL IN ONE
@@ -178,8 +182,8 @@ per-event test flickers the bar on every wobble. Coming back is cheaper
 than going away (10px against 26), because wanting the tabs back is the
 impatient move. It stays put while a panel is open and near the top of the
 page. It rides on transform, so nothing reflows and the wall never moves
-under the finger. This is the behaviour headed for Facet as the
-app-navigation component.
+under the finger. This behaviour now LIVES in Facet; the notes above
+describe what the library does, not what this file holds.
 
 The material: the CHROME wears the embossed frosted glass the library gives
 its tab bar — the recipe is lifted into `--glass-*` tokens and a `.glass`

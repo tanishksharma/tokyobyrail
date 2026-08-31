@@ -664,24 +664,12 @@
        and scrolls away with them, so the middle of the screen is lines
        and nothing else. */
     .nav-tabs .tab-set { flex: 0 0 auto; }   /* three tabs hug, they do not span */
-    /* Reading DOWN, the tab bar leaves through the bottom edge, and it
-       leaves WITH THE FINGER rather than on a clock of its own. --bar-away
-       is how far out it is, 0 showing and 1 gone, and the JS below sets it
-       from how far you have scrolled. That is the whole point: a timed
-       animation runs at its own speed, so a fast flick outruns it and the
-       bar is simply not there by the time the eye arrives.
-
-       It travels far enough to clear its own height, its inset and the
-       home indicator with room to spare, so no sliver is ever left
-       showing. */
-    .nav-tabs {
-      --bar-away: 0;
-      transform: translate(-50%, calc(
-        var(--bar-away) * (100% + var(--space-inline) + var(--safe-bottom) + 3rem)));
-      will-change: transform;
-    }
-    /* no transition here on purpose: the JS below owns the whole move, so
-       a timed one would be a second animator fighting it */
+    /* Reading down, the tab bar leaves through the bottom edge and a touch
+       of upward scroll brings it back. That behaviour started here and now
+       lives in the library as data-bar-hide on the markup above: the
+       attribute is the whole of it, and the copy that used to sit here —
+       its transform, its --bar-away, and the sixty lines of scroll
+       tracking below — is gone. */
     /* About is a view without a tab, so no tab is the current one. The
        moving highlight would otherwise stay parked on Trains and claim a
        section the reader is not in: it fades out instead. */
@@ -925,7 +913,7 @@
        fixed thing on the page; everything that decides the list sits in
        the page above the cards.
        ============================== -->
-  <nav class="tab-bar nav-tabs" aria-label="Sections" data-print="off">
+  <nav class="tab-bar nav-tabs" data-bar-hide aria-label="Sections" data-print="off">
     <div class="tab-set">
       <a class="tab-seg" href="/" data-view="trains" aria-current="page">Trains</a>
       <a class="tab-seg" href="/stations" data-view="stations" aria-current="false">Stations</a>
@@ -1815,72 +1803,10 @@
       host.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
     };
 
-    /* ---- The tab bar gets out of the way -------------------------------
-       Reading down the wall it leaves through the bottom edge; a touch of
-       upward scroll brings it back.
-
-       It moves WITH THE SCROLL, not on a clock. Ninety pixels of downward
-       scroll take it all the way out and sixty upward bring it all the way
-       back, in proportion the whole time, so at any speed it travels the
-       distance the finger travelled. A timed animation cannot do that: it
-       runs at its own pace, and a fast flick outruns it, which is why it
-       read as vanishing rather than sliding.
-
-       Coming back is cheaper than going away, because wanting the tabs
-       back is the impatient move and wanting them gone is the settled one.
-
-       When the scroll stops part way, the bar settles to whichever end it
-       is nearer, and that one move IS timed — nothing is racing it. Any
-       new scroll takes the timing straight back off, so the finger always
-       wins.
-
-       The tab bar is the only fixed thing left: the controls live in the
-       page now and scroll away by themselves. It stays put while a panel
-       is open and near the top of the page. */
-    const BAR_OUT = 90, BAR_BACK = 60, BAR_TOP = 40, BAR_SETTLE = 140, BAR_EASE = 0.18;
-    /* barWant is where the scroll says the bar belongs; barAt is where it
-       actually is, and each frame it closes a sixth of the distance. Two
-       values rather than one, because a flick can put barWant a whole
-       screen away in a single frame and the bar must still be SEEN to go:
-       chasing it takes about a third of a second however fast the flick
-       was. Scroll slowly and the gap never opens, so the bar tracks the
-       finger exactly. */
-    let barWant = 0, barAt = 0, barLast = 0, barLoop = 0, barRest = 0, barEl = null;
-    const calmly = matchMedia("(prefers-reduced-motion: reduce)");
-    const stepBar = () => {
-      barLoop = 0;
-      const gap = barWant - barAt;
-      /* a sixth of what is left each frame, but never less than a pixel or
-         so, or the last stretch of an exponential crawls; and under that
-         much left, land it */
-      const step = Math.max(Math.abs(gap) * BAR_EASE, 0.012);
-      barAt = Math.abs(gap) <= step || calmly.matches
-        ? barWant : barAt + Math.sign(gap) * step;
-      barEl ||= document.querySelector(".nav-tabs");
-      barEl?.style.setProperty("--bar-away", barAt.toFixed(3));
-      if (barAt !== barWant) barLoop = requestAnimationFrame(stepBar);
-    };
-    const aimBar = to => {
-      barWant = to;
-      if (!barLoop && barAt !== to) barLoop = requestAnimationFrame(stepBar);
-    };
-    const showChrome = () => aimBar(0);
-    const watchChrome = () => {
-      const y = Math.max(0, scrollY);
-      const d = y - barLast;
-      barLast = y;
-      if (!d) return;
-      /* stopped part way: send it to whichever end it is nearer */
-      clearTimeout(barRest);
-      barRest = setTimeout(() => aimBar(barWant < 0.5 ? 0 : 1), BAR_SETTLE);
-      if (y < BAR_TOP || document.querySelector('.sheet[data-open="true"]')) return showChrome();
-      aimBar(Math.min(1, Math.max(0, barWant + d / (d > 0 ? BAR_OUT : BAR_BACK))));
-    };
-
     const queueDrift = () => {
       if (groundPending) return;
       groundPending = true;
-      requestAnimationFrame(() => { driftGround(); watchChrome(); });
+      requestAnimationFrame(driftGround);
     };
 
     /* ---- Hearts --------------------------------------------------------
@@ -2848,6 +2774,7 @@
     /* Every release, newest first. One line each, in words about what
        changed on the page rather than what changed in the file. */
     const RELEASES = [
+      ["31 Aug 2026", "The disappearing tab bar is the design library's now, so every app of mine gets it."],
       ["31 Aug 2026", "The wall opens out to five columns on a desktop screen, instead of stopping at three."],
       ["31 Aug 2026", "A line's popup takes about two thirds of a big screen, and the map moved into a tab of its own so it opens at that size."],
       ["31 Aug 2026", "On the map, the line you opened is the only colour left: everything else goes grey, and the line runs thicker with a halo."],
@@ -2952,7 +2879,7 @@
         new MutationObserver(() => {
           const open = sheet.dataset.open === "true";
           if (open) sheet.style.visibility = "visible";
-          if (open) showChrome();      // a panel hangs off a pill that must be there
+          if (open) fx()?.showBar?.();  // a panel hangs off a pill that must be there
           placePanel(sheet, pill, open);
         }).observe(sheet, { attributes: true, attributeFilter: ["data-open"] });
       }
@@ -2981,7 +2908,6 @@
       drawGround();
       driftGround();
       addEventListener("scroll", queueDrift, { passive: true });
-      barLast = Math.max(0, scrollY);
       calm.addEventListener?.("change", driftGround);
       let groundTimer = 0;
       $("trains-bar").addEventListener("scroll", ctlEdges, { passive: true });
