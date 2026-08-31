@@ -689,6 +689,13 @@
       opacity: 0;
     }
     .app-main {
+      /* The wall is the page's whole content, so it takes a wider ceiling
+         than the library's reading-column default: five tracks of card
+         plus their gaps, which is what a desktop screen has room for.
+         fitColumns() below still decides the count from the width it
+         actually gets, and stops at five — past that the cards stop
+         reading as a wall and start reading as a spreadsheet. */
+      --width-page: 92rem;
       padding-top: var(--space-stack);
       padding-bottom: var(--bar-clearance-bottom);
     }
@@ -834,11 +841,39 @@
        free — and it pans, pinches and wheel-zooms. The map is an artwork
        with its own light ground, so it
        keeps a white plate in dark mode too. */
-    .line-map { position: relative; flex: 0 0 auto; margin: 0; }
+    /* THE POPUP takes a real share of the screen. On a phone it is nearly
+       the whole of it; from a laptop up it holds about two thirds in BOTH
+       directions, because the map tab is the reason the dialog exists and
+       a map the size of a postcard tells you nothing. Its height is set,
+       not merely capped, so the map pane has something to fill. */
+    #line-dialog.modal.modal-lg {
+      width: min(94vw, 34rem);
+      height: min(88dvh, 46rem);
+      max-height: 88dvh;
+    }
+    @media (min-width: 60rem) {
+      #line-dialog.modal.modal-lg {
+        width: 66vw; max-width: 76rem;
+        height: 68dvh; max-height: 68dvh;
+      }
+    }
+    /* Each pane owns its own scroll, so the map can fill the body while
+       the stop list still scrolls inside it. */
+    #line-dialog > .dialog-body { display: flex; flex-direction: column; overflow: hidden; }
+    #line-dialog > .dialog-body > .dialog-head-row,
+    #line-dialog > .dialog-body > .d-tabs { flex: 0 0 auto; }
+    #line-dialog .d-pane:not([hidden]) { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+    #line-dialog .d-pane[data-pane="map"] { overflow: hidden; }
+    /* prose holds a reading column; the fact list and the stop list are
+       label-and-value rows and read correctly at any width */
+    #line-dialog .d-pane[data-pane="fun"] > * { max-width: 46rem; }
+
+    .line-map { position: relative; margin: 0; height: 100%; }
     #d-map-host {
-      height: min(42vh, 20rem); overflow: hidden; touch-action: none;
+      height: 100%; overflow: hidden; touch-action: none;
+      border-radius: var(--card-round);
       background: #fff; cursor: grab;
-      border-bottom: var(--border-hairline, 1px) solid var(--border);
+      border: var(--border-element) solid var(--border);
     }
     #d-map-host[data-panning] { cursor: grabbing; }
     #d-map-host svg { width: 100%; height: 100%; display: block; }
@@ -862,10 +897,8 @@
       display: inline-flex;
     }
     .dialog-close .btn { background: var(--surface); }
-    /* the head row keeps clear of both floating controls */
+    /* the head row keeps clear of the close button */
     .dialog-head-row { padding-right: 2.75rem; }
-    #line-dialog:not(:has(#d-map[hidden])) .dialog-head-row { padding-left: 0; }
-    #line-dialog:has(#d-map[hidden]) .dialog-head-row { padding-left: 6.5rem; }
 
     /* The detail dialog's color chip. */
     .hex-chip {
@@ -1069,15 +1102,6 @@
   </div>
 
   <dialog class="modal modal-lg" id="line-dialog">
-    <figure class="line-map" id="d-map" hidden>
-      <div id="d-map-host" role="img" aria-label="Greater Tokyo network map with this line highlighted"></div>
-      <figcaption class="text-caption">Map: Naoki Hashimoto (CC0)</figcaption>
-      <div class="map-zoom" role="group" aria-label="Zoom the map">
-        <button type="button" class="btn btn-icon btn-small" id="d-zoom-in" aria-label="Zoom in" data-tip="Zoom in on the map"><svg data-icon="plus" aria-hidden="true"></svg></button>
-        <button type="button" class="btn btn-icon btn-small" id="d-zoom-out" aria-label="Zoom out" data-tip="Zoom out of the map"><svg data-icon="minus" aria-hidden="true"></svg></button>
-        <button type="button" class="btn btn-icon btn-small" id="d-zoom-fit" aria-label="Fit the line" data-tip="Frame the whole line again"><svg data-icon="refresh" aria-hidden="true"></svg></button>
-      </div>
-    </figure>
     <div class="heart-row" id="d-heart-row"></div>
     <form method="dialog" class="dialog-close"><button class="btn btn-icon" aria-label="Close"><svg width="20" height="20" data-icon="close" aria-hidden="true"></svg></button></form>
     <div class="dialog-body stack">
@@ -1092,13 +1116,29 @@
         </span>
       </div>
 
+      <!-- The map leads: it is the reason the popup is this size, and it
+           gets the whole pane rather than a strip across the top. A line
+           the 2015 diagram is too old to show has no Map tab at all. -->
       <div class="tab-set d-tabs" role="tablist" aria-label="About this line">
-        <button type="button" class="tab-seg" role="tab" data-pane="facts" aria-selected="true">The line</button>
+        <button type="button" class="tab-seg" role="tab" id="d-tab-map" data-pane="map" aria-selected="true">Map</button>
+        <button type="button" class="tab-seg" role="tab" data-pane="facts" aria-selected="false">Line</button>
         <button type="button" class="tab-seg" role="tab" data-pane="stops" aria-selected="false">Stops</button>
         <button type="button" class="tab-seg" role="tab" data-pane="fun" aria-selected="false">Fun</button>
       </div>
 
-      <div class="d-pane" data-pane="facts">
+      <div class="d-pane" data-pane="map">
+        <figure class="line-map" id="d-map">
+          <div id="d-map-host" role="img" aria-label="Greater Tokyo network map with this line highlighted"></div>
+          <figcaption class="text-caption">Map: Naoki Hashimoto (CC0)</figcaption>
+          <div class="map-zoom" role="group" aria-label="Zoom the map">
+            <button type="button" class="btn btn-icon btn-small" id="d-zoom-in" aria-label="Zoom in" data-tip="Zoom in on the map"><svg data-icon="plus" aria-hidden="true"></svg></button>
+            <button type="button" class="btn btn-icon btn-small" id="d-zoom-out" aria-label="Zoom out" data-tip="Zoom out of the map"><svg data-icon="minus" aria-hidden="true"></svg></button>
+            <button type="button" class="btn btn-icon btn-small" id="d-zoom-fit" aria-label="Fit the line" data-tip="Frame the whole line again"><svg data-icon="refresh" aria-hidden="true"></svg></button>
+          </div>
+        </figure>
+      </div>
+
+      <div class="d-pane" data-pane="facts" hidden>
       <div class="row d-company" id="d-company"></div>
       <ul class="list list-boxed">
         <li class="list-item">
@@ -1976,6 +2016,7 @@
        A section never claims more tracks than it has cards, so its heading
        card — which spans every track — ends exactly where its last card
        does. One layout read per render, not one per card. */
+    const MAX_COLS = 5;
     const fitColumns = () => {
       const grids = document.querySelectorAll(".line-grid");
       if (!grids.length) return;
@@ -1989,7 +2030,8 @@
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
       const card = parseFloat(cs.getPropertyValue("--card-w")) * rem;
       const gap = parseFloat(cs.columnGap) || 0;
-      const fit = Math.max(1, Math.floor((grids[0].clientWidth + gap) / (card + gap)));
+      const fit = Math.min(MAX_COLS,
+        Math.max(1, Math.floor((grids[0].clientWidth + gap) / (card + gap))));
       /* EVERY section takes the full width, however few cards it holds. A
          two-line company narrowing to two tracks and centring itself read
          as a different layout dropped into the middle of the wall; held to
@@ -2437,27 +2479,56 @@
     /* The dialog's map: this line lit, the network dimmed behind it, and
        roamable — dMap is its gesture handle, dFit the view it opened at. */
     let dMap = null, dFit = null;
+    /* The diagram is a hundred lines of near-equal weight, so dimming the
+       rest was never enough: at a glance the chosen line was one more
+       coloured thread among them. It is now LIT rather than merely left
+       alone — its strokes are drawn half again as thick and it carries a
+       white halo that separates it from whatever runs under it — while the
+       rest go further down AND lose their colour, so the only colour left
+       on the plate is the line you opened. The lit strokes are remembered
+       so the next line opened puts them back; the diagram is mounted once
+       and reused. */
+    const MAP_LIT = 1.6;             // how much thicker the chosen line runs
+    let dLit = [];
+    const shapesIn = el => el.matches("path,line,polyline,polygon,rect,circle")
+      ? [el] : [...el.querySelectorAll("path,line,polyline,polygon,rect,circle")];
+    const unlight = () => {
+      for (const sh of dLit) sh.style.strokeWidth = "";
+      dLit = [];
+    };
+    const noMap = () => {
+      $("d-tab-map").hidden = true;
+      if (!$("d-map").closest(".d-pane").hidden) showPane("facts");
+    };
     const showMap = l => {
       const ids = MAP_ID[l.op + "|" + l.n];
-      const fig = $("d-map");
-      fig.hidden = !ids;
       if (!ids) return;
       mountMap("d-map-host").then(svg => {
-        if (!svg) { fig.hidden = true; return; }
+        if (!svg) { noMap(); return; }
+        unlight();
         const targets = new Set(ids), matched = [];
         for (const [base, el] of mapEls(svg)) {
           const on = targets.has(base);
-          el.style.opacity = on ? "1" : "0.1";
+          el.style.opacity = on ? "1" : "0.06";
+          el.style.filter = on
+            ? "drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px rgba(255,255,255,.9))"
+            : "grayscale(1)";
           if (on) matched.push(el);
         }
-        if (!matched.length) { fig.hidden = true; return; }
+        for (const el of matched) for (const sh of shapesIn(el)) {
+          const w = parseFloat(getComputedStyle(sh).strokeWidth) || 0;
+          if (!w) continue;
+          sh.style.strokeWidth = (w * MAP_LIT) + "px";
+          dLit.push(sh);
+        }
+        if (!matched.length) { noMap(); return; }
         let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
         for (const el of matched) {
           const bb = el.getBBox();
           x0 = Math.min(x0, bb.x); y0 = Math.min(y0, bb.y);
           x1 = Math.max(x1, bb.x + bb.width); y1 = Math.max(y1, bb.y + bb.height);
         }
-        const pad = Math.max(x1 - x0, y1 - y0) * 0.18 + 120;
+        const pad = Math.max(x1 - x0, y1 - y0) * 0.12 + 90;
         /* the framed view is remembered so the Fit button can return to it */
         dFit = [x0 - pad, y0 - pad, (x1 - x0) + 2 * pad, (y1 - y0) + 2 * pad];
         svg.setAttribute("viewBox", dFit.join(" "));
@@ -2722,7 +2793,10 @@
       $("d-note").textContent = l.note || "";
       renderStops(l);
       renderFun(l);
-      showPane("facts");
+      /* the map leads, when the 2015 diagram carries this line at all */
+      const mapped = !!MAP_ID[l.op + "|" + l.n];
+      $("d-tab-map").hidden = !mapped;
+      showPane(mapped ? "map" : "facts");
       $("line-dialog").showModal();
       /* closing the popup takes the chime with it: the button that opens
          the audio session lives in there and nowhere else */
@@ -2774,6 +2848,9 @@
     /* Every release, newest first. One line each, in words about what
        changed on the page rather than what changed in the file. */
     const RELEASES = [
+      ["31 Aug 2026", "The wall opens out to five columns on a desktop screen, instead of stopping at three."],
+      ["31 Aug 2026", "A line's popup takes about two thirds of a big screen, and the map moved into a tab of its own so it opens at that size."],
+      ["31 Aug 2026", "On the map, the line you opened is the only colour left: everything else goes grey, and the line runs thicker with a halo."],
       ["30 Aug 2026", "Sharing a link now shows a picture: the app's own field of station badges, with the name and the figures on it."],
       ["30 Aug 2026", "The app got its real icon, so it lands on a Home Screen looking like itself rather than a stock subway emoji."],
       ["30 Aug 2026", "An offer to keep the app on your Home Screen, with the steps spelled out on an iPhone, which has no prompt of its own."],

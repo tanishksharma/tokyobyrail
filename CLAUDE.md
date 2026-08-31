@@ -56,10 +56,30 @@ sections, switched by the top tab bar and each with its own URL
   `?shape=a,b`. The HEADLINE names every one of them in one sentence, in
   a settled order so the same set of filters always reads the same way,
   and the shape verb agrees with the count — "2 lines that loop",
-  "1 line that loops". A per-line
-  detail dialog carries the map with that line highlighted, filling the
-  whole top of the popup — one finger pans, two fingers pinch, the wheel
-  zooms — plus a zoom pill. Every control mirrors into the URL.
+  "1 line that loops".
+  The wall runs to FIVE COLUMNS where there is room, amended 31 Aug 2026:
+  `.app-main` takes a `--width-page` of 92rem rather than the library's
+  reading-column default, and `fitColumns()` still counts the tracks from
+  the width it actually gets but stops at `MAX_COLS` 5 — past that the
+  cards stop reading as a wall and start reading as a spreadsheet. 1440px
+  gives five, 1280 gives four; it gave three at any width before.
+  A per-line detail dialog takes a REAL SHARE of the screen — about two
+  thirds in both directions from 60rem up, nearly all of a phone — and
+  its height is SET rather than merely capped, so the map pane has
+  something to fill. THE MAP IS A TAB, not a strip across the top: it
+  leads the four (Map · Line · Stops · Fun) and opens first, since it is
+  the reason the popup is that size; a line the 2015 diagram is too old
+  to show has no Map tab at all and opens on Line. Each pane owns its own
+  scroll, so the map fills the body while the stop list still scrolls
+  inside it. One finger pans, two fingers pinch, the wheel zooms, and a
+  zoom pill floats on the map.
+  On the map the chosen line is LIT, not merely left alone: dimming the
+  rest was never enough on a diagram of a hundred near-equal threads. Its
+  strokes are redrawn 1.6x thicker with a white halo under them, and
+  every other line drops to 6% AND loses its colour, so the only colour
+  left on the plate is the line you opened. The thickened strokes are
+  remembered in `dLit` and put back when the next line opens, because the
+  diagram is mounted once and reused. Every control mirrors into the URL.
   THE POPUP'S FACT LIST, settled 30 Aug 2026: ONE FACT, ONE PLACE. The
   head carries the badge, the English name, the Japanese name and that
   name's reading (which the card showed and the popup used to drop). The
